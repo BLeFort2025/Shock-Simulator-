@@ -70,22 +70,28 @@ def compute_basket_impact(
 ) -> Dict[str, float]:
     """
     Compute output, GDP at basic prices, jobs, and wages impact for a given
-    industry basket (`primary_agriculture` by default) using `scripts/io_multipliers_engine.py`.
+    industry basket (`primary_agriculture` by default) directly from `io_df`
+    without re-loading the 5.2M-row Parquet file in `io_multipliers_engine`.
     """
     try:
-        b_df = industries_for_basket(basket_key)
-        codes = b_df["join_code"].unique().tolist() if not b_df.empty else ["111A", "1114A", "112A"]
-        _, summ = compute_impacts(shock_dollars, region, year, scope, codes)
-        if summ is not None and not summ.empty:
-            def _m(substr: str) -> float:
-                m = summ["metric"].astype(str).str.contains(substr, case=False, na=False)
-                return float(summ.loc[m, "impact_dollars"].iloc[0]) if m.any() else 0.0
-
+        mtype = "Total multiplier" if str(scope).lower() in ("total", "direct_indirect_induced") else (
+            "Direct multiplier" if str(scope).lower() == "direct" else "Simple multiplier"
+        )
+        sub_mults = load_subsector_io_multipliers(io_df, region=region, year=year, multiplier_type=mtype)
+        # Empirical Primary Ag FCR weights across 111A (Crops), 112A (Animal), and 1114A (Greenhouse/Nursery)
+        w_map = {"111A": 0.44, "112A": 0.44, "1114A": 0.12} if region == "Ontario" else {"111A": 0.52, "112A": 0.43, "1114A": 0.05}
+        avail = {k: sub_mults[k] for k in w_map if k in sub_mults}
+        if avail:
+            tot_w = sum(w_map[k] for k in avail)
+            out_m = sum(avail[k]["output"] * w_map[k] for k in avail) / tot_w
+            gdp_m = sum(avail[k]["gdp"] * w_map[k] for k in avail) / tot_w
+            jobs_per_m = sum(avail[k]["jobs"] * w_map[k] for k in avail) / tot_w
+            wages_m = sum(avail[k]["wages"] * w_map[k] for k in avail) / tot_w
             return {
-                "output": _m("Output"),
-                "gdp": _m("Gross domestic product \\(GDP\\) at basic prices") or _m("Gross domestic"),
-                "jobs": _m("Jobs"),
-                "wages": _m("Wages and salaries"),
+                "output": shock_dollars * out_m,
+                "gdp": shock_dollars * gdp_m,
+                "jobs": (shock_dollars / 1e6) * jobs_per_m,
+                "wages": shock_dollars * wages_m,
             }
     except Exception:
         pass
@@ -571,6 +577,9 @@ def compute_cost_commodity_breakdown(
 #    upstream farm double-counting.
 # ==============================================================================
 
+_SUBSECTOR_IO_CACHE: Dict[Tuple[int, str, int, str], Dict[str, Dict[str, float]]] = {}
+
+
 def load_subsector_io_multipliers(
     io_df: pd.DataFrame,
     region: str = "Ontario",
@@ -582,6 +591,10 @@ def load_subsector_io_multipliers(
     (`111A`, `1114A`, `112A`) and all 12 Food & Beverage Manufacturing sub-sectors
     (`3111`-`3119`, `31211`, `31212`, `3121A`).
     """
+    cache_key = (id(io_df), str(region), int(year), str(multiplier_type))
+    if cache_key in _SUBSECTOR_IO_CACHE:
+        return _SUBSECTOR_IO_CACHE[cache_key]
+
     sub = io_df[(io_df["GEO"] == region) & (io_df["multiplier_type"] == multiplier_type)]
     if sub.empty:
         sub = io_df[(io_df["GEO"] == "Canada") & (io_df["multiplier_type"] == multiplier_type)]
@@ -600,6 +613,7 @@ def load_subsector_io_multipliers(
             "jobs": float(row.get("Jobs", 5.0)),
             "wages": float(row.get("Labour income", 0.25)),
         }
+    _SUBSECTOR_IO_CACHE[cache_key] = out
     return out
 
 

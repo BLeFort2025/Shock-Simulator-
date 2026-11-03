@@ -179,7 +179,13 @@ st.markdown(
 # ------------------------------------------------------------------------------
 @st.cache_data(show_spinner=False)
 def load_core_datasets() -> Dict[str, Any]:
-    io_df = pd.read_parquet(PROJECT_ROOT / "data" / "latest" / "io_multipliers_standardized.parquet")
+    io_path = PROJECT_ROOT / "data" / "latest" / "io_multipliers_standardized.parquet"
+    try:
+        io_df = pd.read_parquet(io_path, filters=[("YEAR", ">=", 2021)])
+        if io_df.empty:
+            io_df = pd.read_parquet(io_path)
+    except Exception:
+        io_df = pd.read_parquet(io_path)
     baskets_cfg = load_baskets_config()
 
     with open(PROJECT_ROOT / "data" / "derived" / "farm_expense_profiles.json", "r", encoding="utf-8") as f:
