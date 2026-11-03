@@ -1,0 +1,445 @@
+fir_code,fir_name,sgc_code,sgc_name,match_score,match_method,tier
+0100,"Stormont, Dundas and Glengarry UCo",3501000,"Stormont, Dundas and Glengarry UCo",1.0,manual_county,upper
+0101,South Glengarry Tp,3501005,South Glengarry,1.0,auto,lower
+0111,North Glengarry Tp,3501050,North Glengarry,1.0,auto,lower
+0200,Prescott and Russell UCo,3502000,Prescott and Russell UCo,1.0,manual_county,upper
+0201,East Hawkesbury Tp,3502001,East Hawkesbury,1.0,auto,lower
+0208,Hawkesbury T,3502008,Hawkesbury,1.0,auto,lower
+0209,Champlain Tp,3502010,Champlain,1.0,auto,lower
+0212,The Nation M,3502025,The Nation / La Nation,0.95,auto,lower
+0231,Alfred and Plantagenet Tp,3502023,Alfred and Plantagenet,1.0,auto,lower
+0302,Casselman M,3502044,Casselman,1.0,auto,lower
+0306,Russell Tp,3502048,Russell,1.0,auto,lower
+0316,Clarence-Rockland C,3502036,Clarence-Rockland,1.0,auto,lower
+0402,Cornwall C,3501012,Cornwall,1.0,auto,lower
+0406,South Stormont Tp,3501011,South Stormont,1.0,auto,lower
+0411,North Stormont Tp,3501042,North Stormont,1.0,auto,lower
+0506,South Dundas Tp,3501020,South Dundas,1.0,auto,lower
+0511,North Dundas Tp,3501030,North Dundas,1.0,auto,lower
+0614,Ottawa C,3506008,Ottawa,1.0,auto,lower
+0700,Leeds and Grenville UCo,3507000,Leeds and Grenville UCo,1.0,manual_county,upper
+0701,Edwardsburgh-Cardinal Tp,3507004,Edwardsburgh/Cardinal,0.952,auto,lower
+0706,Augusta Tp,3507006,Augusta,1.0,auto,lower
+0708,Prescott ST,3507008,Prescott,0.95,auto,lower
+0714,Merrickville-Wolford V,3507052,Merrickville-Wolford,1.0,auto,lower
+0719,North Grenville M,3507065,North Grenville,1.0,auto,lower
+0801,Elizabethtown-Kitley Tp,3507014,Elizabethtown-Kitley,1.0,auto,lower
+0802,Brockville C,3507015,Brockville,1.0,auto,lower
+0806,Front of Yonge Tp,3507017,Front of Yonge,1.0,auto,lower
+0812,Leeds and the Thousand Islands Tp,3507021,Leeds and the Thousand Islands,1.0,auto,lower
+0814,Gananoque ST,3507024,Gananoque,0.95,auto,lower
+0819,Athens Tp,3507042,Athens,1.0,auto,lower
+0831,Rideau Lakes Tp,3507040,Rideau Lakes,1.0,auto,lower
+0842,Westport V,3507033,Westport,1.0,auto,lower
+0900,Lanark Co,3509000,Lanark Co,1.0,manual_county,upper
+0901,Montague Tp,3509001,Montague,1.0,auto,lower
+0904,Smiths Falls ST,3509004,Smiths Falls,0.95,auto,lower
+0911,Tay Valley Tp,3509015,Tay Valley,1.0,auto,lower
+0919,Drummond-North Elmsley Tp,3509010,Drummond/North Elmsley,0.955,auto,lower
+0921,Perth T,3509021,Perth,1.0,auto,lower
+0924,Beckwith Tp,3509024,Beckwith,1.0,auto,lower
+0928,Carleton Place T,3509028,Carleton Place,1.0,auto,lower
+0931,Mississippi Mills M,3509030,Mississippi Mills,1.0,auto,lower
+0940,Lanark Highlands Tp,3509039,Lanark Highlands,1.0,auto,lower
+1000,Frontenac Co,3510000,Frontenac Co,1.0,manual_county,upper
+1001,Frontenac Islands Tp,3510005,Frontenac Islands,1.0,auto,lower
+1011,Kingston C,3510010,Kingston,1.0,auto,lower
+1029,South Frontenac Tp,3510020,South Frontenac,1.0,auto,lower
+1039,Central Frontenac Tp,3510035,Central Frontenac,1.0,auto,lower
+1042,North Frontenac Tp,3510045,North Frontenac,1.0,auto,lower
+1100,Lennox and Addington Co,3511000,Lennox and Addington Co,1.0,manual_county,upper
+1104,Loyalist Tp,3511005,Loyalist,1.0,auto,lower
+1121,Greater Napanee T,3511015,Greater Napanee,1.0,auto,lower
+1124,Stone Mills Tp,3511030,Stone Mills,1.0,auto,lower
+1134,Addington Highlands Tp,3511035,Addington Highlands,1.0,auto,lower
+1200,Hastings Co,3512000,Hastings Co,1.0,manual_county,upper
+1201,Tyendinaga Tp,3512001,Tyendinaga,1.0,auto,lower
+1202,Deseronto T,3512002,Deseronto,1.0,auto,lower
+1204,Quinte West C,3512015,Quinte West,1.0,auto,lower
+1208,Belleville C,3512005,Belleville,1.0,auto,lower
+1220,Stirling-Rawdon Tp,3512020,Stirling-Rawdon,1.0,auto,lower
+1230,Centre Hastings M,3512026,Centre Hastings,1.0,auto,lower
+1231,Tweed M,3512030,Tweed,1.0,auto,lower
+1236,Madoc Tp,3512036,Madoc,1.0,auto,lower
+1241,Marmora and Lake M,3512046,Marmora and Lake,1.0,auto,lower
+1248,Tudor and Cashel Tp,3512048,Tudor and Cashel,1.0,auto,lower
+1251,Limerick Tp,3512051,Limerick,1.0,auto,lower
+1254,Wollaston Tp,3512054,Wollaston,1.0,auto,lower
+1258,Faraday Tp,3512058,Faraday,1.0,auto,lower
+1262,Bancroft T,3512061,Bancroft,1.0,auto,lower
+1270,Carlow-Mayo Tp,3512065,Carlow/Mayo,0.909,auto,lower
+1290,Hastings Highlands M,3512076,Hastings Highlands,1.0,auto,lower
+1350,Prince Edward County C,3513020,Prince Edward,0.95,auto,lower
+1400,Northumberland Co,3514000,Northumberland Co,1.0,manual_county,upper
+1408,Brighton M,3514004,Brighton,1.0,auto,lower
+1411,Cramahe Tp,3514014,Cramahe,1.0,auto,lower
+1419,Hamilton Tp,3514019,Hamilton,1.0,auto,lower
+1421,Cobourg T,3514021,Cobourg,1.0,auto,lower
+1423,Port Hope M,3514020,Port Hope,1.0,auto,lower
+1435,Trent Hills M,3514045,Trent Hills,1.0,auto,lower
+1450,Alnwick-Haldimand Tp,3514024,Alnwick/Haldimand,0.941,auto,lower
+1500,Peterborough Co,3515000,Peterborough Co,1.0,manual_county,upper
+1501,Asphodel-Norwood Tp,3515003,Asphodel-Norwood,1.0,auto,lower
+1506,Otonabee-South Monaghan Tp,3515005,Otonabee-South Monaghan,1.0,auto,lower
+1509,Cavan Monaghan Tp,3515013,Cavan-Millbrook-North Monaghan,1.0,verified,lower
+1514,Peterborough C,3515014,Peterborough,1.0,auto,lower
+1516,Selwyn Tp,3515015,Smith-Ennismore-Lakefield,1.0,manual,lower
+1522,Douro-Dummer Tp,3515023,Douro-Dummer,1.0,auto,lower
+1531,Havelock-Belmont-Methuen Tp,3515030,Havelock-Belmont-Methuen,1.0,auto,lower
+1536,North Kawartha Tp,3515037,North Kawartha,1.0,auto,lower
+1542,Trent Lakes M,3515044,Galway-Cavendish and Harvey,1.0,manual,lower
+1651,Kawartha Lakes C,3516010,Kawartha Lakes,1.0,auto,lower
+1800,Durham R,3518000,Durham R,1.0,manual_county,upper
+1801,Pickering C,3518001,Pickering,1.0,auto,lower
+1805,Ajax T,3518005,Ajax,1.0,auto,lower
+1809,Whitby T,3518009,Whitby,1.0,auto,lower
+1813,Oshawa C,3518013,Oshawa,1.0,auto,lower
+1817,Clarington M,3518017,Clarington,1.0,auto,lower
+1820,Scugog Tp,3518020,Scugog,1.0,auto,lower
+1829,Uxbridge Tp,3518029,Uxbridge,1.0,auto,lower
+1839,Brock Tp,3518039,Brock,1.0,auto,lower
+1928,Vaughan C,3519028,Vaughan,1.0,auto,lower
+1936,Markham C,3519036,Markham,1.0,auto,lower
+1938,Richmond Hill C,3519038,Richmond Hill,1.0,auto,lower
+1944,Whitchurch - Stouffville T,3519044,Whitchurch-Stouffville,1.0,auto,lower
+1946,Aurora T,3519046,Aurora,1.0,auto,lower
+1948,Newmarket T,3519048,Newmarket,1.0,auto,lower
+1949,King Tp,3519049,King,1.0,auto,lower
+1954,East Gwillimbury T,3519054,East Gwillimbury,1.0,auto,lower
+1970,Georgina T,3519070,Georgina,1.0,auto,lower
+1999,Toronto C,3520005,Toronto,1.0,auto,lower
+2000,York R,3519000,York R,1.0,manual_county,upper
+2100,Peel R,3521000,Peel R,1.0,manual_county,upper
+2105,Mississauga C,3521005,Mississauga,1.0,auto,lower
+2110,Brampton C,3521010,Brampton,1.0,auto,lower
+2124,Caledon T,3521024,Caledon,1.0,auto,lower
+2200,Dufferin Co,3522000,Dufferin Co,1.0,manual_county,upper
+2201,East Garafraxa Tp,3522001,East Garafraxa,1.0,auto,lower
+2204,Grand Valley T,3522010,East Luther Grand Valley,0.95,auto,lower
+2208,Amaranth Tp,3522008,Amaranth,1.0,auto,lower
+2212,Mono T,3522012,Mono,1.0,auto,lower
+2214,Orangeville T,3522014,Orangeville,1.0,auto,lower
+2216,Mulmur Tp,3522016,Mulmur,1.0,auto,lower
+2219,Melancthon Tp,3522019,Melancthon,1.0,auto,lower
+2221,Shelburne T,3522021,Shelburne,1.0,auto,lower
+2300,Wellington Co,3523000,Wellington Co,1.0,manual_county,upper
+2301,Puslinch Tp,3523001,Puslinch,1.0,auto,lower
+2308,Guelph C,3523008,Guelph,1.0,auto,lower
+2311,Guelph-Eramosa Tp,3523009,Guelph/Eramosa,0.929,auto,lower
+2316,Erin T,3523017,Erin,1.0,auto,lower
+2326,Centre Wellington Tp,3523025,Centre Wellington,1.0,auto,lower
+2332,Mapleton Tp,3523033,Mapleton,1.0,auto,lower
+2341,Minto T,3523043,Minto,1.0,auto,lower
+2349,Wellington North Tp,3523050,Wellington North,1.0,auto,lower
+2400,Halton R,3524000,Halton R,1.0,manual_county,upper
+2401,Oakville T,3524001,Oakville,1.0,auto,lower
+2402,Burlington C,3524002,Burlington,1.0,auto,lower
+2409,Milton T,3524009,Milton,1.0,auto,lower
+2415,Halton Hills T,3524015,Halton Hills,1.0,auto,lower
+2518,Hamilton C,3525005,Hamilton,1.0,auto,lower
+2600,Niagara R,3526000,Niagara R,1.0,manual_county,upper
+2602,West Lincoln Tp,3526021,West Lincoln,1.0,auto,lower
+2615,Grimsby T,3526065,Grimsby,1.0,auto,lower
+2622,Lincoln T,3526057,Lincoln,1.0,auto,lower
+2627,Niagara-on-the-Lake T,3526047,Niagara-on-the-Lake,1.0,auto,lower
+2629,St Catharines C,3526053,St. Catharines,1.0,auto,lower
+2703,Fort Erie T,3526003,Fort Erie,1.0,auto,lower
+2711,Port Colborne C,3526011,Port Colborne,1.0,auto,lower
+2714,Wainfleet Tp,3526014,Wainfleet,1.0,auto,lower
+2719,Welland C,3526032,Welland,1.0,auto,lower
+2725,Niagara Falls C,3526043,Niagara Falls,1.0,auto,lower
+2731,Thorold C,3526037,Thorold,1.0,auto,lower
+2732,Pelham T,3526028,Pelham,1.0,auto,lower
+2810,Haldimand County,3528018,Haldimand County,1.0,auto,lower
+2906,Brantford C,3529006,Brantford,1.0,auto,lower
+2920,Brant County,3529005,Brant,1.0,auto,lower
+3000,Waterloo R,3530000,Waterloo R,1.0,manual_county,upper
+3001,North Dumfries Tp,3530004,North Dumfries,1.0,auto,lower
+3006,Cambridge C,3530010,Cambridge,1.0,auto,lower
+3012,Kitchener C,3530013,Kitchener,1.0,auto,lower
+3016,Waterloo C,3530016,Waterloo,1.0,auto,lower
+3018,Wilmot Tp,3530020,Wilmot,1.0,auto,lower
+3024,Wellesley Tp,3530027,Wellesley,1.0,auto,lower
+3029,Woolwich Tp,3530035,Woolwich,1.0,auto,lower
+3100,Perth Co,3531000,Perth Co,1.0,manual_county,upper
+3110,Perth East Tp,3531030,Perth East,1.0,auto,lower
+3111,Stratford C,3531011,Stratford,1.0,auto,lower
+3116,St Marys ST,3531016,St. Marys,0.95,auto,lower
+3120,Perth South Tp,3531013,Perth South,1.0,auto,lower
+3130,West Perth M,3531025,West Perth,1.0,auto,lower
+3140,North Perth M,3531040,North Perth,1.0,auto,lower
+3200,Oxford Co,3532000,Oxford Co,1.0,manual_county,upper
+3202,Norwich Tp,3532002,Norwich,1.0,auto,lower
+3204,Tillsonburg T,3532004,Tillsonburg,1.0,auto,lower
+3211,South-West Oxford Tp,3532012,South-West Oxford,1.0,auto,lower
+3218,Ingersoll T,3532018,Ingersoll,1.0,auto,lower
+3227,Zorra Tp,3532027,Zorra,1.0,auto,lower
+3238,East Zorra - Tavistock Tp,3532038,East Zorra-Tavistock,1.0,auto,lower
+3242,Woodstock C,3532042,Woodstock,1.0,auto,lower
+3245,Blandford - Blenheim Tp,3532045,Blandford-Blenheim,1.0,auto,lower
+3310,Norfolk County,3528052,Norfolk County,1.0,auto,lower
+3400,Elgin Co,3534000,Elgin Co,1.0,manual_county,upper
+3401,Bayham M,3534005,Bayham,1.0,auto,lower
+3408,Malahide Tp,3534010,Malahide,1.0,auto,lower
+3411,Aylmer T,3534011,Aylmer,1.0,auto,lower
+3418,Central Elgin M,3534020,Central Elgin,1.0,auto,lower
+3421,St Thomas C,3534021,St. Thomas,1.0,auto,lower
+3424,Southwold Tp,3534024,Southwold,1.0,auto,lower
+3429,Dutton-Dunwich M,3534030,Dutton/Dunwich,0.929,auto,lower
+3434,West Elgin M,3534042,West Elgin,1.0,auto,lower
+3650,Chatham-Kent M,3536020,Chatham-Kent,1.0,auto,lower
+3700,Essex Co,3537000,Essex Co,1.0,manual_county,upper
+3701,Pelee Tp,3537001,Pelee,1.0,auto,lower
+3706,Leamington M,3537003,Leamington,1.0,auto,lower
+3711,Kingsville T,3537013,Kingsville,1.0,auto,lower
+3729,Amherstburg T,3537028,Amherstburg,1.0,auto,lower
+3734,LaSalle T,3537034,LaSalle,1.0,auto,lower
+3739,Windsor C,3537039,Windsor,1.0,auto,lower
+3744,Tecumseh T,3537048,Tecumseh,1.0,auto,lower
+3751,Lakeshore T,3537064,Lakeshore,1.0,auto,lower
+3754,Essex T,3537016,Essex,1.0,auto,lower
+3800,Lambton Co,3538000,Lambton Co,1.0,manual_county,upper
+3805,St Clair Tp,3538003,St. Clair,1.0,auto,lower
+3806,Dawn-Euphemia Tp,3538007,Dawn-Euphemia,1.0,auto,lower
+3815,Brooke-Alvinston M,3538015,Brooke-Alvinston,1.0,auto,lower
+3816,Enniskillen Tp,3538016,Enniskillen,1.0,auto,lower
+3818,Oil Springs V,3538018,Oil Springs,1.0,auto,lower
+3819,Petrolia T,3538019,Petrolia,1.0,auto,lower
+3829,Sarnia C,3538030,Sarnia,1.0,auto,lower
+3831,Point Edward V,3538031,Point Edward,1.0,auto,lower
+3835,Plympton-Wyoming T,3538035,Plympton-Wyoming,1.0,auto,lower
+3841,Warwick Tp,3538043,Warwick,1.0,auto,lower
+3845,Lambton Shores M,3538040,Lambton Shores,1.0,auto,lower
+3900,Middlesex Co,3539000,Middlesex Co,1.0,manual_county,upper
+3902,Newbury V,3539002,Newbury,1.0,auto,lower
+3906,Southwest Middlesex M,3539005,Southwest Middlesex,1.0,auto,lower
+3916,Strathroy-Caradoc M,3539015,Strathroy-Caradoc,1.0,auto,lower
+3926,Thames Centre M,3539027,Thames Centre,1.0,auto,lower
+3936,London C,3539036,London,1.0,auto,lower
+3939,Middlesex Centre M,3539033,Middlesex Centre,1.0,auto,lower
+3946,Adelaide-Metcalfe Tp,3539047,Adelaide Metcalfe,1.0,auto,lower
+3954,North Middlesex M,3539041,North Middlesex,1.0,auto,lower
+3958,Lucan Biddulph Tp,3539060,Lucan Biddulph,1.0,auto,lower
+4000,Huron Co,3540000,Huron Co,1.0,manual_county,upper
+4010,South Huron M,3540005,South Huron,1.0,auto,lower
+4020,Bluewater M,3540010,Bluewater,1.0,auto,lower
+4028,Goderich T,3540028,Goderich,1.0,auto,lower
+4030,Central Huron M,3540025,Central Huron,1.0,auto,lower
+4040,Huron East M,3540040,Huron East,1.0,auto,lower
+4046,Howick Tp,3540046,Howick,1.0,auto,lower
+4050,North Huron Tp,3540055,North Huron,1.0,auto,lower
+4060,Morris-Turnberry M,3540050,Morris-Turnberry,1.0,auto,lower
+4070,Ashfield-Colborne-Wawanosh Tp,3540063,Ashfield-Colborne-Wawanosh,1.0,auto,lower
+4100,Bruce Co,3541000,Bruce Co,1.0,manual_county,upper
+4102,The South Bruce Peninsula T,3541055,South Bruce Peninsula,0.95,auto,lower
+4103,Arran-Elderslie M,3541043,Arran-Elderslie,1.0,auto,lower
+4104,Brockton M,3541032,Brockton,1.0,auto,lower
+4105,South Bruce M,3541004,South Bruce,1.0,auto,lower
+4107,Huron-Kinloss Tp,3541015,Huron-Kinloss,1.0,auto,lower
+4108,Kincardine M,3541024,Kincardine,1.0,auto,lower
+4109,Northern Bruce Peninsula M,3541069,Northern Bruce Peninsula,1.0,auto,lower
+4110,Saugeen Shores T,3541045,Saugeen Shores,1.0,auto,lower
+4200,Grey Co,3542000,Grey Co,1.0,manual_county,upper
+4203,Georgian Bluffs Tp,3542053,Georgian Bluffs,1.0,auto,lower
+4204,Chatsworth Tp,3542037,Chatsworth,1.0,auto,lower
+4205,West Grey M,3542004,West Grey,1.0,auto,lower
+4207,Southgate Tp,3542005,Southgate,1.0,auto,lower
+4208,Grey Highlands M,3542015,Grey Highlands,1.0,auto,lower
+4210,Meaford M,3542047,Meaford,1.0,auto,lower
+4229,Hanover T,3542029,Hanover,1.0,auto,lower
+4242,The Blue Mountains T,3542045,Blue Mountains,0.95,auto,lower
+4259,Owen Sound C,3542059,Owen Sound,1.0,auto,lower
+4300,Simcoe Co,3543000,Simcoe Co,1.0,manual_county,upper
+4301,Adjala-Tosorontio Tp,3543003,Adjala-Tosorontio,1.0,auto,lower
+4312,Bradford West Gwillimbury T,3543014,Bradford West Gwillimbury,1.0,auto,lower
+4316,Innisfil T,3543017,Innisfil,1.0,auto,lower
+4321,Essa Tp,3543021,Essa,1.0,auto,lower
+4324,New Tecumseth T,3543007,New Tecumseth,1.0,auto,lower
+4329,Clearview Tp,3543005,Clearview,1.0,auto,lower
+4331,Collingwood T,3543031,Collingwood,1.0,auto,lower
+4341,Springwater Tp,3543009,Springwater,1.0,auto,lower
+4342,Barrie C,3543042,Barrie,1.0,auto,lower
+4346,Oro-Medonte Tp,3543023,Oro-Medonte,1.0,auto,lower
+4348,Ramara Tp,3543019,Ramara,1.0,auto,lower
+4351,Severn Tp,3543015,Severn,1.0,auto,lower
+4352,Orillia C,3543052,Orillia,1.0,auto,lower
+4353,Tay Tp,3543071,Tay,1.0,auto,lower
+4364,Wasaga Beach T,3543064,Wasaga Beach,1.0,auto,lower
+4368,Tiny Tp,3543068,Tiny,1.0,auto,lower
+4372,Penetanguishene T,3543072,Penetanguishene,1.0,auto,lower
+4374,Midland T,3543074,Midland,1.0,auto,lower
+4400,Muskoka D,3544000,Muskoka D,1.0,manual_county,upper
+4402,Gravenhurst T,3544002,Gravenhurst,1.0,auto,lower
+4418,Bracebridge T,3544018,Bracebridge,1.0,auto,lower
+4427,Lake of Bays Tp,3544027,Lake of Bays,1.0,auto,lower
+4442,Huntsville T,3544042,Huntsville,1.0,auto,lower
+4453,Muskoka Lakes Tp,3544053,Muskoka Lakes,1.0,auto,lower
+4465,Georgian Bay Tp,3544065,Georgian Bay,1.0,auto,lower
+4600,Haliburton Co,3546000,Haliburton Co,1.0,manual_county,upper
+4601,Highlands East M,3546005,Highlands East,1.0,auto,lower
+4616,Minden Hills Tp,3546015,Minden Hills,1.0,auto,lower
+4621,Algonquin Highlands Tp,3546018,Algonquin Highlands,1.0,auto,lower
+4624,Dysart et al Tp,3546024,Dysart and Others,1.0,verified,lower
+4700,Renfrew Co,3547000,Renfrew Co,1.0,manual_county,upper
+4701,McNab-Braeside Tp,3547003,McNab/Braeside,0.929,auto,lower
+4702,Arnprior T,3547002,Arnprior,1.0,auto,lower
+4706,Greater Madawaska Tp,3547008,Greater Madawaska,1.0,auto,lower
+4719,"Brudenell, Lyndoch and Raglan Tp",3547020,"Brudenell, Lyndoch and Raglan",1.0,auto,lower
+4726,Madawaska Valley Tp,3547030,Madawaska Valley,1.0,auto,lower
+4731,"Killaloe, Hagarty and Richards Tp",3547033,"Killaloe, Hagarty and Richards",1.0,auto,lower
+4738,Bonnechere Valley Tp,3547035,Bonnechere Valley,1.0,auto,lower
+4742,Admaston-Bromley Tp,3547043,Admaston/Bromley,0.938,auto,lower
+4746,Horton Tp,3547046,Horton,1.0,auto,lower
+4748,Renfrew T,3547048,Renfrew,1.0,auto,lower
+4758,Whitewater Region Tp,3547056,Whitewater Region,1.0,auto,lower
+4764,Pembroke C,3547064,Pembroke,1.0,auto,lower
+4766,Laurentian Valley Tp,3547075,Laurentian Valley,1.0,auto,lower
+4769,North Algona-Wilberforce Tp,3547070,North Algona Wilberforce,1.0,auto,lower
+4779,Petawawa T,3547076,Petawawa,1.0,auto,lower
+4792,Laurentian Hills T,3547090,Laurentian Hills,1.0,auto,lower
+4796,Deep River T,3547096,Deep River,1.0,auto,lower
+4798,"Head, Clara and Maria Tp",3547098,"Head, Clara and Maria",1.0,auto,lower
+4801,South Algonquin Tp,3548001,South Algonquin,1.0,auto,lower
+4816,Papineau-Cameron Tp,3548013,Papineau-Cameron,1.0,auto,lower
+4819,Mattawan M,3548019,Mattawan,1.0,auto,lower
+4821,Mattawa T,3548021,Mattawa,1.0,auto,lower
+4822,Calvin Tp,3548022,Calvin,1.0,auto,lower
+4826,Bonfield Tp,3548027,Bonfield,1.0,auto,lower
+4831,Chisholm Tp,3548031,Chisholm,1.0,auto,lower
+4834,East Ferris M,3548034,East Ferris,1.0,auto,lower
+4844,North Bay C,3548044,North Bay,1.0,auto,lower
+4852,West Nipissing M,3548055,West Nipissing / Nipissing Ouest,0.95,auto,lower
+4869,Temagami M,3548069,Temagami,1.0,auto,lower
+4903,Seguin Tp,3549003,Seguin,1.0,auto,lower
+4905,The Archipelago Tp,3549005,The Archipelago,1.0,auto,lower
+4912,McMurrich-Monteith Tp,3549012,McMurrich/Monteith,0.944,auto,lower
+4914,Perry Tp,3549014,Perry,1.0,auto,lower
+4918,Kearney T,3549018,Kearney,1.0,auto,lower
+4919,Armour Tp,3549019,Armour,1.0,auto,lower
+4922,Burk's Falls V,3549022,Burk's Falls,1.0,auto,lower
+4924,Ryerson Tp,3549024,Ryerson,1.0,auto,lower
+4928,McKellar Tp,3549028,McKellar,1.0,auto,lower
+4931,McDougall Tp,3549031,McDougall,1.0,auto,lower
+4932,Parry Sound T,3549032,Parry Sound,1.0,auto,lower
+4936,Carling Tp,3549036,Carling,1.0,auto,lower
+4939,Whitestone M,3549039,Whitestone,1.0,auto,lower
+4944,Magnetawan M,3549043,Magnetawan,1.0,auto,lower
+4946,Strong Tp,3549046,Strong,1.0,auto,lower
+4948,Sundridge V,3549048,Sundridge,1.0,auto,lower
+4951,Joly Tp,3549051,Joly,1.0,auto,lower
+4954,Machar Tp,3549054,Machar,1.0,auto,lower
+4956,South River V,3549056,South River,1.0,auto,lower
+4959,Powassan M,3549060,Powassan,1.0,auto,lower
+4966,Callander M,3549066,Callander,1.0,auto,lower
+4971,Nipissing Tp,3549071,Nipissing,1.0,auto,lower
+5101,Tehkummah Tp,3551001,Tehkummah,1.0,auto,lower
+5104,Central Manitoulin M,3551006,Central Manitoulin,1.0,auto,lower
+5111,Assiginack Tp,3551011,Assiginack,1.0,auto,lower
+5119,Northeastern Manitoulin & The Isl T,3551017,Northeastern Manitoulin and the Islands,0.889,auto,lower
+5121,Billings Tp,3551021,Billings,1.0,auto,lower
+5125,Gordon-Barrie Island M,3551024,Gordon,0.95,auto,lower
+5126,Gore Bay T,3551026,Gore Bay,1.0,auto,lower
+5128,Burpee and Mills Tp,3551028,Burpee and Mills,1.0,auto,lower
+5134,Cockburn Island Tp,3551034,Cockburn Island,1.0,auto,lower
+5136,Killarney M,3551036,Killarney,1.0,auto,lower
+5201,French River M,3552001,French River / Rivière des Français,0.95,auto,lower
+5204,St-Charles M,3552004,St.-Charles,1.0,auto,lower
+5208,Markstay-Warren M,3552013,Markstay-Warren,1.0,auto,lower
+5218,Sables-Spanish Rivers Tp,3552023,Sables-Spanish Rivers,1.0,auto,lower
+5226,Espanola T,3552026,Espanola,1.0,auto,lower
+5228,Baldwin Tp,3552028,Baldwin,1.0,auto,lower
+5231,Nairn and Hyman Tp,3552031,Nairn and Hyman,1.0,auto,lower
+5292,Chapleau Tp,3552092,Chapleau,1.0,auto,lower
+5307,Greater Sudbury C,3553005,Greater Sudbury / Grand Sudbury,0.95,auto,lower
+5401,Coleman Tp,3554001,Coleman,1.0,auto,lower
+5406,Latchford T,3554006,Latchford,1.0,auto,lower
+5408,Cobalt T,3554008,Cobalt,1.0,auto,lower
+5414,Harris Tp,3554014,Harris,1.0,auto,lower
+5418,Temiskaming Shores C,3554020,Temiskaming Shores,1.0,auto,lower
+5421,Hudson Tp,3554021,Hudson,1.0,auto,lower
+5424,Kerns Tp,3554024,Kerns,1.0,auto,lower
+5426,Harley Tp,3554026,Harley,1.0,auto,lower
+5429,Casey Tp,3554029,Casey,1.0,auto,lower
+5432,Brethour Tp,3554032,Brethour,1.0,auto,lower
+5434,Hilliard Tp,3554034,Hilliard,1.0,auto,lower
+5436,Armstrong Tp,3554036,Armstrong,1.0,auto,lower
+5438,Thornloe V,3554038,Thornloe,1.0,auto,lower
+5442,James Tp,3554042,James,1.0,auto,lower
+5447,Charlton-Dack M,3554044,Charlton and Dack,0.867,auto,lower
+5449,Evanturel Tp,3554049,Evanturel,1.0,auto,lower
+5452,Englehart T,3554052,Englehart,1.0,auto,lower
+5454,Chamberlain Tp,3554054,Chamberlain,1.0,auto,lower
+5456,Matachewan Tp,3554056,Matachewan,1.0,auto,lower
+5458,McGarry Tp,3554058,McGarry,1.0,auto,lower
+5462,Larder Lake Tp,3554062,Larder Lake,1.0,auto,lower
+5466,Gauthier Tp,3554066,Gauthier,1.0,auto,lower
+5468,Kirkland Lake T,3554068,Kirkland Lake,1.0,auto,lower
+5614,Black River - Matheson Tp,3556014,Black River-Matheson,1.0,auto,lower
+5627,Timmins C,3556027,Timmins,1.0,auto,lower
+5631,Iroquois Falls T,3556031,Iroquois Falls,1.0,auto,lower
+5639,Cochrane T,3556042,Cochrane,1.0,auto,lower
+5648,Smooth Rock Falls T,3556048,Smooth Rock Falls,1.0,auto,lower
+5652,Fauquier-Strickland Tp,3556052,Fauquier-Strickland,1.0,auto,lower
+5656,Moonbeam Tp,3556056,Moonbeam,1.0,auto,lower
+5665,Moosonee T,3556106,Moosonee,1.0,auto,lower
+5666,Kapuskasing T,3556066,Kapuskasing,1.0,auto,lower
+5670,Val Rita-Harty Tp,3556070,Val Rita-Harty,1.0,auto,lower
+5673,Opasatika Tp,3556073,Opasatika,1.0,auto,lower
+5676,Hearst T,3556076,Hearst,1.0,auto,lower
+5677,Mattice - Val Cote Tp,3556077,Mattice-Val Côté,0.875,auto,lower
+5701,Jocelyn Tp,3557001,Jocelyn,1.0,auto,lower
+5704,Hilton Tp,3557004,Hilton,1.0,auto,lower
+5706,Hilton Beach V,3557006,Hilton Beach,1.0,auto,lower
+5708,St Joseph Tp,3557008,St. Joseph,1.0,auto,lower
+5711,Laird Tp,3557011,Laird,1.0,auto,lower
+5714,Tarbutt Tp,3557014,Tarbutt and Tarbutt Additional,0.95,auto,lower
+5716,Johnson Tp,3557016,Johnson,1.0,auto,lower
+5719,Plummer Additional Tp,3557019,Plummer Additional,1.0,auto,lower
+5721,Bruce Mines T,3557021,Bruce Mines,1.0,auto,lower
+5724,Huron Shores M,3557035,Huron Shores,1.0,auto,lower
+5728,Thessalon T,3557028,Thessalon,1.0,auto,lower
+5738,Blind River T,3557038,Blind River,1.0,auto,lower
+5739,Spanish T,3557039,Spanish,1.0,auto,lower
+5740,The North Shore Tp,3557040,North Shore,0.95,auto,lower
+5741,Elliot Lake C,3557041,Elliot Lake,1.0,auto,lower
+5751,Macdonald Meredith et al Tp,3557051,"Macdonald, Meredith and Aberdeen Additional",1.0,verified,lower
+5761,Sault Ste Marie C,3557061,Sault Ste. Marie,1.0,auto,lower
+5766,Prince Tp,3557066,Prince,1.0,auto,lower
+5776,Wawa M,3560100,Wawakapewin (Long Dog Lake),0.95,auto,lower
+5779,Dubreuilville Tp,3557079,Dubreuilville,1.0,auto,lower
+5791,White River Tp,3557091,White River,1.0,auto,lower
+5796,Hornepayne Tp,3557096,Hornepayne,1.0,auto,lower
+5801,Neebing M,3558001,Neebing,1.0,auto,lower
+5804,Thunder Bay C,3558004,Thunder Bay,1.0,auto,lower
+5808,Oliver Paipoonge M,3558011,Oliver Paipoonge,1.0,auto,lower
+5812,Gillies Tp,3558012,Gillies,1.0,auto,lower
+5816,O'Connor Tp,3558016,O'Connor,1.0,auto,lower
+5819,Conmee Tp,3558019,Conmee,1.0,auto,lower
+5828,Shuniah M,3558028,Shuniah,1.0,auto,lower
+5834,Dorion Tp,3558034,Dorion,1.0,auto,lower
+5841,Red Rock Tp,3558041,Red Rock,1.0,auto,lower
+5844,Nipigon Tp,3558044,Nipigon,1.0,auto,lower
+5851,Schreiber Tp,3558051,Schreiber,1.0,auto,lower
+5854,Terrace Bay Tp,3558054,Terrace Bay,1.0,auto,lower
+5859,Marathon T,3558059,Marathon,1.0,auto,lower
+5866,Manitouwadge Tp,3558066,Manitouwadge,1.0,auto,lower
+5876,Greenstone M,3558075,Greenstone,1.0,auto,lower
+5901,Atikokan Tp,3559001,Atikokan,1.0,auto,lower
+5911,Alberton Tp,3559011,Alberton,1.0,auto,lower
+5912,Fort Frances T,3559012,Fort Frances,1.0,auto,lower
+5916,La Vallee Tp,3559016,La Vallee,1.0,auto,lower
+5919,Emo Tp,3559019,Emo,1.0,auto,lower
+5924,Chapple Tp,3559024,Chapple,1.0,auto,lower
+5931,Morley Tp,3559031,Morley,1.0,auto,lower
+5934,Dawson Tp,3559040,Dawson,1.0,auto,lower
+5942,Rainy River T,3559042,Rainy River,1.0,auto,lower
+5946,Lake of The Woods Tp,3559047,Lake of the Woods,1.0,auto,lower
+6001,Ignace Tp,3560001,Ignace,1.0,auto,lower
+6008,Sioux Narrows-Nestor Falls Tp,3560008,Sioux Narrows - Nestor Falls,1.0,auto,lower
+6016,Kenora C,3560010,Kenora,1.0,auto,lower
+6021,Machin Tp,3560021,Machin,1.0,auto,lower
+6026,Dryden C,3560027,Dryden,1.0,auto,lower
+6034,Sioux Lookout M,3560034,Sioux Lookout,1.0,auto,lower
+6041,Red Lake M,3560042,Red Lake,1.0,auto,lower
+6042,Ear Falls Tp,3560032,Ear Falls,1.0,auto,lower
+6049,Pickle Lake Tp,3560049,Pickle Lake,1.0,auto,lower

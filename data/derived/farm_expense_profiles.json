@@ -1,0 +1,3302 @@
+{
+  "Alberta|All farm types": {
+    "total_expenses_raw": 28203977007.0,
+    "ratios": {
+      "fertilizer": 0.0827,
+      "energy": 0.0466,
+      "labor": 0.0429,
+      "feed": 0.1352,
+      "crop_inputs": 0.0583,
+      "interest": 0.0485,
+      "other": 0.4864
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1023,
+      "energy": 0.0575,
+      "feed": 0.1671,
+      "crop_inputs": 0.072,
+      "other": 0.6011
+    },
+    "labor_dollars": 1208637066.0,
+    "interest_dollars": 1367881643.0,
+    "depreciation_dollars": 2805841589.0
+  },
+  "Alberta|Animal production [112]": {
+    "total_expenses_raw": 18559671254.0,
+    "ratios": {
+      "fertilizer": 0.0234,
+      "energy": 0.0297,
+      "labor": 0.0302,
+      "feed": 0.1876,
+      "crop_inputs": 0.0178,
+      "interest": 0.0392,
+      "other": 0.6202
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0266,
+      "energy": 0.0338,
+      "feed": 0.2135,
+      "crop_inputs": 0.0202,
+      "other": 0.7058
+    },
+    "labor_dollars": 560338067.0,
+    "interest_dollars": 728315465.0,
+    "depreciation_dollars": 963697455.0
+  },
+  "Alberta|Beef cattle ranching and farming, including feedlots [112110]": {
+    "total_expenses_raw": 15608093851.0,
+    "ratios": {
+      "fertilizer": 0.0195,
+      "energy": 0.0246,
+      "labor": 0.0221,
+      "feed": 0.1731,
+      "crop_inputs": 0.0145,
+      "interest": 0.0361,
+      "other": 0.6647
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0218,
+      "energy": 0.0274,
+      "feed": 0.1931,
+      "crop_inputs": 0.0161,
+      "other": 0.7415
+    },
+    "labor_dollars": 345481698.0,
+    "interest_dollars": 563529397.0,
+    "depreciation_dollars": 707570983.0
+  },
+  "Alberta|Crop production [111]": {
+    "total_expenses_raw": 9644554380.0,
+    "ratios": {
+      "fertilizer": 0.1969,
+      "energy": 0.079,
+      "labor": 0.0672,
+      "feed": 0.0345,
+      "crop_inputs": 0.1361,
+      "interest": 0.0663,
+      "other": 0.2289
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.2915,
+      "energy": 0.117,
+      "feed": 0.0511,
+      "crop_inputs": 0.2015,
+      "other": 0.3389
+    },
+    "labor_dollars": 648296163.0,
+    "interest_dollars": 639568373.0,
+    "depreciation_dollars": 1842118200.0
+  },
+  "Alberta|Dairy cattle and milk production [112120]": {
+    "total_expenses_raw": 626855079.0,
+    "ratios": {
+      "fertilizer": 0.0322,
+      "energy": 0.0575,
+      "labor": 0.0913,
+      "feed": 0.2753,
+      "crop_inputs": 0.0214,
+      "interest": 0.1344,
+      "other": 0.2609
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0497,
+      "energy": 0.0888,
+      "feed": 0.4254,
+      "crop_inputs": 0.033,
+      "other": 0.4031
+    },
+    "labor_dollars": 57248160.0,
+    "interest_dollars": 84273231.0,
+    "depreciation_dollars": 79542405.0
+  },
+  "Alberta|Fruit and tree nut farming [1113]": {
+    "total_expenses_raw": 3277432.0,
+    "ratios": {
+      "fertilizer": 0.0207,
+      "energy": 0.1515,
+      "labor": 0.0926,
+      "feed": 0.0,
+      "crop_inputs": 0.1524,
+      "interest": 0.0882,
+      "other": 0.116
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0469,
+      "energy": 0.3438,
+      "feed": 0.0,
+      "crop_inputs": 0.346,
+      "other": 0.2633
+    },
+    "labor_dollars": 303546.0,
+    "interest_dollars": 288974.0,
+    "depreciation_dollars": 1241198.0
+  },
+  "Alberta|Greenhouse, nursery and floriculture production [1114]": {
+    "total_expenses_raw": 345743515.0,
+    "ratios": {
+      "fertilizer": 0.035,
+      "energy": 0.1018,
+      "labor": 0.2623,
+      "feed": 0.0009,
+      "crop_inputs": 0.1987,
+      "interest": 0.0392,
+      "other": 0.2957
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0553,
+      "energy": 0.1611,
+      "feed": 0.0015,
+      "crop_inputs": 0.3143,
+      "other": 0.4678
+    },
+    "labor_dollars": 90693172.0,
+    "interest_dollars": 13567382.0,
+    "depreciation_dollars": 22938685.0
+  },
+  "Alberta|Hog and pig farming [1122]": {
+    "total_expenses_raw": 267283358.0,
+    "ratios": {
+      "fertilizer": 0.0193,
+      "energy": 0.0572,
+      "labor": 0.1005,
+      "feed": 0.4166,
+      "crop_inputs": 0.0077,
+      "interest": 0.0421,
+      "other": 0.3128
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0237,
+      "energy": 0.0703,
+      "feed": 0.512,
+      "crop_inputs": 0.0095,
+      "other": 0.3845
+    },
+    "labor_dollars": 26849731.0,
+    "interest_dollars": 11253543.0,
+    "depreciation_dollars": 11712658.0
+  },
+  "Alberta|Oilseed and grain farming [1111]": {
+    "total_expenses_raw": 7827180785.0,
+    "ratios": {
+      "fertilizer": 0.2199,
+      "energy": 0.0758,
+      "labor": 0.0548,
+      "feed": 0.0321,
+      "crop_inputs": 0.1399,
+      "interest": 0.0668,
+      "other": 0.2091
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.3249,
+      "energy": 0.112,
+      "feed": 0.0474,
+      "crop_inputs": 0.2067,
+      "other": 0.309
+    },
+    "labor_dollars": 429018307.0,
+    "interest_dollars": 523243857.0,
+    "depreciation_dollars": 1577209426.0
+  },
+  "Alberta|Other animal production [112A]": {
+    "total_expenses_raw": 1544381853.0,
+    "ratios": {
+      "fertilizer": 0.0574,
+      "energy": 0.0578,
+      "labor": 0.0593,
+      "feed": 0.2007,
+      "crop_inputs": 0.0517,
+      "interest": 0.0263,
+      "other": 0.4671
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0687,
+      "energy": 0.0692,
+      "feed": 0.2405,
+      "crop_inputs": 0.062,
+      "other": 0.5596
+    },
+    "labor_dollars": 91584054.0,
+    "interest_dollars": 40631021.0,
+    "depreciation_dollars": 123061423.0
+  },
+  "Alberta|Other crop farming [1119]": {
+    "total_expenses_raw": 998660376.0,
+    "ratios": {
+      "fertilizer": 0.117,
+      "energy": 0.0967,
+      "labor": 0.0683,
+      "feed": 0.0794,
+      "crop_inputs": 0.0806,
+      "interest": 0.063,
+      "other": 0.3367
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1647,
+      "energy": 0.1362,
+      "feed": 0.1118,
+      "crop_inputs": 0.1135,
+      "other": 0.4739
+    },
+    "labor_dollars": 68246805.0,
+    "interest_dollars": 62877722.0,
+    "depreciation_dollars": 158093909.0
+  },
+  "Alberta|Other vegetable (except potato) and melon farming [111219]": {
+    "total_expenses_raw": 69462211.0,
+    "ratios": {
+      "fertilizer": 0.0358,
+      "energy": 0.0787,
+      "labor": 0.1699,
+      "feed": 0.0083,
+      "crop_inputs": 0.1435,
+      "interest": 0.0547,
+      "other": 0.3528
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0578,
+      "energy": 0.1271,
+      "feed": 0.0135,
+      "crop_inputs": 0.2317,
+      "other": 0.5698
+    },
+    "labor_dollars": 11804653.0,
+    "interest_dollars": 3797784.0,
+    "depreciation_dollars": 10856322.0
+  },
+  "Alberta|Potato farming [111211]": {
+    "total_expenses_raw": 409340517.0,
+    "ratios": {
+      "fertilizer": 0.1163,
+      "energy": 0.0767,
+      "labor": 0.1205,
+      "feed": 0.004,
+      "crop_inputs": 0.1455,
+      "interest": 0.0893,
+      "other": 0.2682
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1904,
+      "energy": 0.1255,
+      "feed": 0.0066,
+      "crop_inputs": 0.2383,
+      "other": 0.4392
+    },
+    "labor_dollars": 49313520.0,
+    "interest_dollars": 36564520.0,
+    "depreciation_dollars": 73458202.0
+  },
+  "Alberta|Poultry and egg production [1123]": {
+    "total_expenses_raw": 511902595.0,
+    "ratios": {
+      "fertilizer": 0.0303,
+      "energy": 0.0529,
+      "labor": 0.0763,
+      "feed": 0.3628,
+      "crop_inputs": 0.0177,
+      "interest": 0.0552,
+      "other": 0.3235
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0385,
+      "energy": 0.0672,
+      "feed": 0.4609,
+      "crop_inputs": 0.0224,
+      "other": 0.4109
+    },
+    "labor_dollars": 39070763.0,
+    "interest_dollars": 28255124.0,
+    "depreciation_dollars": 41575996.0
+  },
+  "British Columbia|All farm types": {
+    "total_expenses_raw": 5294312125.0,
+    "ratios": {
+      "fertilizer": 0.0422,
+      "energy": 0.0582,
+      "labor": 0.1756,
+      "feed": 0.1736,
+      "crop_inputs": 0.0726,
+      "interest": 0.074,
+      "other": 0.3238
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.063,
+      "energy": 0.0867,
+      "feed": 0.259,
+      "crop_inputs": 0.1083,
+      "other": 0.483
+    },
+    "labor_dollars": 929784976.0,
+    "interest_dollars": 391703527.0,
+    "depreciation_dollars": 423658489.0
+  },
+  "British Columbia|Animal production [112]": {
+    "total_expenses_raw": 2744999539.0,
+    "ratios": {
+      "fertilizer": 0.0132,
+      "energy": 0.0505,
+      "labor": 0.0878,
+      "feed": 0.3268,
+      "crop_inputs": 0.0083,
+      "interest": 0.0848,
+      "other": 0.3446
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0178,
+      "energy": 0.0679,
+      "feed": 0.4396,
+      "crop_inputs": 0.0111,
+      "other": 0.4635
+    },
+    "labor_dollars": 241093560.0,
+    "interest_dollars": 232679953.0,
+    "depreciation_dollars": 230452495.0
+  },
+  "British Columbia|Beef cattle ranching and farming, including feedlots [112110]": {
+    "total_expenses_raw": 563780810.0,
+    "ratios": {
+      "fertilizer": 0.0245,
+      "energy": 0.0821,
+      "labor": 0.0757,
+      "feed": 0.1799,
+      "crop_inputs": 0.0148,
+      "interest": 0.0528,
+      "other": 0.4381
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0331,
+      "energy": 0.111,
+      "feed": 0.2434,
+      "crop_inputs": 0.02,
+      "other": 0.5925
+    },
+    "labor_dollars": 42680006.0,
+    "interest_dollars": 29788361.0,
+    "depreciation_dollars": 74433766.0
+  },
+  "British Columbia|Crop production [111]": {
+    "total_expenses_raw": 2552080271.0,
+    "ratios": {
+      "fertilizer": 0.0734,
+      "energy": 0.0664,
+      "labor": 0.2701,
+      "feed": 0.0088,
+      "crop_inputs": 0.1418,
+      "interest": 0.0624,
+      "other": 0.3014
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1241,
+      "energy": 0.1122,
+      "feed": 0.0149,
+      "crop_inputs": 0.2396,
+      "other": 0.5093
+    },
+    "labor_dollars": 689235529.0,
+    "interest_dollars": 159221215.0,
+    "depreciation_dollars": 193424868.0
+  },
+  "British Columbia|Dairy cattle and milk production [112120]": {
+    "total_expenses_raw": 883000025.0,
+    "ratios": {
+      "fertilizer": 0.0215,
+      "energy": 0.0493,
+      "labor": 0.1162,
+      "feed": 0.3099,
+      "crop_inputs": 0.0113,
+      "interest": 0.1426,
+      "other": 0.2577
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.033,
+      "energy": 0.0758,
+      "feed": 0.477,
+      "crop_inputs": 0.0174,
+      "other": 0.3967
+    },
+    "labor_dollars": 102611387.0,
+    "interest_dollars": 125925000.0,
+    "depreciation_dollars": 80881984.0
+  },
+  "British Columbia|Fruit and tree nut farming [1113]": {
+    "total_expenses_raw": 635924414.0,
+    "ratios": {
+      "fertilizer": 0.0621,
+      "energy": 0.0448,
+      "labor": 0.273,
+      "feed": 0.0015,
+      "crop_inputs": 0.0584,
+      "interest": 0.1194,
+      "other": 0.3608
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1178,
+      "energy": 0.085,
+      "feed": 0.0029,
+      "crop_inputs": 0.1106,
+      "other": 0.6838
+    },
+    "labor_dollars": 173626682.0,
+    "interest_dollars": 75937920.0,
+    "depreciation_dollars": 50807408.0
+  },
+  "British Columbia|Greenhouse, nursery and floriculture production [1114]": {
+    "total_expenses_raw": 1415185680.0,
+    "ratios": {
+      "fertilizer": 0.0706,
+      "energy": 0.0702,
+      "labor": 0.291,
+      "feed": 0.0039,
+      "crop_inputs": 0.1975,
+      "interest": 0.0392,
+      "other": 0.2712
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1151,
+      "energy": 0.1145,
+      "feed": 0.0063,
+      "crop_inputs": 0.322,
+      "other": 0.4421
+    },
+    "labor_dollars": 411840308.0,
+    "interest_dollars": 55412565.0,
+    "depreciation_dollars": 79885507.0
+  },
+  "British Columbia|Hog and pig farming [1122]": {
+    "total_expenses_raw": 39386489.0,
+    "ratios": {
+      "fertilizer": 0.0066,
+      "energy": 0.0397,
+      "labor": 0.0802,
+      "feed": 0.2936,
+      "crop_inputs": 0.0507,
+      "interest": 0.0315,
+      "other": 0.4505
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0078,
+      "energy": 0.0472,
+      "feed": 0.349,
+      "crop_inputs": 0.0603,
+      "other": 0.5356
+    },
+    "labor_dollars": 3157406.0,
+    "interest_dollars": 1240237.0,
+    "depreciation_dollars": 1861591.0
+  },
+  "British Columbia|Oilseed and grain farming [1111]": {
+    "total_expenses_raw": 131348561.0,
+    "ratios": {
+      "fertilizer": 0.2099,
+      "energy": 0.0945,
+      "labor": 0.0803,
+      "feed": 0.0259,
+      "crop_inputs": 0.1317,
+      "interest": 0.0648,
+      "other": 0.2532
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.2935,
+      "energy": 0.1321,
+      "feed": 0.0363,
+      "crop_inputs": 0.1842,
+      "other": 0.354
+    },
+    "labor_dollars": 10541758.0,
+    "interest_dollars": 8516963.0,
+    "depreciation_dollars": 18341041.0
+  },
+  "British Columbia|Other animal production [112A]": {
+    "total_expenses_raw": 110127340.0,
+    "ratios": {
+      "fertilizer": 0.0266,
+      "energy": 0.0801,
+      "labor": 0.1256,
+      "feed": 0.1614,
+      "crop_inputs": 0.0098,
+      "interest": 0.0673,
+      "other": 0.4526
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0364,
+      "energy": 0.1097,
+      "feed": 0.2209,
+      "crop_inputs": 0.0134,
+      "other": 0.6196
+    },
+    "labor_dollars": 13828872.0,
+    "interest_dollars": 7406504.0,
+    "depreciation_dollars": 8447576.0
+  },
+  "British Columbia|Other crop farming [1119]": {
+    "total_expenses_raw": 132792754.0,
+    "ratios": {
+      "fertilizer": 0.0624,
+      "energy": 0.1134,
+      "labor": 0.1222,
+      "feed": 0.0892,
+      "crop_inputs": 0.0451,
+      "interest": 0.0672,
+      "other": 0.3062
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1012,
+      "energy": 0.184,
+      "feed": 0.1447,
+      "crop_inputs": 0.0732,
+      "other": 0.4969
+    },
+    "labor_dollars": 16229168.0,
+    "interest_dollars": 8924916.0,
+    "depreciation_dollars": 25814209.0
+  },
+  "British Columbia|Other vegetable (except potato) and melon farming [111219]": {
+    "total_expenses_raw": 184809552.0,
+    "ratios": {
+      "fertilizer": 0.0443,
+      "energy": 0.0599,
+      "labor": 0.3671,
+      "feed": 0.0037,
+      "crop_inputs": 0.0892,
+      "interest": 0.0433,
+      "other": 0.3271
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0846,
+      "energy": 0.1143,
+      "feed": 0.0071,
+      "crop_inputs": 0.1701,
+      "other": 0.6239
+    },
+    "labor_dollars": 67838807.0,
+    "interest_dollars": 8001513.0,
+    "depreciation_dollars": 12073211.0
+  },
+  "British Columbia|Potato farming [111211]": {
+    "total_expenses_raw": 46893403.0,
+    "ratios": {
+      "fertilizer": 0.0718,
+      "energy": 0.0513,
+      "labor": 0.1773,
+      "feed": 0.0,
+      "crop_inputs": 0.1065,
+      "interest": 0.0439,
+      "other": 0.4244
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1098,
+      "energy": 0.0785,
+      "feed": 0.0,
+      "crop_inputs": 0.1628,
+      "other": 0.6489
+    },
+    "labor_dollars": 8314190.0,
+    "interest_dollars": 2056637.0,
+    "depreciation_dollars": 5849343.0
+  },
+  "British Columbia|Poultry and egg production [1123]": {
+    "total_expenses_raw": 1155609642.0,
+    "ratios": {
+      "fertilizer": 0.0005,
+      "energy": 0.0336,
+      "labor": 0.0689,
+      "feed": 0.4282,
+      "crop_inputs": 0.0011,
+      "interest": 0.0601,
+      "other": 0.3509
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0006,
+      "energy": 0.0413,
+      "feed": 0.5258,
+      "crop_inputs": 0.0014,
+      "other": 0.4309
+    },
+    "labor_dollars": 79676112.0,
+    "interest_dollars": 69442475.0,
+    "depreciation_dollars": 65481996.0
+  },
+  "Canada|All farm types": {
+    "total_expenses_raw": 98370163847.0,
+    "ratios": {
+      "fertilizer": 0.0959,
+      "energy": 0.0561,
+      "labor": 0.0853,
+      "feed": 0.1314,
+      "crop_inputs": 0.0911,
+      "interest": 0.0636,
+      "other": 0.3645
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1298,
+      "energy": 0.0759,
+      "feed": 0.1778,
+      "crop_inputs": 0.1233,
+      "other": 0.4933
+    },
+    "labor_dollars": 8393897603.0,
+    "interest_dollars": 6255057182.0,
+    "depreciation_dollars": 11027052564.0
+  },
+  "Canada|Animal production [112]": {
+    "total_expenses_raw": 50838695841.0,
+    "ratios": {
+      "fertilizer": 0.0248,
+      "energy": 0.0401,
+      "labor": 0.0546,
+      "feed": 0.2386,
+      "crop_inputs": 0.022,
+      "interest": 0.0596,
+      "other": 0.4859
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0305,
+      "energy": 0.0494,
+      "feed": 0.2941,
+      "crop_inputs": 0.0271,
+      "other": 0.5989
+    },
+    "labor_dollars": 2773451324.0,
+    "interest_dollars": 3028330802.0,
+    "depreciation_dollars": 3787969703.0
+  },
+  "Canada|Beef cattle ranching and farming, including feedlots [112110]": {
+    "total_expenses_raw": 25461082488.0,
+    "ratios": {
+      "fertilizer": 0.0234,
+      "energy": 0.0325,
+      "labor": 0.0233,
+      "feed": 0.1612,
+      "crop_inputs": 0.0185,
+      "interest": 0.0393,
+      "other": 0.6451
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0265,
+      "energy": 0.0369,
+      "feed": 0.183,
+      "crop_inputs": 0.021,
+      "other": 0.7325
+    },
+    "labor_dollars": 594207733.0,
+    "interest_dollars": 999409648.0,
+    "depreciation_dollars": 1444807118.0
+  },
+  "Canada|Crop production [111]": {
+    "total_expenses_raw": 47528399485.0,
+    "ratios": {
+      "fertilizer": 0.172,
+      "energy": 0.0732,
+      "labor": 0.1182,
+      "feed": 0.0167,
+      "crop_inputs": 0.1651,
+      "interest": 0.0679,
+      "other": 0.2347
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.2599,
+      "energy": 0.1106,
+      "feed": 0.0252,
+      "crop_inputs": 0.2495,
+      "other": 0.3548
+    },
+    "labor_dollars": 5620155447.0,
+    "interest_dollars": 3226527476.0,
+    "depreciation_dollars": 7238703473.0
+  },
+  "Canada|Dairy cattle and milk production [112120]": {
+    "total_expenses_raw": 9136776215.0,
+    "ratios": {
+      "fertilizer": 0.0354,
+      "energy": 0.0571,
+      "labor": 0.0999,
+      "feed": 0.2441,
+      "crop_inputs": 0.0345,
+      "interest": 0.136,
+      "other": 0.2553
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0565,
+      "energy": 0.0911,
+      "feed": 0.3897,
+      "crop_inputs": 0.0551,
+      "other": 0.4076
+    },
+    "labor_dollars": 912490765.0,
+    "interest_dollars": 1242523511.0,
+    "depreciation_dollars": 1258395691.0
+  },
+  "Canada|Fruit and tree nut farming [1113]": {
+    "total_expenses_raw": 2008229962.0,
+    "ratios": {
+      "fertilizer": 0.0592,
+      "energy": 0.0496,
+      "labor": 0.2986,
+      "feed": 0.0044,
+      "crop_inputs": 0.0942,
+      "interest": 0.0771,
+      "other": 0.3313
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1098,
+      "energy": 0.0922,
+      "feed": 0.0081,
+      "crop_inputs": 0.175,
+      "other": 0.615
+    },
+    "labor_dollars": 599716539.0,
+    "interest_dollars": 154770003.0,
+    "depreciation_dollars": 171972378.0
+  },
+  "Canada|Greenhouse, nursery and floriculture production [1114]": {
+    "total_expenses_raw": 6824144024.0,
+    "ratios": {
+      "fertilizer": 0.0623,
+      "energy": 0.0866,
+      "labor": 0.2909,
+      "feed": 0.0019,
+      "crop_inputs": 0.1992,
+      "interest": 0.051,
+      "other": 0.2298
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1074,
+      "energy": 0.1493,
+      "feed": 0.0033,
+      "crop_inputs": 0.3436,
+      "other": 0.3963
+    },
+    "labor_dollars": 1985270632.0,
+    "interest_dollars": 348044402.0,
+    "depreciation_dollars": 533801768.0
+  },
+  "Canada|Hog and pig farming [1122]": {
+    "total_expenses_raw": 5997409092.0,
+    "ratios": {
+      "fertilizer": 0.0129,
+      "energy": 0.0321,
+      "labor": 0.081,
+      "feed": 0.433,
+      "crop_inputs": 0.0152,
+      "interest": 0.0384,
+      "other": 0.3411
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0155,
+      "energy": 0.0385,
+      "feed": 0.5189,
+      "crop_inputs": 0.0182,
+      "other": 0.4089
+    },
+    "labor_dollars": 485613613.0,
+    "interest_dollars": 230348471.0,
+    "depreciation_dollars": 277506597.0
+  },
+  "Canada|Oilseed and grain farming [1111]": {
+    "total_expenses_raw": 31101271119.0,
+    "ratios": {
+      "fertilizer": 0.2207,
+      "energy": 0.0713,
+      "labor": 0.0548,
+      "feed": 0.0176,
+      "crop_inputs": 0.1727,
+      "interest": 0.0717,
+      "other": 0.2124
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.3176,
+      "energy": 0.1027,
+      "feed": 0.0253,
+      "crop_inputs": 0.2486,
+      "other": 0.3057
+    },
+    "labor_dollars": 1703086733.0,
+    "interest_dollars": 2229091596.0,
+    "depreciation_dollars": 5563949728.0
+  },
+  "Canada|Other animal production [112A]": {
+    "total_expenses_raw": 3413347933.0,
+    "ratios": {
+      "fertilizer": 0.0542,
+      "energy": 0.0648,
+      "labor": 0.0765,
+      "feed": 0.1962,
+      "crop_inputs": 0.0484,
+      "interest": 0.0427,
+      "other": 0.4221
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.069,
+      "energy": 0.0825,
+      "feed": 0.2497,
+      "crop_inputs": 0.0616,
+      "other": 0.5373
+    },
+    "labor_dollars": 261128744.0,
+    "interest_dollars": 145613222.0,
+    "depreciation_dollars": 324944170.0
+  },
+  "Canada|Other crop farming [1119]": {
+    "total_expenses_raw": 3242142593.0,
+    "ratios": {
+      "fertilizer": 0.0846,
+      "energy": 0.0979,
+      "labor": 0.1109,
+      "feed": 0.0604,
+      "crop_inputs": 0.0743,
+      "interest": 0.0826,
+      "other": 0.3257
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1316,
+      "energy": 0.1523,
+      "feed": 0.0939,
+      "crop_inputs": 0.1156,
+      "other": 0.5066
+    },
+    "labor_dollars": 359681791.0,
+    "interest_dollars": 267686450.0,
+    "depreciation_dollars": 530635858.0
+  },
+  "Canada|Other vegetable (except potato) and melon farming [111219]": {
+    "total_expenses_raw": 2184344548.0,
+    "ratios": {
+      "fertilizer": 0.0831,
+      "energy": 0.0536,
+      "labor": 0.2944,
+      "feed": 0.0067,
+      "crop_inputs": 0.1275,
+      "interest": 0.0426,
+      "other": 0.3126
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1424,
+      "energy": 0.0918,
+      "feed": 0.0115,
+      "crop_inputs": 0.2185,
+      "other": 0.5357
+    },
+    "labor_dollars": 643031604.0,
+    "interest_dollars": 93058356.0,
+    "depreciation_dollars": 173691417.0
+  },
+  "Canada|Potato farming [111211]": {
+    "total_expenses_raw": 2165674452.0,
+    "ratios": {
+      "fertilizer": 0.1432,
+      "energy": 0.0615,
+      "labor": 0.152,
+      "feed": 0.0058,
+      "crop_inputs": 0.1871,
+      "interest": 0.0617,
+      "other": 0.2666
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.2156,
+      "energy": 0.0926,
+      "feed": 0.0087,
+      "crop_inputs": 0.2817,
+      "other": 0.4013
+    },
+    "labor_dollars": 329259333.0,
+    "interest_dollars": 133723278.0,
+    "depreciation_dollars": 264260689.0
+  },
+  "Canada|Poultry and egg production [1123]": {
+    "total_expenses_raw": 6837372902.0,
+    "ratios": {
+      "fertilizer": 0.0115,
+      "energy": 0.0402,
+      "labor": 0.0761,
+      "feed": 0.3703,
+      "crop_inputs": 0.0109,
+      "interest": 0.0601,
+      "other": 0.3602
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0145,
+      "energy": 0.0507,
+      "feed": 0.4669,
+      "crop_inputs": 0.0138,
+      "other": 0.4541
+    },
+    "labor_dollars": 520622648.0,
+    "interest_dollars": 410955356.0,
+    "depreciation_dollars": 482892377.0
+  },
+  "Manitoba|All farm types": {
+    "total_expenses_raw": 9333448670.0,
+    "ratios": {
+      "fertilizer": 0.1274,
+      "energy": 0.0619,
+      "labor": 0.0698,
+      "feed": 0.133,
+      "crop_inputs": 0.1137,
+      "interest": 0.0571,
+      "other": 0.3242
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1676,
+      "energy": 0.0814,
+      "feed": 0.1749,
+      "crop_inputs": 0.1495,
+      "other": 0.4265
+    },
+    "labor_dollars": 651589954.0,
+    "interest_dollars": 532986048.0,
+    "depreciation_dollars": 1052961828.0
+  },
+  "Manitoba|Animal production [112]": {
+    "total_expenses_raw": 4284309175.0,
+    "ratios": {
+      "fertilizer": 0.0328,
+      "energy": 0.0497,
+      "labor": 0.0603,
+      "feed": 0.2763,
+      "crop_inputs": 0.0296,
+      "interest": 0.0517,
+      "other": 0.4207
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0406,
+      "energy": 0.0614,
+      "feed": 0.3415,
+      "crop_inputs": 0.0366,
+      "other": 0.52
+    },
+    "labor_dollars": 258454029.0,
+    "interest_dollars": 221332548.0,
+    "depreciation_dollars": 337707324.0
+  },
+  "Manitoba|Beef cattle ranching and farming, including feedlots [112110]": {
+    "total_expenses_raw": 1490973550.0,
+    "ratios": {
+      "fertilizer": 0.0392,
+      "energy": 0.0513,
+      "labor": 0.0225,
+      "feed": 0.1143,
+      "crop_inputs": 0.0308,
+      "interest": 0.043,
+      "other": 0.6213
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0457,
+      "energy": 0.0598,
+      "feed": 0.1334,
+      "crop_inputs": 0.036,
+      "other": 0.725
+    },
+    "labor_dollars": 33491086.0,
+    "interest_dollars": 64088546.0,
+    "depreciation_dollars": 115719857.0
+  },
+  "Manitoba|Crop production [111]": {
+    "total_expenses_raw": 5049359554.0,
+    "ratios": {
+      "fertilizer": 0.2077,
+      "energy": 0.0723,
+      "labor": 0.0779,
+      "feed": 0.0114,
+      "crop_inputs": 0.185,
+      "interest": 0.0617,
+      "other": 0.2424
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.2889,
+      "energy": 0.1005,
+      "feed": 0.0159,
+      "crop_inputs": 0.2574,
+      "other": 0.3373
+    },
+    "labor_dollars": 393127238.0,
+    "interest_dollars": 311652266.0,
+    "depreciation_dollars": 715193158.0
+  },
+  "Manitoba|Dairy cattle and milk production [112120]": {
+    "total_expenses_raw": 371047845.0,
+    "ratios": {
+      "fertilizer": 0.0361,
+      "energy": 0.063,
+      "labor": 0.116,
+      "feed": 0.2707,
+      "crop_inputs": 0.0369,
+      "interest": 0.1407,
+      "other": 0.1923
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0602,
+      "energy": 0.1051,
+      "feed": 0.4519,
+      "crop_inputs": 0.0617,
+      "other": 0.3211
+    },
+    "labor_dollars": 43028177.0,
+    "interest_dollars": 52224481.0,
+    "depreciation_dollars": 53563293.0
+  },
+  "Manitoba|Fruit and tree nut farming [1113]": {
+    "total_expenses_raw": 1269902.0,
+    "ratios": {
+      "fertilizer": 0.0217,
+      "energy": 0.0984,
+      "labor": 0.2006,
+      "feed": 0.0,
+      "crop_inputs": 0.0913,
+      "interest": 0.1025,
+      "other": 0.2661
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0454,
+      "energy": 0.206,
+      "feed": 0.0,
+      "crop_inputs": 0.1913,
+      "other": 0.5573
+    },
+    "labor_dollars": 254796.0,
+    "interest_dollars": 130149.0,
+    "depreciation_dollars": 278547.0
+  },
+  "Manitoba|Greenhouse, nursery and floriculture production [1114]": {
+    "total_expenses_raw": 109537984.0,
+    "ratios": {
+      "fertilizer": 0.1395,
+      "energy": 0.0721,
+      "labor": 0.3756,
+      "feed": 0.0,
+      "crop_inputs": 0.1812,
+      "interest": 0.0336,
+      "other": 0.1506
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.2567,
+      "energy": 0.1327,
+      "feed": 0.0,
+      "crop_inputs": 0.3335,
+      "other": 0.2771
+    },
+    "labor_dollars": 41139666.0,
+    "interest_dollars": 3677936.0,
+    "depreciation_dollars": 5201719.0
+  },
+  "Manitoba|Hog and pig farming [1122]": {
+    "total_expenses_raw": 1706226907.0,
+    "ratios": {
+      "fertilizer": 0.0173,
+      "energy": 0.0372,
+      "labor": 0.0825,
+      "feed": 0.4295,
+      "crop_inputs": 0.0195,
+      "interest": 0.0414,
+      "other": 0.3243
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0209,
+      "energy": 0.0449,
+      "feed": 0.5189,
+      "crop_inputs": 0.0235,
+      "other": 0.3918
+    },
+    "labor_dollars": 140829936.0,
+    "interest_dollars": 70625410.0,
+    "depreciation_dollars": 82423125.0
+  },
+  "Manitoba|Oilseed and grain farming [1111]": {
+    "total_expenses_raw": 4266975046.0,
+    "ratios": {
+      "fertilizer": 0.2243,
+      "energy": 0.0721,
+      "labor": 0.0616,
+      "feed": 0.0093,
+      "crop_inputs": 0.191,
+      "interest": 0.0632,
+      "other": 0.2308
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.3083,
+      "energy": 0.0991,
+      "feed": 0.0128,
+      "crop_inputs": 0.2625,
+      "other": 0.3172
+    },
+    "labor_dollars": 262877265.0,
+    "interest_dollars": 269498144.0,
+    "depreciation_dollars": 630471872.0
+  },
+  "Manitoba|Other animal production [112A]": {
+    "total_expenses_raw": 428246127.0,
+    "ratios": {
+      "fertilizer": 0.0839,
+      "energy": 0.0907,
+      "labor": 0.0377,
+      "feed": 0.2179,
+      "crop_inputs": 0.0694,
+      "interest": 0.0414,
+      "other": 0.3121
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1083,
+      "energy": 0.1172,
+      "feed": 0.2816,
+      "crop_inputs": 0.0897,
+      "other": 0.4032
+    },
+    "labor_dollars": 16137943.0,
+    "interest_dollars": 17711827.0,
+    "depreciation_dollars": 62924954.0
+  },
+  "Manitoba|Other crop farming [1119]": {
+    "total_expenses_raw": 171419781.0,
+    "ratios": {
+      "fertilizer": 0.1049,
+      "energy": 0.1035,
+      "labor": 0.0759,
+      "feed": 0.0734,
+      "crop_inputs": 0.0881,
+      "interest": 0.0659,
+      "other": 0.352
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1453,
+      "energy": 0.1433,
+      "feed": 0.1017,
+      "crop_inputs": 0.122,
+      "other": 0.4877
+    },
+    "labor_dollars": 13009452.0,
+    "interest_dollars": 11303999.0,
+    "depreciation_dollars": 23369013.0
+  },
+  "Manitoba|Other vegetable (except potato) and melon farming [111219]": {
+    "total_expenses_raw": 28161612.0,
+    "ratios": {
+      "fertilizer": 0.0268,
+      "energy": 0.0813,
+      "labor": 0.3789,
+      "feed": 0.0017,
+      "crop_inputs": 0.1115,
+      "interest": 0.0267,
+      "other": 0.3161
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0498,
+      "energy": 0.1514,
+      "feed": 0.0031,
+      "crop_inputs": 0.2075,
+      "other": 0.5882
+    },
+    "labor_dollars": 10670684.0,
+    "interest_dollars": 751473.0,
+    "depreciation_dollars": 1606799.0
+  },
+  "Manitoba|Potato farming [111211]": {
+    "total_expenses_raw": 465458085.0,
+    "ratios": {
+      "fertilizer": 0.1218,
+      "energy": 0.0618,
+      "labor": 0.1387,
+      "feed": 0.0111,
+      "crop_inputs": 0.1716,
+      "interest": 0.0556,
+      "other": 0.3246
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1763,
+      "energy": 0.0894,
+      "feed": 0.0161,
+      "crop_inputs": 0.2484,
+      "other": 0.4698
+    },
+    "labor_dollars": 64546336.0,
+    "interest_dollars": 25894966.0,
+    "depreciation_dollars": 53450960.0
+  },
+  "Manitoba|Poultry and egg production [1123]": {
+    "total_expenses_raw": 313616113.0,
+    "ratios": {
+      "fertilizer": 0.013,
+      "energy": 0.0384,
+      "labor": 0.0863,
+      "feed": 0.3099,
+      "crop_inputs": 0.0151,
+      "interest": 0.0571,
+      "other": 0.4016
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0167,
+      "energy": 0.0493,
+      "feed": 0.3984,
+      "crop_inputs": 0.0194,
+      "other": 0.5162
+    },
+    "labor_dollars": 27070922.0,
+    "interest_dollars": 17909722.0,
+    "depreciation_dollars": 24660638.0
+  },
+  "New Brunswick|All farm types": {
+    "total_expenses_raw": 801781512.0,
+    "ratios": {
+      "fertilizer": 0.0805,
+      "energy": 0.068,
+      "labor": 0.1591,
+      "feed": 0.1615,
+      "crop_inputs": 0.108,
+      "interest": 0.0613,
+      "other": 0.2607
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1186,
+      "energy": 0.1002,
+      "feed": 0.2379,
+      "crop_inputs": 0.1592,
+      "other": 0.3842
+    },
+    "labor_dollars": 127525412.0,
+    "interest_dollars": 49161292.0,
+    "depreciation_dollars": 80918593.0
+  },
+  "New Brunswick|Animal production [112]": {
+    "total_expenses_raw": 359479950.0,
+    "ratios": {
+      "fertilizer": 0.0164,
+      "energy": 0.0593,
+      "labor": 0.1092,
+      "feed": 0.3515,
+      "crop_inputs": 0.009,
+      "interest": 0.0682,
+      "other": 0.3007
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0223,
+      "energy": 0.0805,
+      "feed": 0.477,
+      "crop_inputs": 0.0122,
+      "other": 0.4081
+    },
+    "labor_dollars": 39250562.0,
+    "interest_dollars": 24502191.0,
+    "depreciation_dollars": 30819503.0
+  },
+  "New Brunswick|Beef cattle ranching and farming, including feedlots [112110]": {
+    "total_expenses_raw": 35789623.0,
+    "ratios": {
+      "fertilizer": 0.0279,
+      "energy": 0.1051,
+      "labor": 0.056,
+      "feed": 0.1151,
+      "crop_inputs": 0.0164,
+      "interest": 0.0424,
+      "other": 0.4996
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0366,
+      "energy": 0.1375,
+      "feed": 0.1506,
+      "crop_inputs": 0.0214,
+      "other": 0.6538
+    },
+    "labor_dollars": 2004683.0,
+    "interest_dollars": 1516521.0,
+    "depreciation_dollars": 4922701.0
+  },
+  "New Brunswick|Crop production [111]": {
+    "total_expenses_raw": 442301562.0,
+    "ratios": {
+      "fertilizer": 0.1325,
+      "energy": 0.0751,
+      "labor": 0.1996,
+      "feed": 0.007,
+      "crop_inputs": 0.1885,
+      "interest": 0.0558,
+      "other": 0.2282
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.2099,
+      "energy": 0.1189,
+      "feed": 0.0111,
+      "crop_inputs": 0.2986,
+      "other": 0.3615
+    },
+    "labor_dollars": 88274850.0,
+    "interest_dollars": 24659101.0,
+    "depreciation_dollars": 50099090.0
+  },
+  "New Brunswick|Dairy cattle and milk production [112120]": {
+    "total_expenses_raw": 145143405.0,
+    "ratios": {
+      "fertilizer": 0.0304,
+      "energy": 0.0685,
+      "labor": 0.1459,
+      "feed": 0.3044,
+      "crop_inputs": 0.0166,
+      "interest": 0.1121,
+      "other": 0.1944
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0495,
+      "energy": 0.1115,
+      "feed": 0.4956,
+      "crop_inputs": 0.027,
+      "other": 0.3164
+    },
+    "labor_dollars": 21178441.0,
+    "interest_dollars": 16277774.0,
+    "depreciation_dollars": 18519318.0
+  },
+  "New Brunswick|Fruit and tree nut farming [1113]": {
+    "total_expenses_raw": 46530778.0,
+    "ratios": {
+      "fertilizer": 0.0914,
+      "energy": 0.0637,
+      "labor": 0.2401,
+      "feed": 0.002,
+      "crop_inputs": 0.1181,
+      "interest": 0.0789,
+      "other": 0.296
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1601,
+      "energy": 0.1115,
+      "feed": 0.0035,
+      "crop_inputs": 0.2067,
+      "other": 0.5183
+    },
+    "labor_dollars": 11172951.0,
+    "interest_dollars": 3669757.0,
+    "depreciation_dollars": 5113422.0
+  },
+  "New Brunswick|Greenhouse, nursery and floriculture production [1114]": {
+    "total_expenses_raw": 59526735.0,
+    "ratios": {
+      "fertilizer": 0.0609,
+      "energy": 0.0639,
+      "labor": 0.3064,
+      "feed": 0.0,
+      "crop_inputs": 0.3157,
+      "interest": 0.0147,
+      "other": 0.1745
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.099,
+      "energy": 0.1039,
+      "feed": 0.0,
+      "crop_inputs": 0.5134,
+      "other": 0.2838
+    },
+    "labor_dollars": 18237370.0,
+    "interest_dollars": 876254.0,
+    "depreciation_dollars": 3801697.0
+  },
+  "New Brunswick|Hog and pig farming [1122]": {
+    "total_expenses_raw": 11286811.0,
+    "ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.0338,
+      "labor": 0.0,
+      "feed": 0.4013,
+      "crop_inputs": 0.0,
+      "interest": 0.0,
+      "other": 0.514
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.0356,
+      "feed": 0.4228,
+      "crop_inputs": 0.0,
+      "other": 0.5416
+    },
+    "labor_dollars": 0.0,
+    "interest_dollars": 0.0,
+    "depreciation_dollars": 574658.0
+  },
+  "New Brunswick|Oilseed and grain farming [1111]": {
+    "total_expenses_raw": 9585692.0,
+    "ratios": {
+      "fertilizer": 0.1679,
+      "energy": 0.0852,
+      "labor": 0.1252,
+      "feed": 0.0988,
+      "crop_inputs": 0.1384,
+      "interest": 0.0437,
+      "other": 0.2082
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.2404,
+      "energy": 0.122,
+      "feed": 0.1414,
+      "crop_inputs": 0.1981,
+      "other": 0.2981
+    },
+    "labor_dollars": 1200026.0,
+    "interest_dollars": 418865.0,
+    "depreciation_dollars": 1270670.0
+  },
+  "New Brunswick|Other animal production [112A]": {
+    "total_expenses_raw": 9738208.0,
+    "ratios": {
+      "fertilizer": 0.0088,
+      "energy": 0.1135,
+      "labor": 0.1674,
+      "feed": 0.1422,
+      "crop_inputs": 0.0016,
+      "interest": 0.0421,
+      "other": 0.414
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.013,
+      "energy": 0.1668,
+      "feed": 0.2091,
+      "crop_inputs": 0.0024,
+      "other": 0.6087
+    },
+    "labor_dollars": 1630127.0,
+    "interest_dollars": 410465.0,
+    "depreciation_dollars": 1075006.0
+  },
+  "New Brunswick|Other crop farming [1119]": {
+    "total_expenses_raw": 49495389.0,
+    "ratios": {
+      "fertilizer": 0.0152,
+      "energy": 0.1553,
+      "labor": 0.2416,
+      "feed": 0.0066,
+      "crop_inputs": 0.0074,
+      "interest": 0.1313,
+      "other": 0.1442
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0463,
+      "energy": 0.4725,
+      "feed": 0.02,
+      "crop_inputs": 0.0224,
+      "other": 0.4388
+    },
+    "labor_dollars": 11957115.0,
+    "interest_dollars": 6496913.0,
+    "depreciation_dollars": 14772336.0
+  },
+  "New Brunswick|Other vegetable (except potato) and melon farming [111219]": {
+    "total_expenses_raw": 14207428.0,
+    "ratios": {
+      "fertilizer": 0.138,
+      "energy": 0.0568,
+      "labor": 0.2687,
+      "feed": 0.008,
+      "crop_inputs": 0.1229,
+      "interest": 0.0242,
+      "other": 0.3208
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.2134,
+      "energy": 0.0879,
+      "feed": 0.0124,
+      "crop_inputs": 0.1901,
+      "other": 0.4963
+    },
+    "labor_dollars": 3817584.0,
+    "interest_dollars": 343742.0,
+    "depreciation_dollars": 860786.0
+  },
+  "New Brunswick|Potato farming [111211]": {
+    "total_expenses_raw": 269347567.0,
+    "ratios": {
+      "fertilizer": 0.1769,
+      "energy": 0.0651,
+      "labor": 0.1589,
+      "feed": 0.006,
+      "crop_inputs": 0.2077,
+      "interest": 0.0489,
+      "other": 0.2439
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.2528,
+      "energy": 0.0931,
+      "feed": 0.0086,
+      "crop_inputs": 0.2969,
+      "other": 0.3486
+    },
+    "labor_dollars": 42801228.0,
+    "interest_dollars": 13183443.0,
+    "depreciation_dollars": 24926040.0
+  },
+  "New Brunswick|Poultry and egg production [1123]": {
+    "total_expenses_raw": 153985468.0,
+    "ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.0383,
+      "labor": 0.0819,
+      "feed": 0.4592,
+      "crop_inputs": 0.0,
+      "interest": 0.0354,
+      "other": 0.3498
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.0453,
+      "feed": 0.5419,
+      "crop_inputs": 0.0,
+      "other": 0.4128
+    },
+    "labor_dollars": 12611501.0,
+    "interest_dollars": 5457095.0,
+    "depreciation_dollars": 5446335.0
+  },
+  "Newfoundland and Labrador|All farm types": {
+    "total_expenses_raw": 158425761.0,
+    "ratios": {
+      "fertilizer": 0.02,
+      "energy": 0.0642,
+      "labor": 0.2194,
+      "feed": 0.3136,
+      "crop_inputs": 0.0248,
+      "interest": 0.0546,
+      "other": 0.2275
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0307,
+      "energy": 0.0988,
+      "feed": 0.4824,
+      "crop_inputs": 0.0382,
+      "other": 0.35
+    },
+    "labor_dollars": 34759751.0,
+    "interest_dollars": 8644113.0,
+    "depreciation_dollars": 12025541.0
+  },
+  "Newfoundland and Labrador|Animal production [112]": {
+    "total_expenses_raw": 129816578.0,
+    "ratios": {
+      "fertilizer": 0.0087,
+      "energy": 0.0564,
+      "labor": 0.1926,
+      "feed": 0.3707,
+      "crop_inputs": 0.0052,
+      "interest": 0.0566,
+      "other": 0.2378
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0129,
+      "energy": 0.0831,
+      "feed": 0.5461,
+      "crop_inputs": 0.0077,
+      "other": 0.3503
+    },
+    "labor_dollars": 24997220.0,
+    "interest_dollars": 7351936.0,
+    "depreciation_dollars": 9343119.0
+  },
+  "Newfoundland and Labrador|Beef cattle ranching and farming, including feedlots [112110]": {
+    "total_expenses_raw": 2132196.0,
+    "ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.1312,
+      "labor": 0.0,
+      "feed": 0.0659,
+      "crop_inputs": 0.0,
+      "interest": 0.0723,
+      "other": 0.5702
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.171,
+      "feed": 0.0859,
+      "crop_inputs": 0.0,
+      "other": 0.7432
+    },
+    "labor_dollars": 0.0,
+    "interest_dollars": 154067.0,
+    "depreciation_dollars": 342196.0
+  },
+  "Newfoundland and Labrador|Crop production [111]": {
+    "total_expenses_raw": 25938956.0,
+    "ratios": {
+      "fertilizer": 0.0784,
+      "energy": 0.105,
+      "labor": 0.359,
+      "feed": 0.0167,
+      "crop_inputs": 0.1218,
+      "interest": 0.0438,
+      "other": 0.1789
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1565,
+      "energy": 0.2097,
+      "feed": 0.0334,
+      "crop_inputs": 0.2431,
+      "other": 0.3573
+    },
+    "labor_dollars": 9312321.0,
+    "interest_dollars": 1136020.0,
+    "depreciation_dollars": 2499615.0
+  },
+  "Newfoundland and Labrador|Dairy cattle and milk production [112120]": {
+    "total_expenses_raw": 51124746.0,
+    "ratios": {
+      "fertilizer": 0.015,
+      "energy": 0.0454,
+      "labor": 0.1644,
+      "feed": 0.3679,
+      "crop_inputs": 0.0,
+      "interest": 0.0842,
+      "other": 0.2496
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0221,
+      "energy": 0.0669,
+      "feed": 0.5428,
+      "crop_inputs": 0.0,
+      "other": 0.3682
+    },
+    "labor_dollars": 8403887.0,
+    "interest_dollars": 4306489.0,
+    "depreciation_dollars": 3760435.0
+  },
+  "Newfoundland and Labrador|Fruit and tree nut farming [1113]": {
+    "total_expenses_raw": 1222874.0,
+    "ratios": {
+      "fertilizer": 0.1162,
+      "energy": 0.0882,
+      "labor": 0.0,
+      "feed": 0.0,
+      "crop_inputs": 0.0,
+      "interest": 0.0865,
+      "other": 0.6088
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1429,
+      "energy": 0.1085,
+      "feed": 0.0,
+      "crop_inputs": 0.0,
+      "other": 0.7486
+    },
+    "labor_dollars": 0.0,
+    "interest_dollars": 105793.0,
+    "depreciation_dollars": 122564.0
+  },
+  "Newfoundland and Labrador|Greenhouse, nursery and floriculture production [1114]": {
+    "total_expenses_raw": 10408827.0,
+    "ratios": {
+      "fertilizer": 0.0669,
+      "energy": 0.104,
+      "labor": 0.3845,
+      "feed": 0.0,
+      "crop_inputs": 0.164,
+      "interest": 0.0372,
+      "other": 0.1683
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1329,
+      "energy": 0.2066,
+      "feed": 0.0,
+      "crop_inputs": 0.3259,
+      "other": 0.3346
+    },
+    "labor_dollars": 4001749.0,
+    "interest_dollars": 387189.0,
+    "depreciation_dollars": 782132.0
+  },
+  "Newfoundland and Labrador|Other animal production [112A]": {
+    "total_expenses_raw": 9846050.0,
+    "ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.0892,
+      "labor": 0.4358,
+      "feed": 0.0868,
+      "crop_inputs": 0.0,
+      "interest": 0.0663,
+      "other": 0.1531
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.271,
+      "feed": 0.2637,
+      "crop_inputs": 0.0,
+      "other": 0.4653
+    },
+    "labor_dollars": 4291218.0,
+    "interest_dollars": 652990.0,
+    "depreciation_dollars": 1662259.0
+  },
+  "Newfoundland and Labrador|Other crop farming [1119]": {
+    "total_expenses_raw": 3270480.0,
+    "ratios": {
+      "fertilizer": 0.131,
+      "energy": 0.1257,
+      "labor": 0.0,
+      "feed": 0.044,
+      "crop_inputs": 0.0512,
+      "interest": 0.0413,
+      "other": 0.4728
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1589,
+      "energy": 0.1524,
+      "feed": 0.0533,
+      "crop_inputs": 0.062,
+      "other": 0.5733
+    },
+    "labor_dollars": 0.0,
+    "interest_dollars": 134954.0,
+    "depreciation_dollars": 438689.0
+  },
+  "Newfoundland and Labrador|Other vegetable (except potato) and melon farming [111219]": {
+    "total_expenses_raw": 8778294.0,
+    "ratios": {
+      "fertilizer": 0.0697,
+      "energy": 0.0969,
+      "labor": 0.3774,
+      "feed": 0.0065,
+      "crop_inputs": 0.0814,
+      "interest": 0.0504,
+      "other": 0.2184
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1474,
+      "energy": 0.2049,
+      "feed": 0.0137,
+      "crop_inputs": 0.1721,
+      "other": 0.4619
+    },
+    "labor_dollars": 3312889.0,
+    "interest_dollars": 442024.0,
+    "depreciation_dollars": 871914.0
+  },
+  "Newfoundland and Labrador|Poultry and egg production [1123]": {
+    "total_expenses_raw": 66007721.0,
+    "ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.0581,
+      "labor": 0.1862,
+      "feed": 0.4194,
+      "crop_inputs": 0.0,
+      "interest": 0.0314,
+      "other": 0.2497
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.08,
+      "feed": 0.5767,
+      "crop_inputs": 0.0,
+      "other": 0.3433
+    },
+    "labor_dollars": 12287458.0,
+    "interest_dollars": 2071412.0,
+    "depreciation_dollars": 3648871.0
+  },
+  "Nova Scotia|All farm types": {
+    "total_expenses_raw": 856779605.0,
+    "ratios": {
+      "fertilizer": 0.0451,
+      "energy": 0.0595,
+      "labor": 0.168,
+      "feed": 0.1896,
+      "crop_inputs": 0.0761,
+      "interest": 0.0505,
+      "other": 0.3269
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0646,
+      "energy": 0.0853,
+      "feed": 0.272,
+      "crop_inputs": 0.1092,
+      "other": 0.4689
+    },
+    "labor_dollars": 143947351.0,
+    "interest_dollars": 43232842.0,
+    "depreciation_dollars": 72278571.0
+  },
+  "Nova Scotia|Animal production [112]": {
+    "total_expenses_raw": 531439109.0,
+    "ratios": {
+      "fertilizer": 0.0282,
+      "energy": 0.0577,
+      "labor": 0.1089,
+      "feed": 0.3026,
+      "crop_inputs": 0.0212,
+      "interest": 0.0571,
+      "other": 0.3336
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0379,
+      "energy": 0.0776,
+      "feed": 0.4071,
+      "crop_inputs": 0.0285,
+      "other": 0.4488
+    },
+    "labor_dollars": 57889184.0,
+    "interest_dollars": 30371363.0,
+    "depreciation_dollars": 48164324.0
+  },
+  "Nova Scotia|Beef cattle ranching and farming, including feedlots [112110]": {
+    "total_expenses_raw": 49097846.0,
+    "ratios": {
+      "fertilizer": 0.0412,
+      "energy": 0.0933,
+      "labor": 0.0639,
+      "feed": 0.0977,
+      "crop_inputs": 0.0181,
+      "interest": 0.0383,
+      "other": 0.5113
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0541,
+      "energy": 0.1225,
+      "feed": 0.1283,
+      "crop_inputs": 0.0237,
+      "other": 0.6713
+    },
+    "labor_dollars": 3138496.0,
+    "interest_dollars": 1879721.0,
+    "depreciation_dollars": 6682581.0
+  },
+  "Nova Scotia|Crop production [111]": {
+    "total_expenses_raw": 327356530.0,
+    "ratios": {
+      "fertilizer": 0.0726,
+      "energy": 0.0624,
+      "labor": 0.2644,
+      "feed": 0.0054,
+      "crop_inputs": 0.1657,
+      "interest": 0.0395,
+      "other": 0.3159
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1167,
+      "energy": 0.1003,
+      "feed": 0.0086,
+      "crop_inputs": 0.2664,
+      "other": 0.5079
+    },
+    "labor_dollars": 86541800.0,
+    "interest_dollars": 12946798.0,
+    "depreciation_dollars": 24268943.0
+  },
+  "Nova Scotia|Dairy cattle and milk production [112120]": {
+    "total_expenses_raw": 212745264.0,
+    "ratios": {
+      "fertilizer": 0.0528,
+      "energy": 0.0612,
+      "labor": 0.1329,
+      "feed": 0.2623,
+      "crop_inputs": 0.0352,
+      "interest": 0.0852,
+      "other": 0.2517
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0796,
+      "energy": 0.0923,
+      "feed": 0.3955,
+      "crop_inputs": 0.0531,
+      "other": 0.3796
+    },
+    "labor_dollars": 28265712.0,
+    "interest_dollars": 18124221.0,
+    "depreciation_dollars": 25277449.0
+  },
+  "Nova Scotia|Fruit and tree nut farming [1113]": {
+    "total_expenses_raw": 202118019.0,
+    "ratios": {
+      "fertilizer": 0.076,
+      "energy": 0.039,
+      "labor": 0.2526,
+      "feed": 0.0041,
+      "crop_inputs": 0.1852,
+      "interest": 0.0383,
+      "other": 0.3384
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1182,
+      "energy": 0.0607,
+      "feed": 0.0064,
+      "crop_inputs": 0.2881,
+      "other": 0.5265
+    },
+    "labor_dollars": 51049224.0,
+    "interest_dollars": 7741286.0,
+    "depreciation_dollars": 13430326.0
+  },
+  "Nova Scotia|Greenhouse, nursery and floriculture production [1114]": {
+    "total_expenses_raw": 64567339.0,
+    "ratios": {
+      "fertilizer": 0.0384,
+      "energy": 0.1042,
+      "labor": 0.327,
+      "feed": 0.0015,
+      "crop_inputs": 0.1815,
+      "interest": 0.0297,
+      "other": 0.2532
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0664,
+      "energy": 0.18,
+      "feed": 0.0025,
+      "crop_inputs": 0.3136,
+      "other": 0.4375
+    },
+    "labor_dollars": 21111151.0,
+    "interest_dollars": 1920686.0,
+    "depreciation_dollars": 4159290.0
+  },
+  "Nova Scotia|Hog and pig farming [1122]": {
+    "total_expenses_raw": 9482528.0,
+    "ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.0428,
+      "labor": 0.0,
+      "feed": 0.1806,
+      "crop_inputs": 0.0,
+      "interest": 0.0357,
+      "other": 0.712
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.0458,
+      "feed": 0.1931,
+      "crop_inputs": 0.0,
+      "other": 0.7611
+    },
+    "labor_dollars": 0.0,
+    "interest_dollars": 338414.0,
+    "depreciation_dollars": 273246.0
+  },
+  "Nova Scotia|Oilseed and grain farming [1111]": {
+    "total_expenses_raw": 19055835.0,
+    "ratios": {
+      "fertilizer": 0.139,
+      "energy": 0.0947,
+      "labor": 0.0907,
+      "feed": 0.0161,
+      "crop_inputs": 0.1223,
+      "interest": 0.0679,
+      "other": 0.3573
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1905,
+      "energy": 0.1298,
+      "feed": 0.0221,
+      "crop_inputs": 0.1677,
+      "other": 0.4899
+    },
+    "labor_dollars": 1728805.0,
+    "interest_dollars": 1294350.0,
+    "depreciation_dollars": 2135026.0
+  },
+  "Nova Scotia|Other animal production [112A]": {
+    "total_expenses_raw": 31271080.0,
+    "ratios": {
+      "fertilizer": 0.0155,
+      "energy": 0.0711,
+      "labor": 0.1654,
+      "feed": 0.1553,
+      "crop_inputs": 0.0054,
+      "interest": 0.0449,
+      "other": 0.4642
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0218,
+      "energy": 0.0999,
+      "feed": 0.2183,
+      "crop_inputs": 0.0077,
+      "other": 0.6524
+    },
+    "labor_dollars": 5173437.0,
+    "interest_dollars": 1404254.0,
+    "depreciation_dollars": 2443716.0
+  },
+  "Nova Scotia|Other crop farming [1119]": {
+    "total_expenses_raw": 11940503.0,
+    "ratios": {
+      "fertilizer": 0.0582,
+      "energy": 0.1417,
+      "labor": 0.1932,
+      "feed": 0.0337,
+      "crop_inputs": 0.0363,
+      "interest": 0.0508,
+      "other": 0.3038
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1014,
+      "energy": 0.247,
+      "feed": 0.0588,
+      "crop_inputs": 0.0632,
+      "other": 0.5297
+    },
+    "labor_dollars": 2307263.0,
+    "interest_dollars": 606919.0,
+    "depreciation_dollars": 2176812.0
+  },
+  "Nova Scotia|Other vegetable (except potato) and melon farming [111219]": {
+    "total_expenses_raw": 27780749.0,
+    "ratios": {
+      "fertilizer": 0.0868,
+      "energy": 0.0786,
+      "labor": 0.3555,
+      "feed": 0.004,
+      "crop_inputs": 0.0726,
+      "interest": 0.0465,
+      "other": 0.2762
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1675,
+      "energy": 0.1517,
+      "feed": 0.0077,
+      "crop_inputs": 0.1401,
+      "other": 0.5329
+    },
+    "labor_dollars": 9876410.0,
+    "interest_dollars": 1292706.0,
+    "depreciation_dollars": 2210825.0
+  },
+  "Nova Scotia|Poultry and egg production [1123]": {
+    "total_expenses_raw": 230979991.0,
+    "ratios": {
+      "fertilizer": 0.0055,
+      "energy": 0.0451,
+      "labor": 0.0884,
+      "feed": 0.4081,
+      "crop_inputs": 0.0084,
+      "interest": 0.038,
+      "other": 0.3475
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0068,
+      "energy": 0.0554,
+      "feed": 0.5009,
+      "crop_inputs": 0.0103,
+      "other": 0.4266
+    },
+    "labor_dollars": 20410777.0,
+    "interest_dollars": 8769413.0,
+    "depreciation_dollars": 13640573.0
+  },
+  "Ontario|All farm types": {
+    "total_expenses_raw": 22066230599.0,
+    "ratios": {
+      "fertilizer": 0.0763,
+      "energy": 0.0566,
+      "labor": 0.1161,
+      "feed": 0.132,
+      "crop_inputs": 0.0909,
+      "interest": 0.0701,
+      "other": 0.3525
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1078,
+      "energy": 0.0799,
+      "feed": 0.1864,
+      "crop_inputs": 0.1283,
+      "other": 0.4976
+    },
+    "labor_dollars": 2560898036.0,
+    "interest_dollars": 1547574038.0,
+    "depreciation_dollars": 2327227785.0
+  },
+  "Ontario|Animal production [112]": {
+    "total_expenses_raw": 11147269348.0,
+    "ratios": {
+      "fertilizer": 0.0272,
+      "energy": 0.0396,
+      "labor": 0.0544,
+      "feed": 0.2473,
+      "crop_inputs": 0.0236,
+      "interest": 0.0727,
+      "other": 0.4434
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0348,
+      "energy": 0.0507,
+      "feed": 0.3166,
+      "crop_inputs": 0.0302,
+      "other": 0.5677
+    },
+    "labor_dollars": 606204664.0,
+    "interest_dollars": 810252476.0,
+    "depreciation_dollars": 1025219179.0
+  },
+  "Ontario|Beef cattle ranching and farming, including feedlots [112110]": {
+    "total_expenses_raw": 3672979928.0,
+    "ratios": {
+      "fertilizer": 0.017,
+      "energy": 0.0242,
+      "labor": 0.0143,
+      "feed": 0.1222,
+      "crop_inputs": 0.0168,
+      "interest": 0.0327,
+      "other": 0.7252
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0188,
+      "energy": 0.0267,
+      "feed": 0.1349,
+      "crop_inputs": 0.0186,
+      "other": 0.8009
+    },
+    "labor_dollars": 52436069.0,
+    "interest_dollars": 120084365.0,
+    "depreciation_dollars": 174714139.0
+  },
+  "Ontario|Crop production [111]": {
+    "total_expenses_raw": 10919377470.0,
+    "ratios": {
+      "fertilizer": 0.1265,
+      "energy": 0.074,
+      "labor": 0.179,
+      "feed": 0.0144,
+      "crop_inputs": 0.1596,
+      "interest": 0.0675,
+      "other": 0.2597
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1995,
+      "energy": 0.1166,
+      "feed": 0.0228,
+      "crop_inputs": 0.2516,
+      "other": 0.4095
+    },
+    "labor_dollars": 1954621932.0,
+    "interest_dollars": 737355710.0,
+    "depreciation_dollars": 1302026301.0
+  },
+  "Ontario|Dairy cattle and milk production [112120]": {
+    "total_expenses_raw": 2848076151.0,
+    "ratios": {
+      "fertilizer": 0.0502,
+      "energy": 0.0569,
+      "labor": 0.0785,
+      "feed": 0.2268,
+      "crop_inputs": 0.0402,
+      "interest": 0.1379,
+      "other": 0.2399
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0818,
+      "energy": 0.0926,
+      "feed": 0.3693,
+      "crop_inputs": 0.0655,
+      "other": 0.3907
+    },
+    "labor_dollars": 223564405.0,
+    "interest_dollars": 392673096.0,
+    "depreciation_dollars": 483023191.0
+  },
+  "Ontario|Fruit and tree nut farming [1113]": {
+    "total_expenses_raw": 551925000.0,
+    "ratios": {
+      "fertilizer": 0.067,
+      "energy": 0.044,
+      "labor": 0.3303,
+      "feed": 0.0028,
+      "crop_inputs": 0.0966,
+      "interest": 0.0536,
+      "other": 0.3267
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1247,
+      "energy": 0.0819,
+      "feed": 0.0052,
+      "crop_inputs": 0.1798,
+      "other": 0.6084
+    },
+    "labor_dollars": 182273495.0,
+    "interest_dollars": 29591802.0,
+    "depreciation_dollars": 43633947.0
+  },
+  "Ontario|Greenhouse, nursery and floriculture production [1114]": {
+    "total_expenses_raw": 3913148340.0,
+    "ratios": {
+      "fertilizer": 0.0648,
+      "energy": 0.0906,
+      "labor": 0.2936,
+      "feed": 0.0014,
+      "crop_inputs": 0.1893,
+      "interest": 0.0562,
+      "other": 0.2128
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.116,
+      "energy": 0.1621,
+      "feed": 0.0026,
+      "crop_inputs": 0.3386,
+      "other": 0.3807
+    },
+    "labor_dollars": 1148810231.0,
+    "interest_dollars": 220080366.0,
+    "depreciation_dollars": 356870163.0
+  },
+  "Ontario|Hog and pig farming [1122]": {
+    "total_expenses_raw": 1690414790.0,
+    "ratios": {
+      "fertilizer": 0.0206,
+      "energy": 0.0333,
+      "labor": 0.0596,
+      "feed": 0.4444,
+      "crop_inputs": 0.02,
+      "interest": 0.0455,
+      "other": 0.3154
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0247,
+      "energy": 0.0399,
+      "feed": 0.533,
+      "crop_inputs": 0.024,
+      "other": 0.3784
+    },
+    "labor_dollars": 100786885.0,
+    "interest_dollars": 76864818.0,
+    "depreciation_dollars": 103427370.0
+  },
+  "Ontario|Oilseed and grain farming [1111]": {
+    "total_expenses_raw": 4659977777.0,
+    "ratios": {
+      "fertilizer": 0.1882,
+      "energy": 0.0684,
+      "labor": 0.0555,
+      "feed": 0.02,
+      "crop_inputs": 0.1571,
+      "interest": 0.0828,
+      "other": 0.2722
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.2666,
+      "energy": 0.0969,
+      "feed": 0.0283,
+      "crop_inputs": 0.2226,
+      "other": 0.3856
+    },
+    "labor_dollars": 258781878.0,
+    "interest_dollars": 385864372.0,
+    "depreciation_dollars": 725613090.0
+  },
+  "Ontario|Other animal production [112A]": {
+    "total_expenses_raw": 590389646.0,
+    "ratios": {
+      "fertilizer": 0.0257,
+      "energy": 0.0546,
+      "labor": 0.1023,
+      "feed": 0.1624,
+      "crop_inputs": 0.0266,
+      "interest": 0.0762,
+      "other": 0.4604
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0352,
+      "energy": 0.0748,
+      "feed": 0.2226,
+      "crop_inputs": 0.0365,
+      "other": 0.631
+    },
+    "labor_dollars": 60391061.0,
+    "interest_dollars": 45000545.0,
+    "depreciation_dollars": 54194965.0
+  },
+  "Ontario|Other crop farming [1119]": {
+    "total_expenses_raw": 681631957.0,
+    "ratios": {
+      "fertilizer": 0.1093,
+      "energy": 0.0813,
+      "labor": 0.1381,
+      "feed": 0.077,
+      "crop_inputs": 0.0847,
+      "interest": 0.0769,
+      "other": 0.3035
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1667,
+      "energy": 0.1239,
+      "feed": 0.1174,
+      "crop_inputs": 0.1291,
+      "other": 0.4628
+    },
+    "labor_dollars": 94113914.0,
+    "interest_dollars": 52400632.0,
+    "depreciation_dollars": 88127291.0
+  },
+  "Ontario|Other vegetable (except potato) and melon farming [111219]": {
+    "total_expenses_raw": 892257184.0,
+    "ratios": {
+      "fertilizer": 0.1104,
+      "energy": 0.0508,
+      "labor": 0.2648,
+      "feed": 0.0045,
+      "crop_inputs": 0.1257,
+      "interest": 0.0417,
+      "other": 0.3282
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1783,
+      "energy": 0.082,
+      "feed": 0.0072,
+      "crop_inputs": 0.2029,
+      "other": 0.5296
+    },
+    "labor_dollars": 236301974.0,
+    "interest_dollars": 37199868.0,
+    "depreciation_dollars": 65924814.0
+  },
+  "Ontario|Potato farming [111211]": {
+    "total_expenses_raw": 229164534.0,
+    "ratios": {
+      "fertilizer": 0.1834,
+      "energy": 0.0437,
+      "labor": 0.1581,
+      "feed": 0.0038,
+      "crop_inputs": 0.2089,
+      "interest": 0.0553,
+      "other": 0.2479
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.2667,
+      "energy": 0.0635,
+      "feed": 0.0056,
+      "crop_inputs": 0.3037,
+      "other": 0.3605
+    },
+    "labor_dollars": 36232732.0,
+    "interest_dollars": 12672369.0,
+    "depreciation_dollars": 22658694.0
+  },
+  "Ontario|Poultry and egg production [1123]": {
+    "total_expenses_raw": 2349474112.0,
+    "ratios": {
+      "fertilizer": 0.0201,
+      "energy": 0.0437,
+      "labor": 0.0721,
+      "feed": 0.3475,
+      "crop_inputs": 0.0156,
+      "interest": 0.0749,
+      "other": 0.3367
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0264,
+      "energy": 0.0572,
+      "feed": 0.4551,
+      "crop_inputs": 0.0204,
+      "other": 0.4409
+    },
+    "labor_dollars": 169309811.0,
+    "interest_dollars": 175978481.0,
+    "depreciation_dollars": 210297242.0
+  },
+  "Prince Edward Island|All farm types": {
+    "total_expenses_raw": 793674222.0,
+    "ratios": {
+      "fertilizer": 0.1315,
+      "energy": 0.0608,
+      "labor": 0.145,
+      "feed": 0.0789,
+      "crop_inputs": 0.1575,
+      "interest": 0.0564,
+      "other": 0.2553
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1923,
+      "energy": 0.0888,
+      "feed": 0.1154,
+      "crop_inputs": 0.2302,
+      "other": 0.3733
+    },
+    "labor_dollars": 115110333.0,
+    "interest_dollars": 44738335.0,
+    "depreciation_dollars": 91063479.0
+  },
+  "Prince Edward Island|Animal production [112]": {
+    "total_expenses_raw": 226033328.0,
+    "ratios": {
+      "fertilizer": 0.0479,
+      "energy": 0.0622,
+      "labor": 0.1019,
+      "feed": 0.2495,
+      "crop_inputs": 0.0287,
+      "interest": 0.0687,
+      "other": 0.3239
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0672,
+      "energy": 0.0873,
+      "feed": 0.3503,
+      "crop_inputs": 0.0404,
+      "other": 0.4548
+    },
+    "labor_dollars": 23035265.0,
+    "interest_dollars": 15526913.0,
+    "depreciation_dollars": 26471116.0
+  },
+  "Prince Edward Island|Beef cattle ranching and farming, including feedlots [112110]": {
+    "total_expenses_raw": 61966356.0,
+    "ratios": {
+      "fertilizer": 0.0461,
+      "energy": 0.0703,
+      "labor": 0.0539,
+      "feed": 0.1392,
+      "crop_inputs": 0.0339,
+      "interest": 0.0239,
+      "other": 0.5384
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0557,
+      "energy": 0.0849,
+      "feed": 0.1682,
+      "crop_inputs": 0.0409,
+      "other": 0.6503
+    },
+    "labor_dollars": 3341406.0,
+    "interest_dollars": 1484012.0,
+    "depreciation_dollars": 5837297.0
+  },
+  "Prince Edward Island|Crop production [111]": {
+    "total_expenses_raw": 565245596.0,
+    "ratios": {
+      "fertilizer": 0.1653,
+      "energy": 0.0602,
+      "labor": 0.1624,
+      "feed": 0.01,
+      "crop_inputs": 0.2094,
+      "interest": 0.0514,
+      "other": 0.2275
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.2458,
+      "energy": 0.0895,
+      "feed": 0.0148,
+      "crop_inputs": 0.3115,
+      "other": 0.3384
+    },
+    "labor_dollars": 91823755.0,
+    "interest_dollars": 29048941.0,
+    "depreciation_dollars": 64312243.0
+  },
+  "Prince Edward Island|Dairy cattle and milk production [112120]": {
+    "total_expenses_raw": 115481878.0,
+    "ratios": {
+      "fertilizer": 0.0593,
+      "energy": 0.0638,
+      "labor": 0.1259,
+      "feed": 0.2548,
+      "crop_inputs": 0.0294,
+      "interest": 0.1042,
+      "other": 0.2119
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0957,
+      "energy": 0.103,
+      "feed": 0.4115,
+      "crop_inputs": 0.0475,
+      "other": 0.3422
+    },
+    "labor_dollars": 14537755.0,
+    "interest_dollars": 12029982.0,
+    "depreciation_dollars": 17409695.0
+  },
+  "Prince Edward Island|Fruit and tree nut farming [1113]": {
+    "total_expenses_raw": 12449974.0,
+    "ratios": {
+      "fertilizer": 0.0664,
+      "energy": 0.0854,
+      "labor": 0.2095,
+      "feed": 0.0,
+      "crop_inputs": 0.1426,
+      "interest": 0.0567,
+      "other": 0.3157
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1089,
+      "energy": 0.14,
+      "feed": 0.0,
+      "crop_inputs": 0.2337,
+      "other": 0.5174
+    },
+    "labor_dollars": 2608880.0,
+    "interest_dollars": 705383.0,
+    "depreciation_dollars": 1539197.0
+  },
+  "Prince Edward Island|Greenhouse, nursery and floriculture production [1114]": {
+    "total_expenses_raw": 26708546.0,
+    "ratios": {
+      "fertilizer": 0.0229,
+      "energy": 0.0633,
+      "labor": 0.3031,
+      "feed": 0.0,
+      "crop_inputs": 0.1716,
+      "interest": 0.0492,
+      "other": 0.3272
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0392,
+      "energy": 0.1082,
+      "feed": 0.0,
+      "crop_inputs": 0.2933,
+      "other": 0.5593
+    },
+    "labor_dollars": 8095357.0,
+    "interest_dollars": 1313902.0,
+    "depreciation_dollars": 1671466.0
+  },
+  "Prince Edward Island|Hog and pig farming [1122]": {
+    "total_expenses_raw": 19862467.0,
+    "ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.0405,
+      "labor": 0.0,
+      "feed": 0.4894,
+      "crop_inputs": 0.0,
+      "interest": 0.0353,
+      "other": 0.4348
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.042,
+      "feed": 0.5073,
+      "crop_inputs": 0.0,
+      "other": 0.4507
+    },
+    "labor_dollars": 0.0,
+    "interest_dollars": 700188.0,
+    "depreciation_dollars": 0.0
+  },
+  "Prince Edward Island|Oilseed and grain farming [1111]": {
+    "total_expenses_raw": 48259074.0,
+    "ratios": {
+      "fertilizer": 0.1999,
+      "energy": 0.0854,
+      "labor": 0.0856,
+      "feed": 0.0225,
+      "crop_inputs": 0.1609,
+      "interest": 0.0867,
+      "other": 0.2428
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.281,
+      "energy": 0.12,
+      "feed": 0.0317,
+      "crop_inputs": 0.2261,
+      "other": 0.3412
+    },
+    "labor_dollars": 4132821.0,
+    "interest_dollars": 4184833.0,
+    "depreciation_dollars": 5608588.0
+  },
+  "Prince Edward Island|Other animal production [112A]": {
+    "total_expenses_raw": 9558524.0,
+    "ratios": {
+      "fertilizer": 0.09,
+      "energy": 0.0692,
+      "labor": 0.0975,
+      "feed": 0.1108,
+      "crop_inputs": 0.0414,
+      "interest": 0.0663,
+      "other": 0.4492
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1183,
+      "energy": 0.0909,
+      "feed": 0.1457,
+      "crop_inputs": 0.0545,
+      "other": 0.5906
+    },
+    "labor_dollars": 931985.0,
+    "interest_dollars": 634142.0,
+    "depreciation_dollars": 722205.0
+  },
+  "Prince Edward Island|Other crop farming [1119]": {
+    "total_expenses_raw": 14235542.0,
+    "ratios": {
+      "fertilizer": 0.0823,
+      "energy": 0.097,
+      "labor": 0.1057,
+      "feed": 0.1026,
+      "crop_inputs": 0.0883,
+      "interest": 0.0605,
+      "other": 0.2624
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1302,
+      "energy": 0.1533,
+      "feed": 0.1622,
+      "crop_inputs": 0.1396,
+      "other": 0.4147
+    },
+    "labor_dollars": 1504387.0,
+    "interest_dollars": 860889.0,
+    "depreciation_dollars": 2863791.0
+  },
+  "Prince Edward Island|Other vegetable (except potato) and melon farming [111219]": {
+    "total_expenses_raw": 11705102.0,
+    "ratios": {
+      "fertilizer": 0.0749,
+      "energy": 0.0737,
+      "labor": 0.3,
+      "feed": 0.0,
+      "crop_inputs": 0.0461,
+      "interest": 0.0828,
+      "other": 0.2802
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1577,
+      "energy": 0.1552,
+      "feed": 0.0,
+      "crop_inputs": 0.0971,
+      "other": 0.59
+    },
+    "labor_dollars": 3511739.0,
+    "interest_dollars": 969592.0,
+    "depreciation_dollars": 1664044.0
+  },
+  "Prince Edward Island|Potato farming [111211]": {
+    "total_expenses_raw": 452296484.0,
+    "ratios": {
+      "fertilizer": 0.1776,
+      "energy": 0.055,
+      "labor": 0.1593,
+      "feed": 0.0055,
+      "crop_inputs": 0.2251,
+      "interest": 0.0465,
+      "other": 0.2182
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.2607,
+      "energy": 0.0806,
+      "feed": 0.0081,
+      "crop_inputs": 0.3303,
+      "other": 0.3202
+    },
+    "labor_dollars": 72051081.0,
+    "interest_dollars": 21013035.0,
+    "depreciation_dollars": 51025162.0
+  },
+  "Prince Edward Island|Poultry and egg production [1123]": {
+    "total_expenses_raw": 21216390.0,
+    "ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.046,
+      "labor": 0.085,
+      "feed": 0.3952,
+      "crop_inputs": 0.0066,
+      "interest": 0.0346,
+      "other": 0.3857
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.0552,
+      "feed": 0.4741,
+      "crop_inputs": 0.0079,
+      "other": 0.4627
+    },
+    "labor_dollars": 1802958.0,
+    "interest_dollars": 734740.0,
+    "depreciation_dollars": 994675.0
+  },
+  "Quebec|All farm types": {
+    "total_expenses_raw": 13981154069.0,
+    "ratios": {
+      "fertilizer": 0.0328,
+      "energy": 0.057,
+      "labor": 0.1302,
+      "feed": 0.1937,
+      "crop_inputs": 0.0653,
+      "interest": 0.0851,
+      "other": 0.337
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0478,
+      "energy": 0.0832,
+      "feed": 0.2824,
+      "crop_inputs": 0.0952,
+      "other": 0.4914
+    },
+    "labor_dollars": 1820026254.0,
+    "interest_dollars": 1190422594.0,
+    "depreciation_dollars": 1382882165.0
+  },
+  "Quebec|Animal production [112]": {
+    "total_expenses_raw": 8902370367.0,
+    "ratios": {
+      "fertilizer": 0.0138,
+      "energy": 0.0439,
+      "labor": 0.0891,
+      "feed": 0.2979,
+      "crop_inputs": 0.0225,
+      "interest": 0.0818,
+      "other": 0.3682
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0185,
+      "energy": 0.0588,
+      "feed": 0.3992,
+      "crop_inputs": 0.0301,
+      "other": 0.4934
+    },
+    "labor_dollars": 793029193.0,
+    "interest_dollars": 728280748.0,
+    "depreciation_dollars": 738226533.0
+  },
+  "Quebec|Beef cattle ranching and farming, including feedlots [112110]": {
+    "total_expenses_raw": 1064161493.0,
+    "ratios": {
+      "fertilizer": 0.0092,
+      "energy": 0.0439,
+      "labor": 0.0429,
+      "feed": 0.2113,
+      "crop_inputs": 0.0135,
+      "interest": 0.0477,
+      "other": 0.5682
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0109,
+      "energy": 0.0519,
+      "feed": 0.2497,
+      "crop_inputs": 0.016,
+      "other": 0.6715
+    },
+    "labor_dollars": 45608321.0,
+    "interest_dollars": 50748614.0,
+    "depreciation_dollars": 67259493.0
+  },
+  "Quebec|Crop production [111]": {
+    "total_expenses_raw": 5082103650.0,
+    "ratios": {
+      "fertilizer": 0.066,
+      "energy": 0.0801,
+      "labor": 0.2022,
+      "feed": 0.0112,
+      "crop_inputs": 0.1403,
+      "interest": 0.091,
+      "other": 0.2824
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1139,
+      "energy": 0.1381,
+      "feed": 0.0193,
+      "crop_inputs": 0.2419,
+      "other": 0.4869
+    },
+    "labor_dollars": 1027391211.0,
+    "interest_dollars": 462421434.0,
+    "depreciation_dollars": 644969217.0
+  },
+  "Quebec|Dairy cattle and milk production [112120]": {
+    "total_expenses_raw": 3670035983.0,
+    "ratios": {
+      "fertilizer": 0.0257,
+      "energy": 0.0581,
+      "labor": 0.1068,
+      "feed": 0.23,
+      "crop_inputs": 0.0392,
+      "interest": 0.1348,
+      "other": 0.2768
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0407,
+      "energy": 0.0922,
+      "feed": 0.3652,
+      "crop_inputs": 0.0622,
+      "other": 0.4396
+    },
+    "labor_dollars": 392111189.0,
+    "interest_dollars": 494586129.0,
+    "depreciation_dollars": 472315035.0
+  },
+  "Quebec|Fruit and tree nut farming [1113]": {
+    "total_expenses_raw": 549304044.0,
+    "ratios": {
+      "fertilizer": 0.0389,
+      "energy": 0.0619,
+      "labor": 0.3225,
+      "feed": 0.0096,
+      "crop_inputs": 0.0966,
+      "interest": 0.066,
+      "other": 0.3036
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0761,
+      "energy": 0.1212,
+      "feed": 0.0187,
+      "crop_inputs": 0.1893,
+      "other": 0.5947
+    },
+    "labor_dollars": 177144480.0,
+    "interest_dollars": 36237102.0,
+    "depreciation_dollars": 55531057.0
+  },
+  "Quebec|Greenhouse, nursery and floriculture production [1114]": {
+    "total_expenses_raw": 850675141.0,
+    "ratios": {
+      "fertilizer": 0.0417,
+      "energy": 0.0905,
+      "labor": 0.2748,
+      "feed": 0.001,
+      "crop_inputs": 0.2432,
+      "interest": 0.0583,
+      "other": 0.2239
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0694,
+      "energy": 0.1508,
+      "feed": 0.0016,
+      "crop_inputs": 0.4051,
+      "other": 0.373
+    },
+    "labor_dollars": 233767365.0,
+    "interest_dollars": 49571612.0,
+    "depreciation_dollars": 56673828.0
+  },
+  "Quebec|Hog and pig farming [1122]": {
+    "total_expenses_raw": 2038678631.0,
+    "ratios": {
+      "fertilizer": 0.0037,
+      "energy": 0.0239,
+      "labor": 0.0837,
+      "feed": 0.4191,
+      "crop_inputs": 0.0091,
+      "interest": 0.0336,
+      "other": 0.3935
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0044,
+      "energy": 0.0282,
+      "feed": 0.4935,
+      "crop_inputs": 0.0107,
+      "other": 0.4633
+    },
+    "labor_dollars": 170702024.0,
+    "interest_dollars": 68479225.0,
+    "depreciation_dollars": 68229136.0
+  },
+  "Quebec|Oilseed and grain farming [1111]": {
+    "total_expenses_raw": 1609264955.0,
+    "ratios": {
+      "fertilizer": 0.1031,
+      "energy": 0.0876,
+      "labor": 0.0809,
+      "feed": 0.0161,
+      "crop_inputs": 0.1477,
+      "interest": 0.1313,
+      "other": 0.2685
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1655,
+      "energy": 0.1406,
+      "feed": 0.0259,
+      "crop_inputs": 0.237,
+      "other": 0.431
+    },
+    "labor_dollars": 130178170.0,
+    "interest_dollars": 211274863.0,
+    "depreciation_dollars": 265247931.0
+  },
+  "Quebec|Other animal production [112A]": {
+    "total_expenses_raw": 272662014.0,
+    "ratios": {
+      "fertilizer": 0.0108,
+      "energy": 0.0641,
+      "labor": 0.1405,
+      "feed": 0.1936,
+      "crop_inputs": 0.0184,
+      "interest": 0.0733,
+      "other": 0.4118
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0155,
+      "energy": 0.0917,
+      "feed": 0.2771,
+      "crop_inputs": 0.0263,
+      "other": 0.5894
+    },
+    "labor_dollars": 38314342.0,
+    "interest_dollars": 19999593.0,
+    "depreciation_dollars": 23823743.0
+  },
+  "Quebec|Other crop farming [1119]": {
+    "total_expenses_raw": 856607894.0,
+    "ratios": {
+      "fertilizer": 0.0171,
+      "energy": 0.1063,
+      "labor": 0.1598,
+      "feed": 0.0176,
+      "crop_inputs": 0.0419,
+      "interest": 0.1221,
+      "other": 0.3468
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0322,
+      "energy": 0.2007,
+      "feed": 0.0332,
+      "crop_inputs": 0.079,
+      "other": 0.6549
+    },
+    "labor_dollars": 136907431.0,
+    "interest_dollars": 104571375.0,
+    "depreciation_dollars": 161432295.0
+  },
+  "Quebec|Other vegetable (except potato) and melon farming [111219]": {
+    "total_expenses_raw": 935450802.0,
+    "ratios": {
+      "fertilizer": 0.0703,
+      "energy": 0.0504,
+      "labor": 0.315,
+      "feed": 0.0097,
+      "crop_inputs": 0.1356,
+      "interest": 0.0416,
+      "other": 0.2969
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1249,
+      "energy": 0.0896,
+      "feed": 0.0172,
+      "crop_inputs": 0.2409,
+      "other": 0.5275
+    },
+    "labor_dollars": 294696675.0,
+    "interest_dollars": 38880088.0,
+    "depreciation_dollars": 75308893.0
+  },
+  "Quebec|Potato farming [111211]": {
+    "total_expenses_raw": 282822526.0,
+    "ratios": {
+      "fertilizer": 0.1153,
+      "energy": 0.0604,
+      "labor": 0.1943,
+      "feed": 0.0025,
+      "crop_inputs": 0.1871,
+      "interest": 0.0782,
+      "other": 0.2523
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1867,
+      "energy": 0.0978,
+      "feed": 0.0041,
+      "crop_inputs": 0.3028,
+      "other": 0.4085
+    },
+    "labor_dollars": 54953723.0,
+    "interest_dollars": 22124444.0,
+    "depreciation_dollars": 31057000.0
+  },
+  "Quebec|Poultry and egg production [1123]": {
+    "total_expenses_raw": 1860019410.0,
+    "ratios": {
+      "fertilizer": 0.0044,
+      "energy": 0.0347,
+      "labor": 0.0788,
+      "feed": 0.3643,
+      "crop_inputs": 0.0099,
+      "interest": 0.0508,
+      "other": 0.3998
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0055,
+      "energy": 0.0427,
+      "feed": 0.448,
+      "crop_inputs": 0.0121,
+      "other": 0.4917
+    },
+    "labor_dollars": 146565345.0,
+    "interest_dollars": 94444616.0,
+    "depreciation_dollars": 106577189.0
+  },
+  "Saskatchewan|All farm types": {
+    "total_expenses_raw": 16881598149.0,
+    "ratios": {
+      "fertilizer": 0.1975,
+      "energy": 0.0655,
+      "labor": 0.0475,
+      "feed": 0.0546,
+      "crop_inputs": 0.1586,
+      "interest": 0.0639,
+      "other": 0.2479
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.2727,
+      "energy": 0.0904,
+      "feed": 0.0753,
+      "crop_inputs": 0.219,
+      "other": 0.3425
+    },
+    "labor_dollars": 801669767.0,
+    "interest_dollars": 1078736801.0,
+    "depreciation_dollars": 2778450049.0
+  },
+  "Saskatchewan|Animal production [112]": {
+    "total_expenses_raw": 3955954979.0,
+    "ratios": {
+      "fertilizer": 0.048,
+      "energy": 0.058,
+      "labor": 0.0427,
+      "feed": 0.1941,
+      "crop_inputs": 0.0389,
+      "interest": 0.0581,
+      "other": 0.4647
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0598,
+      "energy": 0.0721,
+      "feed": 0.2415,
+      "crop_inputs": 0.0484,
+      "other": 0.5782
+    },
+    "labor_dollars": 168857450.0,
+    "interest_dollars": 229919140.0,
+    "depreciation_dollars": 378077457.0
+  },
+  "Saskatchewan|Beef cattle ranching and farming, including feedlots [112110]": {
+    "total_expenses_raw": 2910953484.0,
+    "ratios": {
+      "fertilizer": 0.048,
+      "energy": 0.0595,
+      "labor": 0.0226,
+      "feed": 0.1505,
+      "crop_inputs": 0.0384,
+      "interest": 0.0571,
+      "other": 0.5253
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0584,
+      "energy": 0.0725,
+      "feed": 0.1832,
+      "crop_inputs": 0.0467,
+      "other": 0.6392
+    },
+    "labor_dollars": 65701573.0,
+    "interest_dollars": 166089812.0,
+    "depreciation_dollars": 287281724.0
+  },
+  "Saskatchewan|Crop production [111]": {
+    "total_expenses_raw": 12925254733.0,
+    "ratios": {
+      "fertilizer": 0.2432,
+      "energy": 0.0678,
+      "labor": 0.049,
+      "feed": 0.0119,
+      "crop_inputs": 0.1952,
+      "interest": 0.0657,
+      "other": 0.1816
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.3476,
+      "energy": 0.0968,
+      "feed": 0.017,
+      "crop_inputs": 0.279,
+      "other": 0.2596
+    },
+    "labor_dollars": 632788779.0,
+    "interest_dollars": 848786711.0,
+    "depreciation_dollars": 2400235496.0
+  },
+  "Saskatchewan|Dairy cattle and milk production [112120]": {
+    "total_expenses_raw": 217474948.0,
+    "ratios": {
+      "fertilizer": 0.048,
+      "energy": 0.0506,
+      "labor": 0.0998,
+      "feed": 0.2133,
+      "crop_inputs": 0.0312,
+      "interest": 0.1998,
+      "other": 0.2444
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0816,
+      "energy": 0.0861,
+      "feed": 0.3632,
+      "crop_inputs": 0.053,
+      "other": 0.4161
+    },
+    "labor_dollars": 21708506.0,
+    "interest_dollars": 43452562.0,
+    "depreciation_dollars": 24557909.0
+  },
+  "Saskatchewan|Fruit and tree nut farming [1113]": {
+    "total_expenses_raw": 1571256.0,
+    "ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.0915,
+      "labor": 0.1429,
+      "feed": 0.0,
+      "crop_inputs": 0.0,
+      "interest": 0.0784,
+      "other": 0.614
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.1297,
+      "feed": 0.0,
+      "crop_inputs": 0.0,
+      "other": 0.8703
+    },
+    "labor_dollars": 224475.0,
+    "interest_dollars": 123115.0,
+    "depreciation_dollars": 115251.0
+  },
+  "Saskatchewan|Greenhouse, nursery and floriculture production [1114]": {
+    "total_expenses_raw": 30877038.0,
+    "ratios": {
+      "fertilizer": 0.0474,
+      "energy": 0.1216,
+      "labor": 0.262,
+      "feed": 0.0013,
+      "crop_inputs": 0.2322,
+      "interest": 0.0453,
+      "other": 0.226
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0754,
+      "energy": 0.1935,
+      "feed": 0.002,
+      "crop_inputs": 0.3694,
+      "other": 0.3597
+    },
+    "labor_dollars": 8089534.0,
+    "interest_dollars": 1397395.0,
+    "depreciation_dollars": 1985296.0
+  },
+  "Saskatchewan|Hog and pig farming [1122]": {
+    "total_expenses_raw": 234358115.0,
+    "ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.0277,
+      "labor": 0.166,
+      "feed": 0.5404,
+      "crop_inputs": 0.0,
+      "interest": 0.0061,
+      "other": 0.2239
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0,
+      "energy": 0.035,
+      "feed": 0.6823,
+      "crop_inputs": 0.0,
+      "other": 0.2827
+    },
+    "labor_dollars": 38910647.0,
+    "interest_dollars": 1419631.0,
+    "depreciation_dollars": 8397906.0
+  },
+  "Saskatchewan|Oilseed and grain farming [1111]": {
+    "total_expenses_raw": 12530488074.0,
+    "ratios": {
+      "fertilizer": 0.2474,
+      "energy": 0.0669,
+      "labor": 0.0483,
+      "feed": 0.0105,
+      "crop_inputs": 0.1966,
+      "interest": 0.0658,
+      "other": 0.1779
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.3538,
+      "energy": 0.0957,
+      "feed": 0.015,
+      "crop_inputs": 0.2811,
+      "other": 0.2544
+    },
+    "labor_dollars": 604636678.0,
+    "interest_dollars": 824879514.0,
+    "depreciation_dollars": 2338310635.0
+  },
+  "Saskatchewan|Other animal production [112A]": {
+    "total_expenses_raw": 410653024.0,
+    "ratios": {
+      "fertilizer": 0.093,
+      "energy": 0.0729,
+      "labor": 0.0717,
+      "feed": 0.2247,
+      "crop_inputs": 0.0801,
+      "interest": 0.029,
+      "other": 0.3138
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1186,
+      "energy": 0.0929,
+      "feed": 0.2864,
+      "crop_inputs": 0.1021,
+      "other": 0.4
+    },
+    "labor_dollars": 29431537.0,
+    "interest_dollars": 11920198.0,
+    "depreciation_dollars": 47110804.0
+  },
+  "Saskatchewan|Other crop farming [1119]": {
+    "total_expenses_raw": 322219226.0,
+    "ratios": {
+      "fertilizer": 0.121,
+      "energy": 0.0941,
+      "labor": 0.0446,
+      "feed": 0.0685,
+      "crop_inputs": 0.1345,
+      "interest": 0.0607,
+      "other": 0.31
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1662,
+      "energy": 0.1293,
+      "feed": 0.0941,
+      "crop_inputs": 0.1847,
+      "other": 0.4257
+    },
+    "labor_dollars": 14366214.0,
+    "interest_dollars": 19555785.0,
+    "depreciation_dollars": 53656513.0
+  },
+  "Saskatchewan|Other vegetable (except potato) and melon farming [111219]": {
+    "total_expenses_raw": 16072865.0,
+    "ratios": {
+      "fertilizer": 0.0194,
+      "energy": 0.0773,
+      "labor": 0.1404,
+      "feed": 0.0,
+      "crop_inputs": 0.2568,
+      "interest": 0.0976,
+      "other": 0.24
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0326,
+      "energy": 0.1303,
+      "feed": 0.0,
+      "crop_inputs": 0.4327,
+      "other": 0.4044
+    },
+    "labor_dollars": 2256597.0,
+    "interest_dollars": 1569280.0,
+    "depreciation_dollars": 2708984.0
+  },
+  "Saskatchewan|Potato farming [111211]": {
+    "total_expenses_raw": 26337729.0,
+    "ratios": {
+      "fertilizer": 0.1092,
+      "energy": 0.0725,
+      "labor": 0.1311,
+      "feed": 0.0,
+      "crop_inputs": 0.2118,
+      "interest": 0.0538,
+      "other": 0.2758
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.1632,
+      "energy": 0.1084,
+      "feed": 0.0,
+      "crop_inputs": 0.3164,
+      "other": 0.4121
+    },
+    "labor_dollars": 3451858.0,
+    "interest_dollars": 1416004.0,
+    "depreciation_dollars": 3839580.0
+  },
+  "Saskatchewan|Poultry and egg production [1123]": {
+    "total_expenses_raw": 174119470.0,
+    "ratios": {
+      "fertilizer": 0.0086,
+      "energy": 0.0482,
+      "labor": 0.0677,
+      "feed": 0.3368,
+      "crop_inputs": 0.0117,
+      "interest": 0.0462,
+      "other": 0.419
+    },
+    "intermediate_ratios": {
+      "fertilizer": 0.0104,
+      "energy": 0.0585,
+      "feed": 0.4086,
+      "crop_inputs": 0.0142,
+      "other": 0.5083
+    },
+    "labor_dollars": 11780360.0,
+    "interest_dollars": 8044164.0,
+    "depreciation_dollars": 10775269.0
+  }
+}

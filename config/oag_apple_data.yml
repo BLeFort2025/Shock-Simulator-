@@ -1,0 +1,393 @@
+# =============================================================================
+# OAG Apple & Tender Fruit Ground Truth Data (2024)
+# =============================================================================
+# Sources:
+#   - OAG/OTFG Employment Data: Larissa Osborne (OAG), confirmed June 2, 2026
+#   - Farm Gate Value: StatCan 32-10-0364
+#   - Production Insurance: Agricorp OACC Program Delivery Update, Sept 2025
+#   - SDRM: Actual commodity-level data from John Cumming (OMAFA), July 13, 2026
+#   - Analysis-by-Parts & Stage-Specific Tax Scalars: Forensic Macroeconomic &
+#     Fiscal Audit (Gemini Deep Research verified, Oct 2026)
+# =============================================================================
+
+# --- OAG-Confirmed Employment & Wages + Analysis-by-Parts (ABP) Calibration (2024) ---
+oag_employment_2024:
+  apples:
+    ftes: 1651
+    wages_M: 67.40
+    # Analysis-by-Parts (ABP) Value Added & Supply-Chain Calibration (Deep Research Verified, Oct 2026)
+    direct_gdp_basic_M: 90.40          # 67.5% of $133.9M FGV (recalibrated from $60.0M grain baseline)
+    direct_gdp_market_M: 90.40         # Zero-rated basic groceries at farm gate (Schedule VI, Part III, s. 1)
+    direct_gos_M: 21.50                # 16.1% of FGV (positive capital recovery covering orchard CCA & interest)
+    direct_taxes_prod_M: 1.50          # 1.1% of FGV ($1.19M municipal orchard property tax + $0.31M licenses)
+    direct_emp_social_M: 5.1224        # 7.60% of $67.4M payroll (CPP, EI, and 0.35% small-employer EHT)
+    intermediate_inputs_M: 43.50       # 32.5% of FGV (down from $73.90M / 55.2% in grain-dominated NAICS 111A)
+    indirect_scale_factor: 0.588633    # $43.50M / $73.90M intermediate input compression ratio
+    induced_scale_factor: 3.475        # Midpoint of 3.10x-3.85x remittance-adjusted domestic induced scalar (60% SAWP remittance)
+    acres_total: 15850                 # OAG Annual Report / Agricorp total commercial orchard area (bearing + resets)
+    acres_bearing_statcan: 14110       # StatCan Table 32-10-0364-01 commercial fruit-bearing area
+    source: "OMAFRA Cost of Production (COP) derived estimates & Forensic Macroeconomic Audit (Oct 2026). FTE calculated using 1,872 hours/FTE (36 hrs/wk x 52 wks)."
+
+  tender_fruit:
+    ftes: 717.0                        # 1,491,342 total on-farm hours / 2,080 hrs/FTE (745.7 FTEs at 2,000 hrs/FTE)
+    wages_M: 27.99                     # Direct cash wages ($18.78/hr blended; $33.25M fully burdened Compensation of Employees)
+    direct_emp_social_M: 5.26          # Mandatory employer CPP, EI, WSIB, EHT & SAWP seasonal housing/airfare burden ($3.54/hr)
+    direct_gdp_basic_M: 39.65          # 58.2% of $68.135M basic-price output ($60.2% of $65.844M FGV)
+    direct_gdp_market_M: 39.65         # Zero-rated basic groceries at farm gate (Schedule VI, Part III, s. 1)
+    direct_gos_M: 7.23                 # $4.84M Capital Consumption Allowance (CCA) + $2.39M Operator Net Mixed Income
+    direct_taxes_prod_M: 1.46          # Property taxes ($0.604M across 8,048 acres @ $75/ac), vehicle licenses & regulatory levies
+    intermediate_inputs_M: 28.48       # 41.8% of $68.135M basic-price output (excluding off-farm packing & master cartons)
+    indirect_scale_factor: 0.73618     # $31.12M / $42.272M intermediate supply-chain compression ratio
+    induced_scale_factor: 1.1139       # Remittance-adjusted induced scalar (75.1% SAWP/TFW hours; 63.0% cash remittance; gamma_direct=0.483)
+    indirect_output_M: 31.12
+    indirect_gdp_basic_M: 15.05
+    indirect_gdp_market_M: 15.05
+    indirect_wages_M: 7.55
+    indirect_emp_social_M: 1.01
+    indirect_jobs: 124.8
+    induced_output_M: 13.7893          # $14.22M total Stage 1 induced output net of $0.4307M BRM transfer induced output
+    induced_gdp_basic_M: 8.0049        # $8.25M total Stage 1 induced GDP net of $0.2451M BRM transfer induced GDP
+    induced_gdp_market_M: 8.0049
+    induced_wages_M: 3.9838            # $4.08M total Stage 1 induced cash wages net of $0.0962M BRM transfer induced wages
+    induced_emp_social_M: 0.5285       # $0.54M total Stage 1 induced social contrib net of $0.0115M BRM transfer induced contrib
+    induced_jobs: 72.0168              # 73.9 total Stage 1 induced FTEs net of 1.8832 BRM transfer induced FTEs
+    acres_total: 8048.0                # 6,777.0 bearing acres + 1,271.0 non-bearing establishment/reset acres (15.8% reset share)
+    acres_bearing_statcan: 6777.0      # Peaches (4,132) + Pears (993) + Plums/Prunes (847) + Nectarines (748) + Apricots (57)
+    acres_non_bearing_reset: 1271.0    # Peaches (728) + Pears (233) + Plums/Prunes (161) + Nectarines (137) + Apricots (12)
+    total_hours: 1491342               # 1,415,378 bearing hours + 75,964 non-bearing reset hours (85.6% hand / 14.4% machine)
+    sawp_share_hours: 0.751            # 75.1% SAWP/TFW hours (84.0% hand labor / 22.0% machine operator)
+    source: "OMAFRA 2023 Economic Report: Establishment & Production Costs for Tender Fruit in Ontario (updated May 2024) & Deep Research Verification (Oct 2026)."
+
+  tender_fruit_packing:
+    ftes: 180.6                        # 7.15 Direct FTEs per $1M margin across $25.26M cold-chain packing & shipper margin
+    wages_M: 7.56                      # Direct cash wages ($8.41M total Compensation of Employees incl. $0.85M employer burden)
+    direct_emp_social_M: 0.85          # Statutory employer CPP, EI, EHT & WSIB on cold-chain packinghouse payroll
+    direct_gdp_basic_M: 12.33          # 48.8% of $25.26M shipper margin ($8.41M Comp of Emp + $3.61M GOS + $0.31M Prod Taxes)
+    direct_gdp_market_M: 12.33
+    direct_gos_M: 3.61                 # 14.3% of margin (hydro-cooling/forced-air refrigeration & optical grading depreciation + net return)
+    direct_taxes_prod_M: 0.31          # 1.2% of margin (commercial packinghouse facility property tax & licensing)
+    intermediate_inputs_M: 12.93       # 51.2% of margin ($7.96M corrugated master cartons/clamshells + $1.97M cooling utilities + $3.00M logistics/admin)
+    indirect_scale_factor: 1.06657     # $15.06M / $14.120M (elevated domestic corrugated carton & thermoformed clamshell linkages)
+    induced_scale_factor: 0.89096      # Calibrated packinghouse induced scalar (35% SAWP/TFW hours; gamma_pack_direct=0.785)
+    indirect_output_M: 15.06
+    indirect_gdp_basic_M: 6.87
+    indirect_gdp_market_M: 6.87
+    indirect_wages_M: 4.09
+    indirect_emp_social_M: 0.50
+    indirect_jobs: 67.6
+    induced_output_M: 8.62
+    induced_gdp_basic_M: 5.00
+    induced_gdp_market_M: 5.00
+    induced_wages_M: 2.49
+    induced_emp_social_M: 0.31
+    induced_jobs: 40.3
+    source: "Custom Cold-Chain Packinghouse & Shipper ABP Vector (55% NAICS 115110 + 20% NAICS 493120 + 25% NAICS 411/413; Deep Research Verified, Oct 2026)."
+
+  grapes:
+    ftes: 28.1                         # 58,552 vineyard hours / 2,080 hrs/FTE across 411.0 total cultivated acres (24.8 FTEs on 362.68 GPS-mapped acres)
+    wages_M: 1.39                      # Direct cash wages ($1.10M cultural vineyard cash + $0.29M on-farm field-shed clamshell sorting; $1.65M burdened)
+    direct_emp_social_M: 0.26          # Mandatory employer CPP, EI, WSIB, EHT & SAWP housing burden ($0.21M vineyard + $0.05M field-shed)
+    direct_gdp_basic_M: 2.19           # 55.5% of $3.938M basic-price output (58.4% of $3.75M net FGV)
+    direct_gdp_market_M: 2.19          # Zero-rated basic groceries at farm gate (Schedule VI, Part III, s. 1)
+    direct_gos_M: 0.62                 # $0.31M Capital Consumption Allowance (CCA) + $0.31M Operator Net Mixed Income
+    direct_taxes_prod_M: 0.11          # Property taxes ($0.031M across 411 acres @ $75/ac), vehicle licenses & regulatory levies
+    intermediate_inputs_M: 1.75        # 44.5% of $3.938M basic-price output (excluding off-farm dealer-shipper packing & master cartons)
+    indirect_scale_factor: 0.7769      # $1.87M / $2.407M intermediate supply-chain compression ratio
+    induced_scale_factor: 1.028        # Remittance-adjusted induced scalar (73.7% SAWP/TFW hours; 63.0% cash remittance; gamma_direct=0.481)
+    indirect_output_M: 1.87
+    indirect_gdp_basic_M: 0.92
+    indirect_gdp_market_M: 0.92
+    indirect_wages_M: 0.46
+    indirect_emp_social_M: 0.06
+    indirect_jobs: 7.6
+    induced_output_M: 0.7247           # $0.76M total Stage 1 induced output net of $0.0353M BRM transfer induced output
+    induced_gdp_basic_M: 0.3799        # $0.40M total Stage 1 induced GDP net of $0.0201M BRM transfer induced GDP
+    induced_gdp_market_M: 0.3799
+    induced_wages_M: 0.2121            # $0.22M total Stage 1 induced cash wages net of $0.0079M BRM transfer induced wages
+    induced_emp_social_M: 0.0281       # $0.029M total Stage 1 induced social contrib net of $0.0009M BRM transfer induced contrib
+    induced_jobs: 3.4455               # 3.6 total Stage 1 induced FTEs net of 0.1545 BRM transfer induced FTEs
+    acres_total: 411.0                 # Full 2,005-ton sector footprint (357.5 bearing acres + 53.5 non-bearing reset acres)
+    acres_bearing_statcan: 357.5       # Full sector bearing area (315.50 acres GPS-mapped OFGGMB + 42.00 acres direct/unmapped)
+    acres_non_bearing_reset: 53.5      # 47.18 acres GPS-mapped OFGGMB resets + 6.32 acres unmapped resets (13.0% reset share)
+    acres_mapped_total: 362.68         # 59th Annual Report of the OFGGMB (2024) Table 4 GPS-mapped commercial acreage (277.79 ac Dist 1 + 84.89 ac Dist 2)
+    acres_mapped_bearing: 315.50       # GPS-mapped bearing acreage (Sovereign Coronation 269.60 ac, Fredonia 23.50 ac, Concord 10.28 ac, Himrod/Patricia/Van Buren 7.31 ac, Jupiter 3.50 ac, Timpson 1.31 ac)
+    total_hours: 58552                 # 55,770 bearing hours (156 hrs/ac) + 2,782 non-bearing reset hours (52 hrs/ac)
+    sawp_share_hours: 0.737            # 73.7% SAWP/TFW hours (84.0% hand labor / 22.0% machine operator)
+    source: "OMAFRA Establishment & Production Costs for Grapes in Ontario, OFGGMB 59th Annual Report (2024), & Deep Research Verification (Oct 2026)."
+
+  grapes_packing:
+    ftes: 15.0                         # 7.15 Direct FTEs per $1M margin across $2.10M packing ($1.92M) & regional distribution ($0.18M) margin
+    wages_M: 0.63                      # Direct cash wages ($0.70M total Compensation of Employees incl. $0.07M employer burden)
+    direct_emp_social_M: 0.07          # Statutory employer CPP, EI, EHT & WSIB on cold-chain shipper payroll
+    direct_gdp_basic_M: 1.02           # 48.8% of $2.10M margin ($0.70M Comp of Emp + $0.30M GOS + $0.02M Prod Taxes)
+    direct_gdp_market_M: 1.02
+    direct_gos_M: 0.30                 # Forced-air cooling, cold storage & shipper operating surplus
+    direct_taxes_prod_M: 0.02          # Facility property tax & regulatory licenses
+    intermediate_inputs_M: 1.08        # 51.2% of margin ($0.71M vented PET/rPET clamshells & 18-lb master cartons + $0.16M utilities + $0.21M logistics/admin)
+    indirect_scale_factor: 1.0647
+    induced_scale_factor: 0.8085
+    indirect_output_M: 1.25
+    indirect_gdp_basic_M: 0.57
+    indirect_gdp_market_M: 0.57
+    indirect_wages_M: 0.33
+    indirect_emp_social_M: 0.04
+    indirect_jobs: 5.5
+    induced_output_M: 0.65
+    induced_gdp_basic_M: 0.42
+    induced_gdp_market_M: 0.42
+    induced_wages_M: 0.19
+    induced_emp_social_M: 0.02
+    induced_jobs: 3.5
+    source: "Custom Cold-Chain Packinghouse & Regional Shipper ABP Vector (Deep Research Verified, Oct 2026)."
+
+# --- Stage-Specific Fiscal Tax Scalars (2024, Deep Research Verified) ---
+fiscal_scalars_2024:
+  pit_direct_growing: 0.0452           # 4.52% blended orchard PIT (ITA s. 118.94 SAWP BPA/spousal credits + Ontario LIFT)
+  pit_direct_packing: 0.1460           # 14.60% full-time wholesale (NAICS 411) benchmark ($65K avg earnings)
+  pit_direct_processing: 0.1388        # 13.88% full-time food mfg (NAICS 3114) benchmark ($55K avg earnings)
+  pit_indirect_induced: 0.1231         # 12.31% general Ontario economy effective PIT rate
+  cit_direct_growing: 0.0403           # 4.03% of GOS/GMI (0.33 taxable conversion ratio x 12.2% CCPC rate)
+  cit_direct_downstream: 0.0780        # 7.80% of GOS (midpoint of 6.80%-8.80% corporate M&P/wholesale benchmark)
+  cit_indirect_induced: 0.0549         # 5.49% of GOS (0.45 conversion ratio x 12.2% CCPC rate)
+  hst_composite_output: 0.0195         # 1.95% composite value-chain HST (13% on hard cider, <600mL juice, agri-tourism & exempt finance inputs)
+  property_tax_per_acre: 75.0          # $75/acre blended orchard rate ($38.35 bare land at 20-25% FT ratio + $36.65 cold storage/SAWP housing)
+
+# --- Farm Gate Values (2024, StatCan 32-10-0364 & Marketing Boards) ---
+fgv_2024:
+  apples_M: 133.9
+  tender_fruit_M: 65.84                        # StatCan 32-10-0364 FGV for the 5 OTFG tender fruit crops ($35.50M peaches + $10.81M plums + $10.22M nectarines + $9.13M pears + $0.19M apricots)
+  tender_fruit_otfg_fresh_M: 64.45             # OTFG fresh-market FGV after deductions (peaches, nectarines, pears, plums, apricots; Larissa Osborne, Oct 2026)
+  tender_fruit_statcan_incl_cherries_M: 69.57  # StatCan 32-10-0364 5 crops + sweet cherries ($3.73M)
+  grapes_table_M: 3.75                         # Fresh table grapes (Ontario Fresh Grape Growers / Larissa Osborne, Sept 2026)
+  grapes_wine_M: 103.80                        # Wine grapes (Grape Growers of Ontario, finalized 2024 harvest)
+  grapes_total_M: 107.46                       # Total all Ontario grapes ($103.80M wine + $3.66M-$3.75M table; Deep Research verified Sept 2026)
+  grapes_M: 107.46                             # Updated from 113.0M based on finalized post-harvest verification
+  source: "StatCan 32-10-0364; OTFG / Larissa Osborne ($64.45M fresh tender fruit, Oct 2026); Grape Growers of Ontario ($103.8M); OFGGMB ($3.75M)"
+
+# --- Non-Growing Value Chain Margins & Historical Comparison (2017 vs. 2024) ---
+value_chain_2024:
+  harvest_volume_M_lbs_2017: 380.0
+  harvest_volume_M_lbs_2024: 397.2
+  packing_shipments_M_2017: 181.5
+  packing_shipments_M: 221.4
+  packing_apple_purchases_M_2017: 98.2
+  packing_apple_purchases_M: 110.6
+  packing_margin_M_2017: 83.3
+  packing_margin_M: 110.8              # Shipments ($221.4M) - Apple Costs ($110.6M)
+  processing_shipments_M_2017: 129.5
+  processing_shipments_M: 146.3
+  processing_apple_purchases_M_2017: 17.4
+  processing_apple_purchases_M: 20.7
+  processing_margin_M_2017: 112.1
+  processing_margin_M: 125.6           # Shipments ($146.3M) - Apple Costs ($20.7M)
+  source: "Larissa Osborne, OAG/OTFG, 'Ontario Apples - 2024 Economic Impact Volume and Value Data.pdf', June 2, 2026"
+
+# --- OMAFRA High-Density Apple Establishment & Capital Costs per Acre ---
+omafra_cop_capital_per_acre:
+  - component: "High-Density Trees & Trellis Support"
+    cost_per_acre: 14640.0
+    description: "1,200 dwarf trees/acre (M.9 rootstocks) @ $12.20, high-tensile wire trellis, support posts, anchors"
+  - component: "Tile Drainage System"
+    cost_per_acre: 3996.0
+    description: "Subsurface perforated tile drainage for soil moisture control and root disease mitigation"
+  - component: "Automated Trickle/Drip Irrigation"
+    cost_per_acre: 3013.0
+    description: "Drip lines, pressure-compensating emitters, sub-mains, and automated fertigation injection"
+  - component: "Frost Protection (Wind Machines)"
+    cost_per_acre: 2172.0
+    description: "Pro-rated share of Orchard-Rite/FrostBoss engine towers ($55K-$65K per machine covering 10-12 acres)"
+  - component: "Harvest Bins & Equipment Handling"
+    cost_per_acre: 2442.0
+    description: "Macro-bins, bin trailers, and forklift/platform attachments"
+  - component: "Machinery & Cold Storage Allocation"
+    cost_per_acre: 6010.0
+    description: "Depreciation and interest on narrow orchard tractors, tower sprayers, and CA cold storage"
+
+tender_fruit_value_chain_2024:
+  volume_tons_2017: 28133
+  volume_tons_2018: 27708
+  volume_tons_ave_1718: 27921
+  volume_tons_2023: 27921
+  volume_tons_2024: 29360
+  volume_tons_ave_2324: 28640
+  net_farm_price_per_ton_2017: 1623
+  net_farm_price_per_ton_2018: 1617
+  net_farm_price_per_ton_2023: 2199
+  net_farm_price_per_ton_2024: 2195
+  fgv_fresh_M_2017: 45.65
+  fgv_fresh_M_2018: 44.81
+  fgv_fresh_M_ave_1718: 45.23
+  fgv_fresh_M_2023: 61.41
+  fgv_fresh_M_2024: 64.45
+  fgv_fresh_M_ave_2324: 62.93
+  wholesale_value_M_2017: 65.05
+  wholesale_value_M_2018: 63.57
+  wholesale_value_M_ave_1718: 64.31
+  wholesale_value_M_2023: 85.91
+  wholesale_value_M_2024: 89.72
+  wholesale_value_M_ave_2324: 87.81
+  packing_margin_M_2017: 19.40
+  packing_margin_M_2018: 18.76
+  packing_margin_M_ave_1718: 19.08
+  packing_margin_M_2023: 24.50
+  packing_margin_M: 25.26              # Wholesale value ($89.72M) - Farm gate value ($64.45M)
+  packing_margin_M_ave_2324: 24.88
+  processing_margin_M: 0.0             # Fresh-market tender fruit only ("No inclusion of processing for now")
+  distribution_margin_M: 25.26         # Distribution centre value ($89.72M) - Farm gate value ($64.45M)
+  bearing_acres_statcan_5crops_2024: 6777  # Peaches (4,132) + Pears (993) + Plums/Prunes (847) + Nectarines (748) + Apricots (57)
+  total_cultivated_acres_5crops_2024: 8048 # Peaches (4,860) + Pears (1,226) + Plums/Prunes (1,008) + Nectarines (885) + Apricots (69)
+  source: "Larissa Osborne, OTFG, 'Tender Fruit.docx' (peaches, nectarines, pears, plums, apricots — fresh market), Oct 20, 2026"
+
+grape_value_chain_2024:
+  volume_tons_2016: 1496
+  volume_tons_2017: 2045
+  volume_tons_2018: 1694
+  volume_tons_ave_1618: 1870
+  volume_tons_2023: 2259
+  volume_tons_2024: 1769               # OFGGMB Board-mapped volume (2,005 tons total sector footprint incl. 236t direct farm-gate)
+  volume_tons_sector_2024: 2005
+  volume_tons_ave_2324: 2014
+  net_farm_price_per_ton_2016: 1730
+  net_farm_price_per_ton_2017: 1770
+  net_farm_price_per_ton_2018: 1759
+  net_farm_price_per_ton_2023: 1981
+  net_farm_price_per_ton_2024: 2121    # $2,121/ton Board-mapped ($1,870/ton across full 2,005-ton sector footprint)
+  fgv_fresh_M_2016: 2.59
+  fgv_fresh_M_2017: 3.62
+  fgv_fresh_M_2018: 2.98
+  fgv_fresh_M_ave_1618: 3.30
+  fgv_fresh_M_2023: 4.48
+  fgv_fresh_M_2024: 3.75               # $3.75M net FGV ($3.657M dealer-shipper + $0.093M direct)
+  fgv_fresh_M_ave_2324: 4.11
+  wholesale_region_M_2016: 3.73
+  wholesale_region_M_2017: 5.33
+  wholesale_region_M_2018: 4.43
+  wholesale_region_M_ave_1618: 4.88
+  wholesale_region_M_2023: 7.02
+  wholesale_region_M_2024: 5.67
+  wholesale_region_M_ave_2324: 6.34
+  distribution_value_M_2016: 3.88
+  distribution_value_M_2017: 5.53
+  distribution_value_M_2018: 4.60
+  distribution_value_M_ave_1618: 5.06
+  distribution_value_M_2023: 7.24
+  distribution_value_M_2024: 5.85
+  distribution_value_M_ave_2324: 6.55
+  packing_margin_M_2016: 1.14
+  packing_margin_M_2017: 1.71
+  packing_margin_M_2018: 1.45
+  packing_margin_M_ave_1618: 1.58
+  packing_margin_M_2023: 2.54
+  packing_margin_M: 1.92               # Wholesale value in growing region ($5.67M) - Farm gate value ($3.75M)
+  packing_margin_M_ave_2324: 2.23
+  processing_margin_M: 0.0             # Fresh table grapes have no secondary processing segment
+  distribution_margin_M_2016: 1.29
+  distribution_margin_M_2017: 1.91
+  distribution_margin_M_2018: 1.62
+  distribution_margin_M_ave_1618: 1.76
+  distribution_margin_M_2023: 2.77
+  distribution_margin_M: 2.10          # Value at distribution centres ($5.85M) - Farm gate value ($3.75M) ($1.92M packing + $0.18M regional dist.)
+  distribution_margin_M_ave_2324: 2.43
+  bearing_acres_2024: 357.5            # 315.50 GPS-mapped OFGGMB bearing acres + 42.00 direct/unmapped bearing acres
+  total_cultivated_acres_2024: 411.0   # 362.68 GPS-mapped OFGGMB total acres + 48.32 direct/unmapped total acres
+  source: "Larissa Osborne, OAG/OTFG/OFGGMB, 'Fresh Table Grape Volume/Value Data (2023/24)', Sept 2026 & OFGGMB 59th Annual Report (2024)"
+
+# --- Government Transfers (2022-2024) ---
+# Source: John Cumming, OMAFA, "Program Payments Tender Fruit 2026-07-13.xlsx"
+# AgriInvest Source: "2026 OACC TC Net Income .pdf" (Page 11) - Average $5,038 per farm.
+# Data is by farm type (predominant income) for the 2022-24 program years.
+# Note: Grapes reported under single CRA code 83 (combined table + wine). Pro-rated for table grapes below.
+#
+# NOTE FOR FUTURE TENDER FRUIT/GRAPE DATA:
+# When we get the OACC PDFs for Tender Fruit and Grapes, calculate AgriInvest
+# by taking the Average AI Payment per farm * number of entities.
+government_transfers_2024:
+  sdrm_source: "actual"  # Hard data from John Cumming, OMAFA, July 13 2026
+  agristability_source: "actual"
+  agriinvest_source: "estimated from OACC average per farm"
+
+  apples:
+    # SDRM: aggregate value of government matched deposits
+    sdrm_participants_2022: 161
+    sdrm_M_2022: 1.931
+    sdrm_participants_2023: 160
+    sdrm_M_2023: 1.749
+    sdrm_participants_2024: 142
+    sdrm_M_2024: 1.721
+    # AgriStability: aggregate value of payments
+    agristability_participants_2022: 107
+    agristability_M_2022: 0.775
+    agristability_participants_2023: 106
+    agristability_M_2023: 0.270
+    agristability_participants_2024: 95
+    agristability_M_2024: 7.522
+    # AgriInvest (Estimated from 2026 OACC TC Net Income PDF)
+    agriinvest_M_2024: 0.504  # $5,038 average * 100 entities
+    # Production Insurance (Agricorp, unchanged)
+    production_insurance_M: 6.34
+    # 2024 totals for IO engine
+    sdrm_M: 1.721
+    total_govt_transfers_M: 16.087  # PI $6.34 + SDRM $1.721 + AgriStability $7.522 + AgriInvest $0.504
+
+  tender_fruit:
+    sdrm_participants_2022: 107
+    sdrm_M_2022: 0.979
+    sdrm_participants_2023: 102
+    sdrm_M_2023: 1.046
+    sdrm_participants_2024: 103
+    sdrm_M_2024: 1.133
+    agristability_participants_2022: 81
+    agristability_M_2022: 0.141
+    agristability_participants_2023: 79
+    agristability_M_2023: 0.081
+    agristability_participants_2024: 80
+    agristability_M_2024: 0.258
+    production_insurance_M: 0.90
+    sdrm_M: 1.133
+    total_govt_transfers_M: 2.291  # PI $0.90 + SDRM $1.133 + AgriStability $0.258
+
+  grapes_combined_all:
+    # Full unallocated total for all grapes (CRA code 83: table + wine grapes)
+    sdrm_participants_2022: 202
+    sdrm_M_2022: 1.159
+    sdrm_participants_2023: 193
+    sdrm_M_2023: 1.027
+    sdrm_participants_2024: 189
+    sdrm_M_2024: 0.939
+    agristability_participants_2022: 164
+    agristability_M_2022: 1.309
+    agristability_participants_2023: 154
+    agristability_M_2023: 0.813
+    agristability_participants_2024: 145
+    agristability_M_2024: 1.561
+    production_insurance_M: 2.90
+    sdrm_M: 0.939
+    total_govt_transfers_M: 5.400  # PI $2.90 + SDRM $0.939 + AgriStability $1.561
+
+  grapes:
+    # Pro-rated for Fresh Table Grapes (3.49% FGV share: $3.75M table / $107.46M total Ontario grapes)
+    pro_rata_share: 0.0349
+    sdrm_M: 0.033                      # $0.939M * 3.49%
+    agristability_M_2024: 0.054        # $1.561M * 3.49%
+    production_insurance_M: 0.101      # $2.900M * 3.49%
+    agriinvest_M_2024: 0.000           # Pending disaggregated data
+    total_govt_transfers_M: 0.188      # PI $0.101 + SDRM $0.033 + AgriStability $0.054
+
+# --- Report Disclosure Language ---
+# Include this verbatim in any published report:
+report_disclosure: |
+  Government transfer data (SDRM matched deposits and AgriStability payments)
+  was provided by OMAFA (John Cumming) on July 13, 2026, broken out by farm
+  type (predominant income) for the 2022-2024 program years. AgriInvest was 
+  estimated based on averages provided in the OACC TC Net Income report. Production
+  Insurance data is sourced from Agricorp.
+  
+  For Fresh Table Grapes, government transfers reported by OMAFA for CRA commodity 
+  code 83 ($5.40M total in 2024) combine both fresh table and wine/processing grapes.
+  Transfers are pro-rated to fresh table grapes using the verified farm gate value share
+  of 3.49% ($3.75M table grape FGV / $107.46M total Ontario grape FGV, based on Ontario
+  Fresh Grape Growers' Marketing Board data and Grape Growers of Ontario / Statistics Canada
+  Table 32-10-0364-01), yielding $0.188M ($188K).
+  
+  Government transfers are modeled as Induced-only shocks in the IO engine, as they
+  generate household spending impacts but do not create supply-chain (Indirect) activity.

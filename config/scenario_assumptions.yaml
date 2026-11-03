@@ -1,0 +1,74 @@
+# ============================================================================
+# Scenario Planner — Infrastructure & Economic Assumptions
+# ============================================================================
+# All hardcoded constants used by scripts/scenario_engine.py are centralised
+# here for auditability and easy updates.  Each value documents its source.
+#
+# To override a value, edit this file and restart the Streamlit app.
+# The scenario engine reads this YAML once on import and falls back to
+# built-in defaults if the file is missing.
+# ============================================================================
+
+# ------------------------------------------------------------------
+# INFRASTRUCTURE BENCHMARKS
+# ------------------------------------------------------------------
+infrastructure:
+
+  # Water & Wastewater
+  water_litres_per_capita_day: 220        # Ontario avg residential Average Daily Demand — MECP Design Guidelines for Drinking-Water Systems
+  wastewater_litres_per_capita_day: 250   # ~110% of water ADD — MECP Design Guidelines for Sewage Works
+  mdd_peaking_factor: 2.0                 # MECP Maximum Day Demand factor (typical range 1.5–2.5× ADD)
+  wastewater_treatment_pct_of_capacity: 80  # Typical MECP Environmental Compliance Approval design threshold
+
+  # Roads & Transit
+  vehicles_per_household: 1.7             # Rural Ontario avg — StatCan NHS 2011 / Census 2016 commuting data
+  road_km_per_1000_pop: 8.5              # Rural municipalities avg — Watson & Associates 2022 municipal benchmarking
+
+  # Schools (Ontario Ministry of Education)
+  elementary_enrollment_rate: 0.88        # Pct of age 5-13 enrolled in elementary school — Ontario avg
+  secondary_enrollment_rate: 0.92         # Pct of age 14-17 enrolled in secondary school — Ontario avg
+  elementary_students_per_school: 350     # Ontario avg school size — OMOE Capital Priorities Program
+  secondary_students_per_school: 800      # Ontario avg school size — OMOE Capital Priorities Program
+
+  # Healthcare (CIHI / Ontario Health)
+  er_visits_per_1000_senior: 650          # Ontario avg annual ER visits, age 65+ — CIHI NACRS
+  er_visits_per_1000_working: 180         # Ontario avg annual ER visits, age 15-64 — CIHI NACRS
+  er_visits_per_1000_youth: 220           # Ontario avg annual ER visits, age 0-14 — CIHI NACRS
+  family_docs_per_1000_pop: 1.1           # Ontario avg FPs per 1,000 pop — CIHI Health Workforce Database
+
+  # Development Charges ($/unit, Southern Ontario benchmarks)
+  # Source: FCM / Watson & Associates 2023 DC Study Benchmarks
+  dc_per_unit_water: 12500
+  dc_per_unit_wastewater: 15000
+  dc_per_unit_roads: 8000
+  dc_per_unit_parks: 3500
+  dc_per_unit_fire_police: 2500
+  dc_per_unit_admin: 1500
+
+
+# ------------------------------------------------------------------
+# ECONOMIC BENCHMARKS
+# ------------------------------------------------------------------
+economics:
+
+  # Tax Base
+  avg_assessment_per_unit: 350000         # Ontario avg residential Current Value Assessment — frozen at 2016 MPAC levels
+  residential_mill_rate: 0.0085           # ~0.85% typical Ontario residential mill rate
+  commercial_ratio: 1.8                   # Commercial-to-residential tax ratio — Ontario Municipal Benchmarking Initiative (OMBI)
+
+  # Labour Force (Census 2021 rates)
+  participation_rate_working: 0.65        # Age 15-64 labour force participation rate — StatCan Census 2021
+  participation_rate_senior: 0.15         # Age 65+ participation rate (trend: growing) — StatCan Census 2021
+  unemployment_rate_default: 0.055        # Ontario avg unemployment rate — StatCan Labour Force Survey
+
+  # Municipal Operating Costs per Capita
+  # Source: Ontario Financial Information Return (FIR) aggregate data
+  # Covers: roads, water/sewer, fire/EMS, parks, planning, general government
+  # EXCLUDES: school boards (provincial), hospitals (LHIN/Ontario Health), social services (DSSAB)
+  service_cost_youth: 1400                # Recreation, parks, library
+  service_cost_working: 1100              # Roads, transit, planning, admin
+  service_cost_senior: 2200               # EMS, fire, transit, social housing
+
+  # Construction Economic Multipliers
+  construction_jobs_per_100_units: 150    # Direct + indirect jobs — CMHC / StatCan IO Tables
+  construction_value_per_unit: 320000     # Avg residential construction value — CMHC Housing Starts

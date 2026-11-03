@@ -1,0 +1,276 @@
+version: 1
+baskets:
+  # -----------------------------------------------------------------------
+  # 0a. ENTIRE FOOD SYSTEM (Our Approach — Direct Impacts Only)
+  #     Sums Direct impacts of ALL sector baskets including Ag-Share
+  #     transport/machinery. Scope-locked to Direct to prevent overlap.
+  # -----------------------------------------------------------------------
+  total_food_system:
+    label: "Entire Food System"
+    weight_type: composite
+    scope_lock: direct
+    description: "Full value chain (Direct impacts only): All AAFC segments PLUS Ag-Share transport and machinery. Eliminates IO double-counting."
+    components:
+      - primary_agriculture
+      - food_beverage_manufacturing
+      - agri_inputs_fertilizer
+      - agri_inputs_machinery
+      - agri_transport_rail
+      - agri_transport_truck
+      - agri_wholesale_retail
+      - foodservice
+      - agri_food_wholesale
+
+  # -----------------------------------------------------------------------
+  # 0b. AAFC FOOD SYSTEM (Matches Government Definition)
+  #     Only the 5 AAFC segments — no Ag-Share transport/machinery.
+  # -----------------------------------------------------------------------
+  aafc_food_system:
+    label: "Food System"
+    weight_type: composite
+    scope_lock: direct
+    description: "Matches AAFC definition: Primary Ag + Food/Bev Processing + Wholesale/Retail + Foodservice + Fertilizer Inputs. No transport Ag-Share."
+    components:
+      - primary_agriculture
+      - food_beverage_manufacturing
+      - agri_inputs_fertilizer
+      - agri_wholesale_retail
+      - foodservice
+      - agri_food_wholesale
+
+  # -----------------------------------------------------------------------
+  # 1. PRIMARY AGRICULTURE (Verified: $111.4B)
+  # -----------------------------------------------------------------------
+  primary_agriculture:
+    label: Primary Agriculture
+    weight_type: full
+    description: 'Core Production: Crops, Animals, Greenhouse, Support, and Licensed Cannabis.'
+    match:
+      any_code_prefix:
+        - BS111A      # Crops (Excluding Cannabis)
+        - BS112       # Animal production
+      any_code_exact:
+        - BS111400    # Greenhouse
+        - BS1114A0    # Greenhouse Alt
+        - BS115A00    # Support activities
+        - 111CL       # Licensed Cannabis
+        - BS111CL0    # (Variant)
+
+  # -----------------------------------------------------------------------
+  # 2. FOOD & BEVERAGE MANUFACTURING (Target: ~$178B)
+  # -----------------------------------------------------------------------
+  food_beverage_manufacturing:
+    label: Food & Beverage Manufacturing
+    weight_type: full
+    description: 'Processing: Food (BS311) + All Beverage & Tobacco.'
+    match:
+      any_code_prefix:
+        - BS311       # Food Manufacturing
+        - BS312       # Beverage & Tobacco
+      any_code_exact:
+        - BS3121      # Specific Bev codes
+        - BS312100
+        - BS3122
+        - BS312200
+        - BS312A00
+
+  # -----------------------------------------------------------------------
+  # 3. THE CORE ENGINE (SIMULATOR BASELINE)
+  # Target: ~$289B (Includes Cannabis)
+  # -----------------------------------------------------------------------
+  cfa_food_system:
+    label: Agri-Food Production (Core)  # Renamed for accuracy: Primary Ag + Mfg only
+    weight_type: full
+    description: 'Simulator Base: Primary Ag + Food/Bev Mfg. (Excludes Satellites)'
+    match:
+      any_code_prefix:
+        - BS111A
+        - BS112
+        - BS311
+        - BS312
+      any_code_exact:
+        - BS111400
+        - BS1114A0
+        - BS115A00
+        - 111CL
+        - BS111CL0
+        - BS3121
+        - BS312A00
+
+  # -----------------------------------------------------------------------
+  # 4. UPSTREAM SATELLITES (Inputs)
+  # -----------------------------------------------------------------------
+  agri_inputs_fertilizer:
+    label: Agri-Inputs (Fertilizer/Chem)
+    weight_type: full
+    description: 'Fertilizer & Pesticide Mfg (BS3253). Weight: 100%.'
+    match:
+      any_code_prefix:
+        - BS3253
+
+  agri_inputs_machinery:
+    label: Agri-Inputs (Machinery)
+    weight_type: weighted
+    description: 'Ag Implements (BS3331). Weight: 46.8%.'
+    match:
+      any_code_prefix:
+        - BS3331
+    calculated_share: 0.468
+
+  # -----------------------------------------------------------------------
+  # 5. LOGISTICS SATELLITES (Transportation)
+  # -----------------------------------------------------------------------
+  agri_transport_rail:
+    label: Rail Transportation (Ag-Share)
+    weight_type: weighted
+    description: 'Rail (BS4820). Ag-Share: 33.4%.'
+    match:
+      any_code_prefix:
+        - BS4820
+    calculated_share: 0.334
+
+  agri_transport_truck:
+    label: Truck Transportation (Ag-Share)
+    weight_type: weighted
+    description: 'Trucking (BS4840). Ag-Share: 24.5%.'
+    match:
+      any_code_prefix:
+        - BS4840
+    calculated_share: 0.245
+
+  # -----------------------------------------------------------------------
+  # 6. DOWNSTREAM SATELLITES (Trade)
+  # -----------------------------------------------------------------------
+  agri_wholesale_retail:
+    label: Wholesale & Retail (Food Stores)
+    weight_type: full
+    description: 'Farm Wholesalers (BS4111) and Food Stores (BS4450).'
+    match:
+      any_code_prefix:
+        - BS411
+        - BS4450
+
+  # -----------------------------------------------------------------------
+  # 7. FOODSERVICE (NAICS 722)
+  # -----------------------------------------------------------------------
+  foodservice:
+    label: Foodservice
+    weight_type: full
+    description: 'Restaurants, caterers, institutional food services (BS7220).'
+    match:
+      any_code_prefix:
+        - BS7220
+
+  # -----------------------------------------------------------------------
+  # 8. FOOD & BEVERAGE WHOLESALE (NAICS 413)
+  # -----------------------------------------------------------------------
+  agri_food_wholesale:
+    label: Food & Bev Wholesalers
+    weight_type: full
+    description: 'Food, beverage and tobacco merchant wholesalers (BS4130).'
+    match:
+      any_code_prefix:
+        - BS4130
+
+  # -----------------------------------------------------------------------
+  # 9. COMMODITY-SPECIFIC: APPLE VALUE CHAIN
+  #    Based on JRG 2019 Economic Impact Study methodology
+  #    Growing: NAICS 111A (Crop production)
+  #    Packing: NAICS 411 (Farm product wholesalers)
+  #    Processing: NAICS 3114 (Fruit & veg preserving)
+  # -----------------------------------------------------------------------
+  apple_growing:
+    label: Apple Growing
+    weight_type: full
+    description: 'Ontario apple production at the farm level. Uses Crop Production (BS111A). Shock input = Farm Gate Value.'
+    match:
+      any_code_exact:
+        - BS111A00
+
+  apple_packing_marketing:
+    label: Apple Packing & Marketing
+    weight_type: full
+    description: 'Apple packing, grading, storage and marketing. Uses Farm Product Wholesalers (BS411). Shock input = NET value (shipments minus raw apple cost to avoid double-counting).'
+    match:
+      any_code_exact:
+        - BS411000
+
+  apple_processing:
+    label: Apple Processing
+    weight_type: full
+    description: 'Apple juice, cider, sauce, pie filling manufacturing. Uses Fruit & Veg Preserving (BS3114). Shock input = NET value (products minus raw apple cost to avoid double-counting).'
+    match:
+      any_code_exact:
+        - BS311400
+
+  apple_value_chain:
+    label: "Ontario Apple Value Chain (Total)"
+    weight_type: composite
+    scope_lock: direct
+    description: "Full apple value chain: Growing + Packing/Marketing + Processing. Each segment uses published StatCan multipliers. Packing/Processing use NET expenditure (minus raw apple cost) to avoid double-counting."
+    components:
+      - apple_growing
+      - apple_packing_marketing
+      - apple_processing
+
+  # -----------------------------------------------------------------------
+  # 10. COMMODITY-SPECIFIC: TENDER FRUIT VALUE CHAIN
+  #     Same NAICS codes as apple (111A, 411, 3114) since StatCan does not
+  #     distinguish between apple and tender fruit at the published level.
+  #     Shock inputs differ (tender fruit FGV, margins).
+  # -----------------------------------------------------------------------
+  tender_fruit_growing:
+    label: Tender Fruit Growing
+    weight_type: full
+    description: 'Ontario tender fruit production (peach, nectarine, plum, pear, cherry, apricot). Uses Crop Production (BS111A). Shock input = Tender fruit Farm Gate Value.'
+    match:
+      any_code_exact:
+        - BS111A00
+
+  tender_fruit_packing_marketing:
+    label: Tender Fruit Packing & Marketing
+    weight_type: full
+    description: 'Tender fruit packing and marketing. Uses Farm Product Wholesalers (BS411). Shock input = NET value (shipments minus raw fruit cost).'
+    match:
+      any_code_exact:
+        - BS411000
+
+  tender_fruit_processing:
+    label: Tender Fruit Processing
+    weight_type: full
+    description: 'Tender fruit processing (canned, frozen, juice). Uses Fruit & Veg Preserving (BS3114). Shock input = NET value (products minus raw fruit cost).'
+    match:
+      any_code_exact:
+        - BS311400
+
+  tender_fruit_value_chain:
+    label: "Ontario Tender Fruit Value Chain (Total)"
+    weight_type: composite
+    scope_lock: direct
+    description: "Full tender fruit value chain: Growing + Packing/Marketing + Processing. Same NAICS mapping as apple (StatCan does not distinguish at this level)."
+    components:
+      - tender_fruit_growing
+      - tender_fruit_packing_marketing
+      - tender_fruit_processing
+  # --- 11. COMMODITY-SPECIFIC: GRAPE VALUE CHAIN ---
+  grape_growing:
+    label: Grape Growing
+    weight_type: full
+    description: Ontario grape production.
+    match:
+      any_code_exact:
+        - BS111A00
+  grape_packing:
+    label: Grape Packing
+    weight_type: full
+    description: Grape packing.
+    match:
+      any_code_exact:
+        - BS411000
+  grape_processing:
+    label: Grape Processing
+    weight_type: full
+    description: Grape processing.
+    match:
+      any_code_exact:
+        - BS311400

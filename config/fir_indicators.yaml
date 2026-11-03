@@ -1,0 +1,610 @@
+# FIR Indicator Definitions
+# Maps indicator names to their FIR schedule/line-code/column coordinates.
+# Used by scripts/process_fir.py — edit here to add/remove indicators without code changes.
+#
+# col_type:
+#   "fir"   (default) — col is a FIR column identifier from the printed schedule header.
+#                        Auto-detected from the header row in the xlsx sheet.
+#   "excel" — col is the direct 1-based Excel column index.
+#             Used for sheets with single-column layouts or multiple header sections.
+#
+# VALIDATED against MMAH FIR Data Dictionary (2024-02-20)
+# Standard Taxable: lines 0xxx.  PIL: lines 1xxx.
+
+# ── Schedule 26A: Taxation & Assessment ──────────────────────────────
+# Col 03 = Total Taxes (LT + UT + Education)
+# Col 04 = Municipal Lower-Tier / Single-Tier Taxes
+# Col 05 = Municipal Upper-Tier Taxes
+# Col 06 = Education Taxes
+# Col 16 = Taxable Assessment (Phase-in CVA)
+taxation:
+  schedule: "26A"
+  indicators:
+    # ── Residential (RTC: RT) ──
+    residential_cva:            { line: "0010", col: 16, desc: "Residential Taxable CVA" }
+    residential_total_taxes:    { line: "0010", col: 3,  desc: "Residential Total Taxes (LT+UT+Edu)" }
+    residential_lt_taxes:       { line: "0010", col: 4,  desc: "Residential Lower-Tier Muni Taxes" }
+    residential_ut_taxes:       { line: "0010", col: 5,  desc: "Residential Upper-Tier Muni Taxes" }
+    residential_edu_taxes:      { line: "0010", col: 6,  desc: "Residential Education Taxes" }
+
+    # ── Multi-Residential (RTC: MT) ──
+    multi_residential_cva:      { line: "0050", col: 16, desc: "Multi-Residential Taxable CVA" }
+    multi_residential_taxes:    { line: "0050", col: 3,  desc: "Multi-Residential Total Taxes" }
+    multi_residential_lt_taxes: { line: "0050", col: 4,  desc: "Multi-Residential Lower-Tier Muni Taxes" }
+    multi_residential_ut_taxes: { line: "0050", col: 5,  desc: "Multi-Residential Upper-Tier Muni Taxes" }
+
+    # ── Farmland (RTC: FT) — was wrongly on line 0050 (Multi-Residential) ──
+    farmland_cva:               { line: "0110", col: 16, desc: "Farmland Taxable CVA" }
+    farmland_total_taxes:       { line: "0110", col: 3,  desc: "Farmland Total Taxes (LT+UT+Edu)" }
+    farmland_lt_taxes:          { line: "0110", col: 4,  desc: "Farmland Lower-Tier Muni Taxes" }
+    farmland_ut_taxes:          { line: "0110", col: 5,  desc: "Farmland Upper-Tier Muni Taxes" }
+    farmland_edu_taxes:         { line: "0110", col: 6,  desc: "Farmland Education Taxes" }
+
+    # ── Commercial (Subtotal all CT subclasses: CT, CU, CX, etc.) ──
+    # 🔴 Expert fix: was line 0210 (base CT only), now 9120 (Subtotal Commercial)
+    commercial_cva:             { line: "9120", col: 16, desc: "Commercial Taxable CVA (subtotal)" }
+    commercial_total_taxes:     { line: "9120", col: 3,  desc: "Commercial Total Taxes (subtotal)" }
+    commercial_lt_taxes:        { line: "9120", col: 4,  desc: "Commercial Lower-Tier Muni Taxes (subtotal)" }
+    commercial_ut_taxes:        { line: "9120", col: 5,  desc: "Commercial Upper-Tier Muni Taxes (subtotal)" }
+
+    # ── Industrial (Subtotal all IT subclasses: IT, IU, IX, etc.) ──
+    # 🔴 Expert fix: was line 0510 (base IT only), now 9130 (Subtotal Industrial)
+    industrial_cva:             { line: "9130", col: 16, desc: "Industrial Taxable CVA (subtotal)" }
+    industrial_total_taxes:     { line: "9130", col: 3,  desc: "Industrial Total Taxes (subtotal)" }
+    industrial_lt_taxes:        { line: "9130", col: 4,  desc: "Industrial Lower-Tier Muni Taxes (subtotal)" }
+    industrial_ut_taxes:        { line: "9130", col: 5,  desc: "Industrial Upper-Tier Muni Taxes (subtotal)" }
+
+    # ── Managed Forest (RTC: TT) — Phase 2: close the pie chart ──
+    managed_forest_cva:         { line: "0140", col: 4, desc: "Managed Forest CVA" }
+    managed_forest_lt_taxes:    { line: "0140", col: 8, desc: "Managed Forest LT Taxes" }
+    managed_forest_ut_taxes:    { line: "0140", col: 9, desc: "Managed Forest UT Taxes" }
+
+    # ── Landfill (RTC: HF) — Phase 2: close the pie chart ──
+    # ⚠️ Red-Team Note: HF class created 2017. Pre-2017 returns None (normal).
+    landfill_cva:               { line: "0705", col: 4, desc: "Landfill CVA" }
+    landfill_lt_taxes:          { line: "0705", col: 8, desc: "Landfill LT Taxes" }
+    landfill_ut_taxes:          { line: "0705", col: 9, desc: "Landfill UT Taxes" }
+
+    # ── Pipeline (RTC: PT) — expert R3: hidden driver of rural tax base ──
+    pipeline_cva:               { line: "0810", col: 16, desc: "Pipeline Taxable CVA" }
+    pipeline_total_taxes:       { line: "0810", col: 3,  desc: "Pipeline Total Taxes" }
+    pipeline_lt_taxes:          { line: "0810", col: 4,  desc: "Pipeline Lower-Tier Muni Taxes" }
+    pipeline_ut_taxes:          { line: "0810", col: 5,  desc: "Pipeline Upper-Tier Muni Taxes" }
+
+    # ── Totals ──
+    total_taxable_cva:          { line: "9199", col: 16, desc: "Total Taxable Assessment (CVA)" }
+    total_taxes:                { line: "9199", col: 3,  desc: "Total Taxes Levied (all classes)" }
+    total_lt_taxes:             { line: "9199", col: 4,  desc: "Total Lower-Tier Muni Taxes" }
+    total_ut_taxes:             { line: "9199", col: 5,  desc: "Total Upper-Tier Muni Taxes" }
+
+# ── Schedule 22A: Tax Rates & Ratios ─────────────────────────────────
+# Uses RTC string matching (RT, FT, CT, IT, MT) instead of line codes.
+# Col 05 = Tax Ratio (legislated)
+# Col 08 = Lower-Tier Tax Rate
+# Col 09 = Upper-Tier Tax Rate
+# Col 10 = Education Tax Rate
+tax_rates:
+  schedule: "22A"
+  match_type: "rtc"         # special: match on Realty Tax Class string, not line code
+  indicators:
+    residential_tax_ratio:    { rtc: "RT",  col: 5,  desc: "Residential Tax Ratio (always 1.0)" }
+    residential_lt_rate:      { rtc: "RT",  col: 8,  desc: "Residential Lower-Tier Tax Rate" }
+    residential_ut_rate:      { rtc: "RT",  col: 9,  desc: "Residential Upper-Tier Tax Rate" }
+    farmland_tax_ratio:       { rtc: "FT",  col: 5,  desc: "Farmland Tax Ratio (max 0.25)" }
+    farmland_lt_rate:         { rtc: "FT",  col: 8,  desc: "Farmland Lower-Tier Tax Rate" }
+    farmland_ut_rate:         { rtc: "FT",  col: 9,  desc: "Farmland Upper-Tier Tax Rate" }
+    commercial_tax_ratio:     { rtc: "CT",  col: 5,  desc: "Commercial Tax Ratio" }
+    commercial_lt_rate:       { rtc: "CT",  col: 8,  desc: "Commercial Lower-Tier Tax Rate" }
+    industrial_tax_ratio:     { rtc: "IT",  col: 5,  desc: "Industrial Tax Ratio" }
+    industrial_lt_rate:       { rtc: "IT",  col: 8,  desc: "Industrial Lower-Tier Tax Rate" }
+    multi_res_tax_ratio:      { rtc: "MT",  col: 5,  desc: "Multi-Residential Tax Ratio" }
+
+# ── Schedule 10: Revenue ─────────────────────────────────────────────
+# Single value column; use FIR col 1
+revenue:
+  schedule: "10"
+  indicators:
+    own_purpose_tax_rev:        { line: "0299", col: 1, desc: "Taxation – Own Purposes" }
+    pil_rev:                    { line: "0499", col: 1, desc: "Payments-In-Lieu of Taxation" }
+    ompf_grant:                 { line: "0620", col: 1, desc: "Ontario Municipal Partnership Fund (OMPF)" }
+    ont_grants_unconditional:   { line: "0699", col: 1, desc: "Ontario Grants (Unconditional)" }
+    ont_grants_conditional:     { line: "0899", col: 1, desc: "Ontario Grants (Conditional)" }
+    fed_grants_conditional:     { line: "0820", col: 1, desc: "Federal Grants (Conditional / Capital)" }
+    investment_income:          { line: "1805", col: 1, desc: "Investment Income" }
+    development_charges:        { line: "1812", col: 1, desc: "Development Charges Earned" }
+    total_revenue:              { line: "9910", col: 1, desc: "Total Revenue" }
+
+# ── Schedule 40: Expenses ────────────────────────────────────────────
+# Col 02 = Long-Term Debt Interest
+# Col 11 = Total Expenses
+expenses:
+  schedule: "40"
+  indicators:
+    general_govt:               { line: "0299", col: 11, desc: "General Government" }
+    protection:                 { line: "0499", col: 11, desc: "Protection Services" }
+    police:                     { line: "0420", col: 11, desc: "Police Services" }
+    fire:                       { line: "0410", col: 11, desc: "Fire Services" }
+    transportation:             { line: "0699", col: 11, desc: "Transportation Services" }
+    winter_control:             { line: "0621", col: 11, desc: "Winter Control (Snow Plowing)" }
+    transit:                    { line: "0631", col: 11, desc: "Transit Services" }
+    environmental:              { line: "0899", col: 11, desc: "Environmental Services" }
+    health:                     { line: "1099", col: 11, desc: "Health Services" }
+    long_term_care:             { line: "1220", col: 11, desc: "Long-Term Care" }
+    social_family:              { line: "1299", col: 11, desc: "Social & Family Services" }
+    social_housing:             { line: "1499", col: 11, desc: "Social Housing" }
+    recreation_culture:         { line: "1499", col: 11, desc: "Recreation & Cultural" }
+    planning_development:       { line: "1699", col: 11, desc: "Planning & Development" }
+    total_expenses:             { line: "9910", col: 11, desc: "Total Expenses" }
+    debt_interest:              { line: "9910", col: 2,  desc: "Total Long-Term Debt Interest" }
+    total_salaries_benefits:    { line: "9910", col: 1,  desc: "Total Salaries, Wages & Benefits" }
+    total_amortization_expense: { line: "9910", col: 16, desc: "Total Amortization Expense (non-cash)" }
+
+# ── Schedule 70: Balance Sheet ───────────────────────────────────────
+# Single value column; use FIR col 1
+balance_sheet:
+  schedule: "70"
+  indicators:
+    cash:                       { line: "0299", col: 1, desc: "Cash and Cash Equivalents" }
+    taxes_receivable:           { line: "0699", col: 1, desc: "Taxes Receivable" }
+    total_financial_assets:     { line: "9930", col: 1, desc: "Total Financial Assets" }
+    total_liabilities:          { line: "9940", col: 1, desc: "Total Liabilities" }
+    net_financial_assets:       { line: "9945", col: 1, desc: "Net Financial Assets / (Debt)" }
+    accumulated_surplus:        { line: "9971", col: 1, desc: "Accumulated Surplus / (Deficit) — modern PSAB" }
+    # Fallback for pre-2022 files (line 9950 was the old total before PSAB PS1201 split)
+    _accumulated_surplus_9950:  { line: "9950", col: 1, desc: "Accumulated Surplus fallback (historic line)" }
+
+# ── Schedule 60: Reserves & Reserve Funds ─────────────────────────────
+# Phase 2: Track reserve health — rural municipalities rely on reserves
+# to self-finance heavy equipment and bridge replacements.
+# 🔴 Red-Team Fix: Col 2 = Discretionary Reserve Funds, Col 3 = Reserves
+#    (were swapped — corrected per FIR expert audit 2024-02-23)
+reserves:
+  schedule: "60"
+  indicators:
+    total_reserves:             { line: "9930", col: 3, desc: "Total Reserves" }
+    total_reserve_funds:        { line: "9930", col: 2, desc: "Total Discretionary Reserve Funds" }
+
+# ── Schedule 51A: Capital ─────────────────────────────────────────────
+# Phase 2: Track capital reinvestment against non-cash amortization.
+# Col 03 = Total Additions to Capital Assets
+capital:
+  schedule: "51A"
+  indicators:
+    capital_additions:          { line: "9910", col: 3, desc: "Total Additions to Capital Assets" }
+
+# ── Schedule 12: User Fees & Charges ──────────────────────────────────
+# Phase 2: As provincial grants flatline, municipalities shift burden
+# from property tax onto user fees (arena rentals, garbage bag tags, etc.).
+# 🔴 Red-Team Fix: Col 1 was "Ontario Conditional Grants", NOT user fees.
+#    Col 4 = "User Fees and Service Charges" (corrected per audit 2024-02-23)
+user_fees:
+  schedule: "12"
+  indicators:
+    user_fees_charges:          { line: "9910", col: 4, desc: "Total User Fees & Charges" }
+
+# ── Schedule 51A: Tangible Capital Assets ("The Rust Schedule") ───────
+# Phase 3: Master ledger of physical infrastructure. Tracks gross cost
+# vs. accumulated depreciation. Mandatory since PSAB 3150 (2009), so
+# 100% stable across our 2010–2024 window.
+# 🔴 Red-Team Fix: "Schedule 51" does not exist — Province split into
+#    51A (By Function), 51B (By Asset Class), 51C (WIP). All metrics
+#    live on 51A. (Corrected per audit 2024-02-23)
+tca:
+  schedule: "51A"
+  indicators:
+    tca_historical_cost:        { line: "9910", col: 6,  desc: "Closing Cost Balance — Total (gross historical cost)" }
+    tca_accum_amortization:     { line: "9910", col: 10, desc: "Closing Accumulated Amortization — Total" }
+
+# ── Schedule 51A: Asset-Specific TCA Ledgers (by Functional Department) ──
+# Tracks historical cost, accumulated amortization, annual additions, and annual depreciation
+# for each core public asset class. PSAB 3150 mandated since 2009.
+tca_by_function:
+  schedule: "51A"
+  indicators:
+    # ── Roads - Paved (Line 0611) ──
+    paved_roads_cost:             { line: "0611", col: 6,  desc: "Closing Gross Historical Cost — Paved Roads" }
+    paved_roads_accum_amort:      { line: "0611", col: 10, desc: "Closing Accumulated Amortization — Paved Roads" }
+    paved_roads_additions:        { line: "0611", col: 3,  desc: "Annual Capital Additions — Paved Roads" }
+    paved_roads_amort_expense:    { line: "0611", col: 8,  desc: "Annual Amortization Expense — Paved Roads" }
+    paved_roads_nbv:              { line: "0611", col: 11, desc: "Closing Net Book Value — Paved Roads" }
+
+    # ── Roads - Unpaved (Line 0612) ──
+    unpaved_roads_cost:           { line: "0612", col: 6,  desc: "Closing Gross Historical Cost — Unpaved Roads" }
+    unpaved_roads_accum_amort:    { line: "0612", col: 10, desc: "Closing Accumulated Amortization — Unpaved Roads" }
+    unpaved_roads_additions:      { line: "0612", col: 3,  desc: "Annual Capital Additions — Unpaved Roads" }
+    unpaved_roads_amort_expense:  { line: "0612", col: 8,  desc: "Annual Amortization Expense — Unpaved Roads" }
+    unpaved_roads_nbv:            { line: "0612", col: 11, desc: "Closing Net Book Value — Unpaved Roads" }
+
+    # ── Roads - Bridges and Culverts (Line 0613) ──
+    bridges_cost:                 { line: "0613", col: 6,  desc: "Closing Gross Historical Cost — Bridges & Culverts" }
+    bridges_accum_amort:          { line: "0613", col: 10, desc: "Closing Accumulated Amortization — Bridges & Culverts" }
+    bridges_additions:            { line: "0613", col: 3,  desc: "Annual Capital Additions — Bridges & Culverts" }
+    bridges_amort_expense:        { line: "0613", col: 8,  desc: "Annual Amortization Expense — Bridges & Culverts" }
+    bridges_nbv:                  { line: "0613", col: 11, desc: "Closing Net Book Value — Bridges & Culverts" }
+
+    # ── Transportation Subtotal (Line 0699) ──
+    transportation_cost:          { line: "0699", col: 6,  desc: "Closing Gross Historical Cost — All Transportation" }
+    transportation_accum_amort:   { line: "0699", col: 10, desc: "Closing Accumulated Amortization — All Transportation" }
+    transportation_additions:     { line: "0699", col: 3,  desc: "Annual Capital Additions — All Transportation" }
+    transportation_amort_expense: { line: "0699", col: 8,  desc: "Annual Amortization Expense — All Transportation" }
+    transportation_nbv:           { line: "0699", col: 11, desc: "Closing Net Book Value — All Transportation" }
+
+    # ── Wastewater Collection / Conveyance (Line 0811) ──
+    wastewater_collection_cost:        { line: "0811", col: 6,  desc: "Closing Gross Historical Cost — Wastewater Collection" }
+    wastewater_collection_accum_amort: { line: "0811", col: 10, desc: "Closing Accumulated Amortization — Wastewater Collection" }
+    wastewater_collection_additions:   { line: "0811", col: 3,  desc: "Annual Capital Additions — Wastewater Collection" }
+    wastewater_collection_amort:       { line: "0811", col: 8,  desc: "Annual Amortization Expense — Wastewater Collection" }
+    wastewater_collection_nbv:         { line: "0811", col: 11, desc: "Closing Net Book Value — Wastewater Collection" }
+
+    # ── Wastewater Treatment & Disposal (Line 0812) ──
+    wastewater_treatment_cost:        { line: "0812", col: 6,  desc: "Closing Gross Historical Cost — Wastewater Treatment" }
+    wastewater_treatment_accum_amort: { line: "0812", col: 10, desc: "Closing Accumulated Amortization — Wastewater Treatment" }
+    wastewater_treatment_additions:   { line: "0812", col: 3,  desc: "Annual Capital Additions — Wastewater Treatment" }
+    wastewater_treatment_amort:       { line: "0812", col: 8,  desc: "Annual Amortization Expense — Wastewater Treatment" }
+    wastewater_treatment_nbv:         { line: "0812", col: 11, desc: "Closing Net Book Value — Wastewater Treatment" }
+
+    # ── Water Treatment (Line 0831) ──
+    water_treatment_cost:         { line: "0831", col: 6,  desc: "Closing Gross Historical Cost — Water Treatment" }
+    water_treatment_accum_amort:  { line: "0831", col: 10, desc: "Closing Accumulated Amortization — Water Treatment" }
+    water_treatment_additions:    { line: "0831", col: 3,  desc: "Annual Capital Additions — Water Treatment" }
+    water_treatment_amort:        { line: "0831", col: 8,  desc: "Annual Amortization Expense — Water Treatment" }
+    water_treatment_nbv:          { line: "0831", col: 11, desc: "Closing Net Book Value — Water Treatment" }
+
+    # ── Water Distribution / Transmission (Line 0832) ──
+    water_distribution_cost:        { line: "0832", col: 6,  desc: "Closing Gross Historical Cost — Water Distribution" }
+    water_distribution_accum_amort: { line: "0832", col: 10, desc: "Closing Accumulated Amortization — Water Distribution" }
+    water_distribution_additions:   { line: "0832", col: 3,  desc: "Annual Capital Additions — Water Distribution" }
+    water_distribution_amort:       { line: "0832", col: 8,  desc: "Annual Amortization Expense — Water Distribution" }
+    water_distribution_nbv:         { line: "0832", col: 11, desc: "Closing Net Book Value — Water Distribution" }
+
+    # ── Urban Storm Sewer System (Line 0821) ──
+    stormwater_urban_cost:        { line: "0821", col: 6,  desc: "Closing Gross Historical Cost — Urban Stormwater" }
+    stormwater_urban_accum_amort: { line: "0821", col: 10, desc: "Closing Accumulated Amortization — Urban Stormwater" }
+    stormwater_urban_additions:   { line: "0821", col: 3,  desc: "Annual Capital Additions — Urban Stormwater" }
+
+    # ── Solid Waste Disposal / Landfill Sites (Line 0850) ──
+    landfill_tca_cost:            { line: "0850", col: 6,  desc: "Closing Gross Historical Cost — Landfill Sites" }
+    landfill_tca_accum_amort:     { line: "0850", col: 10, desc: "Closing Accumulated Amortization — Landfill Sites" }
+    landfill_tca_additions:       { line: "0850", col: 3,  desc: "Annual Capital Additions — Landfill Sites" }
+
+    # ── Environmental Subtotal (Line 0899) ──
+    environmental_cost:           { line: "0899", col: 6,  desc: "Closing Gross Historical Cost — All Environmental" }
+    environmental_accum_amort:    { line: "0899", col: 10, desc: "Closing Accumulated Amortization — All Environmental" }
+    environmental_additions:      { line: "0899", col: 3,  desc: "Annual Capital Additions — All Environmental" }
+    environmental_amort_expense:  { line: "0899", col: 8,  desc: "Annual Amortization Expense — All Environmental" }
+    environmental_nbv:            { line: "0899", col: 11, desc: "Closing Net Book Value — All Environmental" }
+
+    # ── Fire Protection (Line 0410) ──
+    fire_tca_cost:                { line: "0410", col: 6,  desc: "Closing Gross Historical Cost — Fire Protection" }
+    fire_tca_accum_amort:         { line: "0410", col: 10, desc: "Closing Accumulated Amortization — Fire Protection" }
+    fire_tca_additions:           { line: "0410", col: 3,  desc: "Annual Capital Additions — Fire Protection" }
+
+    # ── Recreation Facilities — All Other (Line 1634) ──
+    rec_facilities_cost:          { line: "1634", col: 6,  desc: "Closing Gross Historical Cost — Recreation Facilities" }
+    rec_facilities_accum_amort:   { line: "1634", col: 10, desc: "Closing Accumulated Amortization — Recreation Facilities" }
+    rec_facilities_additions:     { line: "1634", col: 3,  desc: "Annual Capital Additions — Recreation Facilities" }
+    rec_facilities_amort_expense: { line: "1634", col: 8,  desc: "Annual Amortization Expense — Recreation Facilities" }
+    rec_facilities_nbv:           { line: "1634", col: 11, desc: "Closing Net Book Value — Recreation Facilities" }
+
+# ── Schedule 02: Municipal Data (denominators) ───────────────────────
+# Phase 3: Human-scale denominators for "per household" and "per capita"
+# metrics. Line codes unchanged for decades.
+# NOTE: S02 is a questionnaire-style sheet (not a standard FIR grid).
+#       It has no FIR column headers, so we use col_type: excel.
+#       Data values are at Excel column 7 (0-based index 6).
+municipal_data:
+  schedule: "02"
+  col_type: excel
+  indicators:
+    total_households:           { line: "0040", col: 7, min_val: 0, desc: "Total dwelling units (res + farm)" }
+    total_population:           { line: "0041", col: 7, min_val: 0, desc: "Total population" }
+
+# ── Schedule 74A: Long-Term Liabilities (Debt Capacity) ──────────────
+# Phase 3: Outstanding debt principal. Standard BMA/S&P benchmarking.
+# Note: "Schedule 74" was split into 74A/B/C/D/E. Totals are on 74A.
+debt:
+  schedule: "74A"
+  indicators:
+    total_long_term_debt:       { line: "9910", col: 1, desc: "Total outstanding debt principal" }
+
+# ── Schedule 80D: Infrastructure & Planning Stats ────────────────────
+# Multi-section sheet with varying headers. Using direct Excel col positions.
+# Note: In 2023+, MMAH shifted S80D columns left by 2 (handled deterministically in process_fir.py).
+infrastructure:
+  schedule: "80D"
+  col_type: excel
+  indicators:
+    ag_land_hectares:           { line: "1370", col: 9, desc: "Hectares designated for agriculture" }
+    paved_road_km:              { line: "1710", col: 9, desc: "Total Paved Lane KM" }
+    paved_road_good_km:         { line: "1720", col: 9, desc: "Paved Lane-KM rated Good to Very Good (PCI)" }
+    unpaved_road_km:            { line: "1730", col: 9, desc: "Total Unpaved Lane KM" }
+    winter_road_km:             { line: "1740", col: 9, desc: "Winter-Maintained Lane KM" }
+    bridge_deck_area_m2:        { line: "1760", col: 9, desc: "Total Bridge & Culvert Deck Area (m2)" }
+    bridges_good_count:         { line: "1765", col: 9, desc: "Bridges rated Good to Very Good (#)" }
+    bridges_total_count:        { line: "1765", col: 10, desc: "Total Number of Bridges (#)" }
+    culverts_good_count:        { line: "1766", col: 9, desc: "Culverts rated Good to Very Good (#)" }
+    culverts_total_count:       { line: "1766", col: 10, desc: "Total Number of Culverts (#)" }
+    structures_good_count:      { line: "1767", col: 9, desc: "All Structures Good to Very Good (#)" }
+    structures_total_count:     { line: "1767", col: 10, desc: "Total Number of Structures (#)" }
+    wastewater_backups:         { line: "1810", col: 9, desc: "Total Wastewater Main Backups (#)" }
+    wastewater_km:              { line: "1815", col: 9, desc: "Total KM of Wastewater Mains" }
+    wastewater_ml_treated:      { line: "1820", col: 9, desc: "Megalitres of Wastewater Treated" }
+    wastewater_bypass_ml:       { line: "1825", col: 9, desc: "Untreated Wastewater Bypasses (ML)" }
+    urban_stormwater_km:        { line: "1835", col: 9, desc: "Urban Stormwater Drainage System (KM)" }
+    rural_stormwater_km:        { line: "1840", col: 9, desc: "Rural Stormwater Drainage System (KM)" }
+    water_ml_treated:           { line: "1845", col: 9, desc: "Megalitres of Drinking Water Treated" }
+    water_main_breaks:          { line: "1850", col: 9, desc: "Total Water Main Breaks in Year (#)" }
+    water_km:                   { line: "1855", col: 9, desc: "KM of Water Distribution Pipe" }
+    solid_waste_tonnes:         { line: "1860", col: 9, desc: "Total Tonnes Collected (all classes)" }
+    waste_diverted_tonnes:      { line: "1870", col: 9, desc: "Total Tonnes Diverted" }
+    # Building permits were here but are actually on Schedule 80 (see below)
+
+# ── Schedule 80A: Statistical Information ─────────────────────────────
+# 🔴 Expert fix: building permits are on S80A (S80 is split into 80A/80B/80C/80D)
+# Uses direct Excel column positions (same layout as 80D)
+statistics:
+  schedule: "80A"
+  col_type: excel
+  indicators:
+    res_building_permits_count: { line: "1210", col: 9, max_val: 50000, desc: "Residential Building Permits (#)" }
+    res_building_permits_value: { line: "1210", col: 10, desc: "Residential Building Permits ($)" }
+    # 🟢 Expert R3: capture total permits (includes ag sheds, barns, commercial)
+    total_building_permits_count: { line: "1299", col: 9, max_val: 50000, desc: "Total Building Permits (#)" }
+    total_building_permits_value: { line: "1299", col: 10, desc: "Total Building Permits ($)" }
+
+# ── Computed Indicators (calculated from extracted values) ───────────
+computed:
+  # Municipal tax totals (LT + UT, excludes Education)
+  farmland_muni_taxes:
+    formula: "farmland_lt_taxes + farmland_ut_taxes"
+    desc: "Farmland Total Municipal Taxes (LT+UT)"
+  residential_muni_taxes:
+    formula: "residential_lt_taxes + residential_ut_taxes"
+    desc: "Residential Total Municipal Taxes (LT+UT)"
+  commercial_muni_taxes:
+    formula: "commercial_lt_taxes + commercial_ut_taxes"
+    desc: "Commercial Total Municipal Taxes (LT+UT)"
+  industrial_muni_taxes:
+    formula: "industrial_lt_taxes + industrial_ut_taxes"
+    desc: "Industrial Total Municipal Taxes (LT+UT)"
+  multi_residential_muni_taxes:
+    formula: "multi_residential_lt_taxes + multi_residential_ut_taxes"
+    desc: "Multi-Residential Total Municipal Taxes (LT+UT)"
+  pipeline_muni_taxes:
+    formula: "pipeline_lt_taxes + pipeline_ut_taxes"
+    desc: "Pipeline Total Municipal Taxes (LT+UT)"
+  managed_forest_muni_taxes:
+    formula: "managed_forest_lt_taxes + managed_forest_ut_taxes"
+    desc: "Managed Forest Total Municipal Taxes (LT+UT)"
+  landfill_muni_taxes:
+    formula: "landfill_lt_taxes + landfill_ut_taxes"
+    desc: "Landfill Total Municipal Taxes (LT+UT)"
+  total_muni_taxes:
+    formula: "total_lt_taxes + total_ut_taxes"
+    desc: "Total Municipal Taxes (LT+UT, all classes)"
+
+  # Road totals
+  total_road_km:
+    formula: "paved_road_km + unpaved_road_km"
+    desc: "Total Road KM (paved + unpaved)"
+
+  # Waste
+  waste_diversion_rate:
+    formula: "waste_diverted_tonnes / (solid_waste_tonnes + waste_diverted_tonnes)"
+    desc: "Waste Diversion Rate (%)"
+
+  # Financial health
+  ompf_dependency:
+    formula: "ompf_grant / total_revenue"
+    desc: "OMPF Grant Dependency Ratio"
+  tax_arrears_ratio:
+    formula: "coalesce(taxes_receivable, 0) / total_taxes"
+    desc: "Tax Arrears Ratio — None→0 for zero-arrears towns (Red-Team Fix)"
+  operating_surplus:
+    formula: "total_revenue - total_expenses"
+    desc: "Accounting Surplus / (Deficit) — accrual basis, not cash budget"
+
+  # OMPF Relief Factor (expert-recommended)
+  ompf_relief_factor:
+    formula: "ompf_grant / total_lt_taxes"
+    desc: "OMPF Relief Factor (grant / local tax base)"
+
+  # Farmland-specific
+  # ⚠️ Red-Team Fix: uses farmland_muni_taxes (excludes Education levy)
+  farmland_tax_per_hectare:
+    formula: "farmland_muni_taxes / ag_land_hectares"
+    desc: "Farmland Municipal Tax Per Hectare ($) — excludes Education"
+  farmland_share_of_cva:
+    formula: "farmland_cva / total_taxable_cva"
+    desc: "Farmland Share of Total Assessment (%)"
+
+  # Farmland Municipal Tax per $100k CVA (expert-recommended)
+  farmland_tax_per_100k_cva:
+    formula: "(farmland_muni_taxes / farmland_cva) * 100000"
+    desc: "Farmland Municipal Tax Per $100k CVA ($)"
+
+  # Assessment vs Tax Burden Gap (expert-recommended)
+  # Positive = farmland is shielded (pays less tax share than CVA share)
+  farmland_burden_gap:
+    formula: "(farmland_cva / total_taxable_cva) - (farmland_muni_taxes / total_muni_taxes)"
+    desc: "Farmland Assessment-vs-Burden Gap (% shielded by ratio)"
+
+  # Tax Class Share of Municipal Taxes (% of LT+UT only, excludes Education)
+  # 🔴 Expert: Education rates are provincial, use municipal taxes for local policy signal
+  farmland_share_of_taxes:
+    formula: "farmland_muni_taxes / total_muni_taxes"
+    desc: "Farmland Share of Municipal Taxes (%)"
+  residential_share_of_taxes:
+    formula: "residential_muni_taxes / total_muni_taxes"
+    desc: "Residential Share of Municipal Taxes (%)"
+  commercial_share_of_taxes:
+    formula: "commercial_muni_taxes / total_muni_taxes"
+    desc: "Commercial Share of Municipal Taxes (%) — subtotal incl. all subclasses"
+  industrial_share_of_taxes:
+    formula: "industrial_muni_taxes / total_muni_taxes"
+    desc: "Industrial Share of Municipal Taxes (%) — subtotal incl. all subclasses"
+  # 🟢 Expert R3: close the share gap to ~98%
+  multi_residential_share_of_taxes:
+    formula: "multi_residential_muni_taxes / total_muni_taxes"
+    desc: "Multi-Residential Share of Municipal Taxes (%)"
+  pipeline_share_of_taxes:
+    formula: "pipeline_muni_taxes / total_muni_taxes"
+    desc: "Pipeline Share of Municipal Taxes (%)"
+  # Phase 2: close the pie chart to ~99.5%
+  managed_forest_share_of_taxes:
+    formula: "managed_forest_muni_taxes / total_muni_taxes"
+    desc: "Managed Forest Share of Municipal Taxes (%)"
+  landfill_share_of_taxes:
+    formula: "landfill_muni_taxes / total_muni_taxes"
+    desc: "Landfill Share of Municipal Taxes (%)"
+
+  # Phase 2: Reserve Fund Health
+  total_reserves_and_funds:
+    formula: "total_reserves + total_reserve_funds"
+    desc: "Total Reserves + Reserve Funds"
+  reserves_to_revenue:
+    formula: "total_reserves_and_funds / total_revenue"
+    desc: "Reserves-to-Revenue Ratio (long-term fiscal resiliency)"
+
+  # Phase 2: Capital Reinvestment
+  capital_reinvestment_rate:
+    formula: "capital_additions / total_revenue"
+    desc: "Capital Reinvestment Rate (% of revenue spent on infrastructure)"
+
+  # Phase 2: User Fee Reliance
+  user_fee_reliance:
+    formula: "user_fees_charges / total_revenue"
+    desc: "User Fee Reliance (% of revenue from fees vs property tax)"
+
+  # ── Phase 3: Consultant-Grade Commercial Metrics ──────────────────
+  # These are the exact MMAH Financial Indicator Review metrics used by
+  # BMA Management Consulting and Standard & Poor's for municipal credit.
+
+  # 🏆 The Asset Consumption Ratio ("The Rust Indicator")
+  # MMAH risk bands: <50% low, 50-75% moderate, >75% high risk
+  asset_consumption_ratio:
+    formula: "tca_accum_amortization / tca_historical_cost"
+    desc: "Asset Consumption Ratio — infrastructure decay (MMAH risk metric)"
+
+  # Staffing Intensity — peer benchmarking for the 'Sunshine List' defense
+  staffing_intensity:
+    formula: "total_salaries_benefits / total_expenses"
+    desc: "Staffing Intensity — % of budget consumed by payroll"
+
+  # Cash Operating Margin — adds back non-cash depreciation for true cash proxy
+  cash_operating_margin:
+    formula: "(total_revenue - total_expenses + total_amortization_expense) / total_revenue"
+    desc: "Cash Operating Margin — proxy for cash surplus available for reserves"
+
+  # Debt-to-Revenue — standard BMA/S&P credit metric
+  # 🔴 Red-Team Fix: coalesce None→0 for debt numerator (zero debt = best case)
+  debt_to_revenue:
+    formula: "coalesce(total_long_term_debt, 0) / total_revenue"
+    desc: "Debt-to-Revenue Ratio — >50% indicates tightening fiscal flexibility"
+
+  # Average Municipal Tax per Household — the ultimate ratepayer optic
+  # ⚠️ Red-Team Fix: includes multi-residential taxes to match S02 household count
+  avg_tax_per_household:
+    formula: "(residential_muni_taxes + multi_residential_muni_taxes) / total_households"
+    desc: "Average municipal tax bill per dwelling unit ($) — includes apartments"
+
+  # ── Phase 4: Hard Infrastructure & State of Good Repair Metrics ────
+  # Asset-Specific Consumption Ratios ("The Rust Indicators")
+  # MMAH risk bands: <50% low risk, 50-75% moderate risk, >75% high risk
+  paved_roads_rust_ratio:
+    formula: "paved_roads_accum_amort / paved_roads_cost"
+    desc: "Paved Roads Asset Consumption Ratio (MMAH risk metric)"
+
+  unpaved_roads_rust_ratio:
+    formula: "unpaved_roads_accum_amort / unpaved_roads_cost"
+    desc: "Unpaved Roads Asset Consumption Ratio (MMAH risk metric)"
+
+  bridges_rust_ratio:
+    formula: "bridges_accum_amort / bridges_cost"
+    desc: "Bridges & Culverts Asset Consumption Ratio (MMAH risk metric)"
+
+  transportation_rust_ratio:
+    formula: "transportation_accum_amort / transportation_cost"
+    desc: "All Transportation Asset Consumption Ratio (MMAH risk metric)"
+
+  wastewater_rust_ratio:
+    formula: "wastewater_collection_accum_amort / wastewater_collection_cost"
+    desc: "Wastewater Collection Asset Consumption Ratio (MMAH risk metric)"
+
+  water_treatment_rust_ratio:
+    formula: "water_treatment_accum_amort / water_treatment_cost"
+    desc: "Water Treatment Asset Consumption Ratio (MMAH risk metric)"
+
+  water_distribution_rust_ratio:
+    formula: "water_distribution_accum_amort / water_distribution_cost"
+    desc: "Water Distribution Asset Consumption Ratio (MMAH risk metric)"
+
+  water_overall_rust_ratio:
+    formula: "(water_treatment_accum_amort + water_distribution_accum_amort) / (water_treatment_cost + water_distribution_cost)"
+    desc: "Combined Water System Asset Consumption Ratio (MMAH risk metric)"
+
+  environmental_rust_ratio:
+    formula: "environmental_accum_amort / environmental_cost"
+    desc: "All Environmental Services Asset Consumption Ratio (MMAH risk metric)"
+
+  rec_facilities_rust_ratio:
+    formula: "rec_facilities_accum_amort / rec_facilities_cost"
+    desc: "Recreation Facilities Asset Consumption Ratio (MMAH risk metric)"
+
+  fire_tca_rust_ratio:
+    formula: "fire_tca_accum_amort / fire_tca_cost"
+    desc: "Fire Protection Asset Consumption Ratio (MMAH risk metric)"
+
+  # Asset Renewal & Sustainability (Additions vs Amortization)
+  # Standard municipal finance target: ≥1.0 matching depreciation, ≥1.5 eroding deficit
+  asset_renewal_ratio:
+    formula: "capital_additions / total_amortization_expense"
+    desc: "Asset Renewal Ratio — capital additions vs depreciation (benchmark ≥1.5x)"
+
+  transportation_renewal_ratio:
+    formula: "transportation_additions / transportation_amort_expense"
+    desc: "Transportation Capital Renewal Ratio (Additions / Depreciation)"
+
+  environmental_renewal_ratio:
+    formula: "environmental_additions / environmental_amort_expense"
+    desc: "Environmental Capital Renewal Ratio (Additions / Depreciation)"
+
+  # Physical Condition Ratings (Schedule 80D)
+  road_condition_pct:
+    formula: "paved_road_good_km / paved_road_km"
+    desc: "% of Paved Roads rated Good to Very Good (PCI standard)"
+
+  bridge_condition_pct:
+    formula: "bridges_good_count / bridges_total_count"
+    desc: "% of Bridges rated Good to Very Good (OSIM standard)"
+
+  culvert_condition_pct:
+    formula: "culverts_good_count / culverts_total_count"
+    desc: "% of Culverts rated Good to Very Good (OSIM standard)"
+
+  structures_condition_pct:
+    formula: "structures_good_count / structures_total_count"
+    desc: "% of All Structures rated Good to Very Good (OSIM standard)"
+
+  water_break_rate_per_100km:
+    formula: "(water_main_breaks / water_km) * 100"
+    desc: "Water Main Breaks per 100 KM of Distribution Pipe"
+
+  wastewater_backup_rate_per_100km:
+    formula: "(wastewater_backups / wastewater_km) * 100"
+    desc: "Wastewater Main Backups per 100 KM of Main"
+
+  # Funding Gap Metrics
+  annual_infra_deficit:
+    formula: "total_amortization_expense - capital_additions"
+    desc: "Annual Capital Reinvestment Deficit (Depreciation exceeding Additions, $)"
+
+  reserve_coverage_of_decay:
+    formula: "total_reserves_and_funds / tca_accum_amortization"
+    desc: "Reserve Backlog Coverage (Total Reserves vs Accumulated Depreciation)"
+
+  infra_deficit_per_household:
+    formula: "annual_infra_deficit / total_households"
+    desc: "Annual Infrastructure Deficit Per Dwelling Unit ($)"
+
+
