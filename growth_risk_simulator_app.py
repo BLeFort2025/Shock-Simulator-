@@ -220,6 +220,39 @@ df_136 = data_bundle["df_136"]
 df_mkt = data_bundle["df_mkt"]
 
 
+@st.cache_data(show_spinner=False)
+def cached_section338_data(region_name: str) -> Dict[str, Any]:
+    return load_section338_and_counter_tariff_data(region=region_name)
+
+
+@st.cache_data(show_spinner=False)
+def cached_fipi_kpis(region_name: str) -> List[Dict[str, Any]]:
+    return load_fipi_input_cost_kpis(region=region_name)
+
+
+@st.cache_data(show_spinner=False)
+def cached_nci_bridge(
+    region_name: str,
+    grain_price_shock_pct: float,
+    livestock_price_shock_pct: float,
+    fuel_shock_pct: float,
+    fert_shock_pct: float,
+    wage_shock_pct: float,
+    general_inflation_pct: float,
+    interest_shock_bps: float,
+) -> Dict[str, Any]:
+    return run_short_term_nci_bridge(
+        region=region_name,
+        grain_price_shock_pct=grain_price_shock_pct,
+        livestock_price_shock_pct=livestock_price_shock_pct,
+        fuel_shock_pct=fuel_shock_pct,
+        fert_shock_pct=fert_shock_pct,
+        wage_shock_pct=wage_shock_pct,
+        general_inflation_pct=general_inflation_pct,
+        interest_shock_bps=interest_shock_bps,
+    )
+
+
 # ------------------------------------------------------------------------------
 # SCENARIO PRESETS (100% Grounded in StatCan FIPI, OMAFA Pub 60, & Sept 8 Counter-Tariffs)
 # ------------------------------------------------------------------------------
@@ -1919,15 +1952,15 @@ with tab2:
         + direct_rev_shock_pct
     )
     with st.expander("🔗 Sister Engine 7A: Short-Term Net Cash Income (NCI) & AgriStability / Agricorp RMP Bridge (`scripts/forecasting_engine.py`)", expanded=False):
-        nci_bridge = run_short_term_nci_bridge(
-            region=region,
-            grain_price_shock_pct=total_yr1_farm_rev_shock_pct,
-            livestock_price_shock_pct=total_yr1_farm_rev_shock_pct,
-            fuel_shock_pct=shock_fuel,
-            fert_shock_pct=shock_fert,
-            wage_shock_pct=shock_wages,
-            general_inflation_pct=(shock_chem + shock_seed + shock_feed) / 3.0,
-            interest_shock_bps=shock_ir_bps,
+        nci_bridge = cached_nci_bridge(
+            region_name=region,
+            grain_price_shock_pct=round(total_yr1_farm_rev_shock_pct, 3),
+            livestock_price_shock_pct=round(total_yr1_farm_rev_shock_pct, 3),
+            fuel_shock_pct=round(shock_fuel, 3),
+            fert_shock_pct=round(shock_fert, 3),
+            wage_shock_pct=round(shock_wages, 3),
+            general_inflation_pct=round((shock_chem + shock_seed + shock_feed) / 3.0, 3),
+            interest_shock_bps=round(shock_ir_bps, 1),
         )
         if nci_bridge:
             nb1, nb2, nb3, nb4 = st.columns(4)
@@ -2029,7 +2062,7 @@ with tab3:
 
     # Sister Engine 2: Live SQLite DB (`trade_exposure.db`) & Counter-Tariffs (`canada_counter_tariffs_sept8_2026.csv`)
     st.markdown("---")
-    trade_db = load_section338_and_counter_tariff_data(region=region)
+    trade_db = cached_section338_data(region_name=region)
     t_col1, t_col2 = st.columns(2)
     with t_col1:
         st.markdown("#### 🔎 U.S. Section 338 Historical Statutory Tariff Lines (`trade_exposure.db`)")
@@ -2181,7 +2214,7 @@ with tab4:
     # Sister Engine 3: StatCan FIPI (18-10-0258-01) & Live Commodity Futures Signals
     st.markdown("---")
     st.markdown("#### 📡 Sister Engine 3: StatCan FIPI (`18-10-0258-01`) Input Price Index & Live Commodity Futures")
-    fipi_kpis = load_fipi_input_cost_kpis(region=region)
+    fipi_kpis = cached_fipi_kpis(region_name=region)
     if fipi_kpis:
         fipi_cols = st.columns(len(fipi_kpis))
         for idx, fk in enumerate(fipi_kpis):

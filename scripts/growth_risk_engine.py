@@ -788,7 +788,9 @@ def run_dynamic_projection(
     auto_brm_stabilization: bool = False,
     brm_regime: str = "statutory_scap_80pct",
     stochastic_paths: Optional[Dict[str, List[float]]] = None,
-) -> pd.DataFrame:
+    precomputed_io_coeffs: Optional[Tuple[float, float]] = None,
+    return_records_only: bool = False,
+) -> Any:
     """
     Project macro-financial stock-flow path over `horizon` years using the 5-Module
     Econometric Synthesis from Deep Research Outputs #1-#6:
@@ -854,7 +856,9 @@ def run_dynamic_projection(
     hh_fte_mult = float(hh_cfg["fte_per_million_consumption"])                # 8.1 ON / 9.5 CAN
 
     # Query IO impact for $1 of primary output shock
-    if primary_join_code in ("111A", "1114A", "112A"):
+    if precomputed_io_coeffs is not None:
+        unit_out_mult, gdp_coeff = float(precomputed_io_coeffs[0]), float(precomputed_io_coeffs[1])
+    elif primary_join_code in ("111A", "1114A", "112A"):
         mults = load_subsector_io_multipliers(io_df, region=region, year=target_year)
         fallback_mults = {
             "111A": {"output": 1.5430, "gdp": 0.7200, "jobs": 4.9690, "wages": 0.2390},
@@ -1241,6 +1245,8 @@ def run_dynamic_projection(
         K_base = K_base_next
         Debt_t = Debt_next
 
+    if return_records_only:
+        return records
     return pd.DataFrame(records)
 
 
@@ -1325,6 +1331,20 @@ def run_monte_carlo_projections(
 
     base_int_cost = intermediate_cost_shock_dollars if intermediate_cost_shock_dollars is not None else cost_shock_dollars
 
+    # Pre-compute IO unit coefficients ONCE outside the Monte Carlo loop (50x speedup)
+    if primary_join_code in ("111A", "1114A", "112A"):
+        mults = load_subsector_io_multipliers(io_df, region=region, year=target_year)
+        fallback_mults = {
+            "111A": {"output": 1.5430, "gdp": 0.7200, "jobs": 4.9690, "wages": 0.2390},
+            "1114A": {"output": 1.4915, "gdp": 0.7380, "jobs": 9.9510, "wages": 0.4485},
+            "112A": {"output": 2.1120, "gdp": 0.7120, "jobs": 7.0350, "wages": 0.3170},
+        }
+        m_sub = mults.get(primary_join_code, fallback_mults[primary_join_code])
+        pre_io_coeffs = (float(m_sub["output"]), float(m_sub["gdp"]))
+    else:
+        unit_io = compute_basket_impact(io_df, baskets_cfg, region, target_year, "primary_agriculture", 1.0)
+        pre_io_coeffs = (float(unit_io.get("output", 1.5)), float(unit_io.get("gdp", 0.5)))
+
     for i in range(n_sims):
         # Construct AR(1) and MA(1) time-series shock trajectories across t = 1..horizon
         fipi_path: List[float] = []
@@ -1390,7 +1410,7 @@ def run_monte_carlo_projections(
                 "weight": tariff_params.get("weight", 1.0),
             }
 
-        df_sim = run_dynamic_projection(
+        sim_records = run_dynamic_projection(
             horizon=horizon,
             base_output=base_output,
             base_gdp=base_gdp,
@@ -1429,9 +1449,11 @@ def run_monte_carlo_projections(
                 "nci_pct": nci_path,
                 "capex_pct": capex_path,
             },
+            precomputed_io_coeffs=pre_io_coeffs,
+            return_records_only=True,
         )
 
-        for _, row in df_sim.iterrows():
+        for row in sim_records:
             t_idx = int(row["t"])
             for k in tracked_metrics:
                 all_runs[t_idx][k].append(float(row[k]))
