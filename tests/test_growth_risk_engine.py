@@ -990,6 +990,212 @@ def test_audit_v2_streamlit_apptest_smoke():
     assert len(at.exception) == 0, f"Uncaught Streamlit exception: {at.exception}"
 
 
+def test_io_geo_scope_toggle_end_to_end(core_data):
+    """
+    Comprehensive verification of the All-Provinces vs. Within-Province IO Geographical
+    Scope toggle (`geo_scope`: 'all_provinces' vs. 'within_province'):
+    1. StatCan 36-10-0595-01 Retention Matrix includes NAICS 1114A in Primary Ag and has strict (0, 100) retention in Ontario and 100% in Canada.
+    2. Farm-gate solvency & cash-flow metrics (NCI, DSCR, FSF, LRF, Distress Prob, CapEx, Statutory BRM) are 100% invariant to IO scope.
+    3. Macro supply-chain metrics (Direct_GDP, Supply_Chain_Output_Shock_M, Induced HH, ABP, HLRF, BRM Subsidy) strictly contract under Within-Province in Ontario and coincide in Canada.
+    4. Cross-scope Scenario A vs. Scenario B comparison isolates inter-provincial ROC spillovers while reporting 0.0 farm-gate solvency delta.
+    5. Headless Streamlit AppTest toggles `rad_io_geo_scope` and `Counterfactual: Opposite IO Scope` cleanly with zero exceptions.
+    """
+    from scripts.growth_risk_engine import (
+        compute_io_scope_retention_table,
+        compute_scenario_comparison_summary,
+        compute_simulator_hlrf_summary,
+        compute_simulator_subsidy_summary,
+        get_scoped_household_mpc_multipliers,
+    )
+    from streamlit.testing.v1 import AppTest
+
+    io_df = core_data["io_df"]
+    baskets_cfg = core_data["baskets_cfg"]
+
+    # 1. Retention Matrix checks (Ontario vs. Canada; NAICS 1114A = Primary Agriculture)
+    ret_on = compute_io_scope_retention_table(io_df, region="Ontario", year=2022)
+    assert len(ret_on) >= 12
+    row_1114 = next((r for r in ret_on if r["Join Code"] == "1114A"), None)
+    assert row_1114 is not None
+    assert row_1114["Value-Chain Stage"] == "Primary Agriculture"
+    for r in ret_on:
+        assert r["ROC Output Spillover"] > 0.0
+        assert 0.0 < r["Provincial GDP Retention (%)"] < 100.0
+        assert r["ROC GDP Spillover"] > 0.0
+
+    ret_can = compute_io_scope_retention_table(io_df, region="Canada", year=2022)
+    for r in ret_can:
+        assert r["Provincial GDP Retention (%)"] == pytest.approx(100.0, abs=1e-3)
+        assert r["ROC GDP Spillover"] == pytest.approx(0.0, abs=1e-4)
+
+    # 2. Scoped Household MPC Multipliers across provinces
+    hh_on_all = get_scoped_household_mpc_multipliers(io_df, "Ontario", 2022, "all_provinces")
+    hh_on_in = get_scoped_household_mpc_multipliers(io_df, "Ontario", 2022, "within_province")
+    hh_sk_in = get_scoped_household_mpc_multipliers(io_df, "Saskatchewan", 2022, "within_province")
+    assert hh_on_in["gdp_basic_prices_mult"] < hh_on_all["gdp_basic_prices_mult"]
+    assert hh_sk_in["gdp_basic_prices_mult"] < hh_on_in["gdp_basic_prices_mult"]
+
+    # 3. Dynamic Trajectory + Farm-Gate Solvency Invariance (NAICS 1114A in Ontario)
+    m_all = load_subsector_io_multipliers(io_df, "Ontario", 2022, "Simple multiplier", geo_scope="all_provinces")
+    m_in = load_subsector_io_multipliers(io_df, "Ontario", 2022, "Simple multiplier", geo_scope="within_province")
+    base_out = 3.2e9
+    base_gdp_all = base_out * m_all["1114A"]["gdp"]
+    base_gdp_in = base_out * m_in["1114A"]["gdp"]
+
+    common_base_kwargs = dict(
+        horizon=10,
+        base_output=base_out,
+        base_cap_stock=4.5e9,
+        base_capex=380e6,
+        shock_capex_pct=0.0,
+        tfp_growth_pct=1.85,
+        depreciation_rate_pct=8.5,
+        cost_shock_dollars=0.0,
+        rev_shock_dollars=0.0,
+        io_df=io_df,
+        baskets_cfg=baskets_cfg,
+        region="Ontario",
+        target_year=2022,
+        base_debt=1.8e9,
+        base_interest=90e6,
+        base_nci=480e6,
+        primary_join_code="1114A",
+        farm_type="Greenhouse, nursery and floriculture production [1114]",
+    )
+    df_base_all = run_dynamic_projection(base_gdp=base_gdp_all, geo_scope="all_provinces", **common_base_kwargs)
+    df_base_in = run_dynamic_projection(base_gdp=base_gdp_in, geo_scope="within_province", **common_base_kwargs)
+
+    shock_kwargs = dict(
+        horizon=10,
+        base_output=base_out,
+        base_cap_stock=4.5e9,
+        base_capex=380e6,
+        shock_capex_pct=-5.0,
+        tfp_growth_pct=1.85,
+        depreciation_rate_pct=8.5,
+        cost_shock_dollars=145e6,
+        rev_shock_dollars=0.0,
+        io_df=io_df,
+        baskets_cfg=baskets_cfg,
+        region="Ontario",
+        target_year=2022,
+        base_debt=1.8e9,
+        base_interest=90e6,
+        base_nci=480e6,
+        shock_interest_pct=30.0,
+        tariff_params={
+            "commodity": "Floriculture, nursery & sod",
+            "tariff_pct": 25.0,
+            "e_sr": 0.25,
+            "e_lr": 0.72,
+            "lam": 0.35,
+            "pass_through": 0.65,
+            "us_price_share": 0.76,
+            "us_lop_spillover": 0.25,
+            "weight": 1.0,
+        },
+        primary_join_code="1114A",
+        farm_type="Greenhouse, nursery and floriculture production [1114]",
+        input_price_shocks={"fuel": 25.0, "fertilizer": 20.0, "pesticides": 10.0, "seed": 10.0, "feed": 0.0, "labor": 5.0},
+        intermediate_cost_shock_dollars=110e6,
+        labor_cost_shock_dollars=20e6,
+        shock_ir_bps=150.0,
+        auto_brm_stabilization=True,
+        brm_regime="statutory_scap_80pct",
+    )
+    df_shock_all = run_dynamic_projection(base_gdp=base_gdp_all, geo_scope="all_provinces", **shock_kwargs)
+    df_shock_in = run_dynamic_projection(base_gdp=base_gdp_in, geo_scope="within_province", **shock_kwargs)
+
+    # Farm-gate solvency & statutory BRM columns MUST be 100% invariant across all 10 years
+    for col in [
+        "Gross_Output",
+        "Net_Cash_Income",
+        "DSCR",
+        "FSF",
+        "LRF",
+        "Distress_Prob_Pct",
+        "CapEx_CrowdOut_Pct",
+        "Capital_Stock",
+        "Auto_BRM_Entitlement_M",
+        "Auto_BRM_Cash_M",
+    ]:
+        assert df_shock_in[col].tolist() == pytest.approx(df_shock_all[col].tolist(), abs=1e-5), (
+            f"Farm-gate invariance violated on column {col}"
+        )
+
+    # Macro GDP, Supply-Chain Output, and Induced HH GDP MUST be smaller in magnitude under within_province
+    gdp_delta_all = abs(float(df_shock_all.iloc[0]["Direct_GDP"]) - float(df_base_all.iloc[0]["Direct_GDP"]))
+    gdp_delta_in = abs(float(df_shock_in.iloc[0]["Direct_GDP"]) - float(df_base_in.iloc[0]["Direct_GDP"]))
+    assert gdp_delta_in < gdp_delta_all
+
+    sc_out_all = abs(float(df_shock_all.iloc[0]["Supply_Chain_Output"]) - float(df_base_all.iloc[0]["Supply_Chain_Output"]))
+    sc_out_in = abs(float(df_shock_in.iloc[0]["Supply_Chain_Output"]) - float(df_base_in.iloc[0]["Supply_Chain_Output"]))
+    assert sc_out_in < sc_out_all
+
+    # Downstream ABP, HLRF & BRM Subsidy scope checks
+    yr1_out_shock = float(df_shock_all.iloc[0]["Gross_Output"]) - float(df_base_all.iloc[0]["Gross_Output"])
+    abp_all = compute_downstream_abp_impact(
+        io_df, "Ontario", 2022, "Greenhouse, nursery and floriculture production [1114]",
+        yr1_out_shock, 110e6, geo_scope="all_provinces",
+    )
+    abp_in = compute_downstream_abp_impact(
+        io_df, "Ontario", 2022, "Greenhouse, nursery and floriculture production [1114]",
+        yr1_out_shock, 110e6, geo_scope="within_province",
+    )
+    assert abs(abp_in["proc_net_gdp_m"]) < abs(abp_all["proc_net_gdp_m"])
+    assert abs(abp_in["proc_net_jobs"]) < abs(abp_all["proc_net_jobs"])
+
+    hlrf_all = compute_simulator_hlrf_summary("Ontario", 2022, io_df=io_df, geo_scope="all_provinces")
+    hlrf_in = compute_simulator_hlrf_summary("Ontario", 2022, io_df=io_df, geo_scope="within_province")
+    assert sum(r["GDP Impact ($M)"] for r in hlrf_in) < sum(r["GDP Impact ($M)"] for r in hlrf_all)
+
+    sub_all = compute_simulator_subsidy_summary(100e6, "Ontario", 2022, io_df=io_df, geo_scope="all_provinces")
+    sub_in = compute_simulator_subsidy_summary(100e6, "Ontario", 2022, io_df=io_df, geo_scope="within_province")
+    assert sub_in["gdp"] < sub_all["gdp"]
+    assert sub_in["jobs"] < sub_all["jobs"]
+
+    # National Canada equivalence check
+    sub_can_all = compute_simulator_subsidy_summary(100e6, "Canada", 2022, io_df=io_df, geo_scope="all_provinces")
+    sub_can_in = compute_simulator_subsidy_summary(100e6, "Canada", 2022, io_df=io_df, geo_scope="within_province")
+    assert sub_can_in["gdp"] == pytest.approx(sub_can_all["gdp"], rel=1e-6)
+
+    # 4. Cross-scope Scenario Comparison (All-Provinces A vs. Within-Province B)
+    cmp_scope = compute_scenario_comparison_summary(
+        label_a="Same Shocks [All-Provinces Footprint]",
+        label_b="Active Scenario [Within-Province Only]",
+        df_dyn_a=df_shock_all,
+        df_dyn_b=df_shock_in,
+        df_base_dyn=df_base_in,
+        abp_yr1_a=abp_all,
+        abp_yrN_a=abp_all,
+        abp_yr1_b=abp_in,
+        abp_yrN_b=abp_in,
+        jobs_mult_per_m=m_in["1114A"]["jobs"],
+        include_proc_a=True,
+        include_proc_b=True,
+        df_base_dyn_a=df_base_all,
+        jobs_mult_per_m_a=m_all["1114A"]["jobs"],
+    )
+    d_scope = cmp_scope["deltas_b_minus_a"]
+    assert d_scope["yr1_nci_m"] == pytest.approx(0.0, abs=1e-5)
+    assert d_scope["yr1_dscr"] == pytest.approx(0.0, abs=1e-5)
+    assert d_scope["yr1_distress_pct"] == pytest.approx(0.0, abs=1e-5)
+    assert d_scope["yr2_capex_crowdout_pct"] == pytest.approx(0.0, abs=1e-5)
+    assert abs(d_scope["yr1_gdp_m"]) > 2.0
+    assert abs(d_scope["yr1_jobs"]) > 10.0
+
+    # 5. Headless AppTest switching IO Scope to 'within_province' + Opposite IO Scope comparison
+    at = AppTest.from_file(str(PROJECT_ROOT / "growth_risk_simulator_app.py"), default_timeout=30)
+    at.run()
+    assert len(at.exception) == 0
+    at.radio(key="rad_io_geo_scope").set_value("within_province").run()
+    assert len(at.exception) == 0
+    at.selectbox(key="sel_compare_mode").set_value(
+        "Counterfactual: Opposite IO Scope (All-Provinces vs. Within-Province Spillover Split)"
+    ).run()
+    assert len(at.exception) == 0
+
+
 
 
 

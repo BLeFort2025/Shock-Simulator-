@@ -60,6 +60,7 @@ from scripts.growth_risk_engine import (
     compute_cost_commodity_breakdown,
     compute_downstream_abp_impact,
     compute_effective_tariff_price_shock,
+    compute_io_scope_retention_table,
     compute_provincial_fcr_weights,
     compute_scenario_comparison_summary,
     compute_simulator_fiscal_summary,
@@ -70,6 +71,7 @@ from scripts.growth_risk_engine import (
     generate_simulator_word_briefing,
     get_commodity_tariff_params,
     get_enterprise_tariff_commodity,
+    get_scoped_household_mpc_multipliers,
     load_fipi_input_cost_kpis,
     load_section338_and_counter_tariff_data,
     load_subsector_io_multipliers,
@@ -157,6 +159,16 @@ st.markdown(
         border-radius: 999px;
         border: 1px solid #86efac;
     }
+    .badge-io-scope {
+        display: inline-block;
+        background: #e0f2fe;
+        color: #075985;
+        font-weight: 700;
+        font-size: 0.75rem;
+        padding: 0.18rem 0.55rem;
+        border-radius: 999px;
+        border: 1px solid #7dd3fc;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -221,8 +233,17 @@ def cached_fcr_weights(region_name: str) -> Dict[str, Any]:
 
 
 @st.cache_data(show_spinner=False)
-def cached_hlrf_summary(region_name: str, target_yr: int) -> List[Dict[str, Any]]:
-    return compute_simulator_hlrf_summary(region=region_name, year=target_yr, io_df=io_df)
+def cached_hlrf_summary(
+    region_name: str, target_yr: int, geo_scope_val: str = "all_provinces"
+) -> List[Dict[str, Any]]:
+    return compute_simulator_hlrf_summary(
+        region=region_name, year=target_yr, io_df=io_df, geo_scope=geo_scope_val
+    )
+
+
+@st.cache_data(show_spinner=False)
+def cached_io_retention_table(region_name: str, target_yr: int) -> List[Dict[str, Any]]:
+    return compute_io_scope_retention_table(io_df=io_df, region=region_name, year=target_yr)
 
 
 @st.cache_data(show_spinner=False)
@@ -258,6 +279,7 @@ def cached_monte_carlo(
     brm_subsidy_val: float,
     auto_brm_val: bool,
     brm_regime_val: str,
+    geo_scope_val: str = "all_provinces",
 ) -> Dict[int, Dict[str, float]]:
     return run_monte_carlo_projections(
         n_sims=n_sims_val,
@@ -293,6 +315,7 @@ def cached_monte_carlo(
         brm_subsidy_dollars=brm_subsidy_val,
         auto_brm_stabilization=auto_brm_val,
         brm_regime=brm_regime_val,
+        geo_scope=geo_scope_val,
     )
 
 
@@ -311,6 +334,7 @@ def cached_word_briefing_bytes(
         comb_out_m, comb_gdp_m, comb_jobs, t_pct, t_comm,
         _ent_key, _ent_ac, _inc_rent, _pt_cust,
     ) = scenario_sig[:14]
+    geo_scope_sig = str(scenario_sig[-1]) if scenario_sig[-1] in ("all_provinces", "within_province") else "all_provinces"
     buf = generate_simulator_word_briefing(
         region=reg,
         farm_type=f_type,
@@ -328,6 +352,7 @@ def cached_word_briefing_bytes(
         tariff_pct=t_pct,
         tariff_commodity=t_comm,
         df_base_dyn=_df_base_dyn,
+        geo_scope=geo_scope_sig,
     )
     return buf.getvalue() if buf is not None else None
 
@@ -346,6 +371,7 @@ def cached_pptx_deck_bytes(
         comb_out_m, comb_gdp_m, comb_jobs, _t_pct, _t_comm,
         _ent_key, _ent_ac, _inc_rent, _pt_cust,
     ) = scenario_sig[:14]
+    geo_scope_sig = str(scenario_sig[-1]) if scenario_sig[-1] in ("all_provinces", "within_province") else "all_provinces"
     buf = generate_simulator_pptx_deck(
         region=reg,
         farm_type=f_type,
@@ -360,6 +386,7 @@ def cached_pptx_deck_bytes(
         combined_yr1_gdp_impact_m=comb_gdp_m,
         combined_yr1_jobs_impact=comb_jobs,
         df_base_dyn=_df_base_dyn,
+        geo_scope=geo_scope_sig,
     )
     return buf.getvalue() if buf is not None else None
 
@@ -506,6 +533,26 @@ with st.sidebar:
         help="NAICS 1114 (Greenhouse, Nursery, Floriculture & Sod) is classified strictly as Primary Agriculture.",
     )
 
+    io_geo_scope = st.radio(
+        "Step 2B: IO Geographical Multiplier Scope",
+        options=["all_provinces", "within_province"],
+        format_func=lambda x: (
+            "All-Provinces Footprint (Includes Inter-Provincial Supply Chains)"
+            if x == "all_provinces"
+            else "Within-Province Only (Own-Border Provincial Retention)"
+        ),
+        index=0,
+        key="rad_io_geo_scope",
+        help=(
+            "Selects between Row 1 ('All-Provinces', capturing upstream/downstream supply-chain spillovers across Canada) "
+            "and Row 2 ('Within-Province', isolating strictly intra-provincial GDP, employment, wages & tax retention) "
+            "in Statistics Canada Table 36-10-0595-01. Farm-gate solvency (NCI, DSCR, Distress Prob, Statutory BRM) "
+            "remains invariant to regional IO accounting boundaries."
+        ),
+    )
+    if region == "Canada":
+        st.caption("ℹ️ At the `Canada` national level, `All-Provinces` and `Within-Province` coincide (StatCan National SUT).")
+
     preset_name = st.selectbox("Step 3: Quick-Load Empirical Scenario", list(SCENARIO_PRESETS.keys()), index=0)
     preset = SCENARIO_PRESETS[preset_name]
     if preset_name != "Custom Scenario (Manual Sliders)":
@@ -623,6 +670,7 @@ with st.sidebar:
         compare_options = [
             "Off (Single Active Scenario)",
             "Counterfactual: Active Shocks WITHOUT BRM Offset (Pre-Policy vs. Post-Policy)",
+            "Counterfactual: Opposite IO Scope (All-Provinces vs. Within-Province Spillover Split)",
             "Pinned Custom Snapshot (Scenario A)",
         ] + compare_preset_options
 
@@ -631,7 +679,7 @@ with st.sidebar:
 
         default_cmp_idx = 0
         if st.session_state.get("force_pinned_mode") and st.session_state.get("pinned_scenario_a") is not None:
-            default_cmp_idx = 2
+            default_cmp_idx = 3
             st.session_state["force_pinned_mode"] = False
 
         compare_mode = st.selectbox(
@@ -640,15 +688,16 @@ with st.sidebar:
             index=default_cmp_idx,
             key="sel_compare_mode",
             help=(
-                "Select any reference scenario as Benchmark Scenario A (or pin your current slider configuration) "
-                "to view side-by-side KPI deltas (B − A) and overlaid 10-year trajectory curves."
+                "Select any reference scenario as Benchmark Scenario A (including a 1-click All-Provinces vs. Within-Province "
+                "spillover split or a pinned custom snapshot) to view side-by-side KPI deltas (B − A) and overlaid 10-year curves."
             ),
         )
 
+        scope_tag_pin = "Within-Prov" if io_geo_scope == "within_province" else "All-Prov"
         auto_pin_label = (
-            f"Pinned ({preset_name[:22]}...)"
+            f"Pinned ({preset_name[:18]}... · {scope_tag_pin})"
             if preset_name != "Custom Scenario (Manual Sliders)"
-            else f"Pinned (Tariff {tariff_pct:.0f}%, IR {shock_ir_bps:+.0f}bps, Fert {shock_fert:+.0f}%)"
+            else f"Pinned (Tariff {tariff_pct:.0f}%, IR {shock_ir_bps:+.0f}bps · {scope_tag_pin})"
         )
         pin_label_input = st.text_input(
             "Custom Label for Pinned Scenario A",
@@ -751,7 +800,7 @@ primary_join_code = (
 )
 
 if primary_join_code in ("111A", "1114A", "112A"):
-    sub_mults = load_subsector_io_multipliers(io_df, region=region, year=target_io_year)
+    sub_mults = load_subsector_io_multipliers(io_df, region=region, year=target_io_year, geo_scope=io_geo_scope)
     fallback_mults = {
         "111A": {"output": 1.6420, "gdp": 0.7780, "jobs": 5.1380, "wages": 0.2530},
         "1114A": {"output": 1.5530, "gdp": 0.7700, "jobs": 10.0850, "wages": 0.4600},
@@ -762,12 +811,29 @@ if primary_join_code in ("111A", "1114A", "112A"):
     out_mult = float(m_unit["output"])
     jobs_mult_per_m = float(m_unit["jobs"])
     wages_coeff = float(m_unit["wages"])
+    if io_geo_scope == "within_province" and region != "Canada":
+        sub_mults_all = load_subsector_io_multipliers(io_df, region=region, year=target_io_year, geo_scope="all_provinces")
+        m_unit_all = sub_mults_all.get(primary_join_code, fallback_mults[primary_join_code])
+        on_farm_margin_coeff = float(m_unit_all["gdp"])
+    else:
+        on_farm_margin_coeff = gdp_coeff
 else:
-    unit_basket = compute_basket_impact(io_df, baskets_cfg, region, target_io_year, "primary_agriculture", 1.0)
+    unit_basket = compute_basket_impact(
+        io_df, baskets_cfg, region, target_io_year, "primary_agriculture", 1.0, geo_scope=io_geo_scope
+    )
     gdp_coeff = float(unit_basket.get("gdp", 0.52))
     out_mult = float(unit_basket.get("output", 1.65))
     jobs_mult_per_m = float(unit_basket.get("jobs", 6.2e-6)) * 1e6
     wages_coeff = float(unit_basket.get("wages", 0.25))
+    if io_geo_scope == "within_province" and region != "Canada":
+        unit_basket_all = compute_basket_impact(
+            io_df, baskets_cfg, region, target_io_year, "primary_agriculture", 1.0, geo_scope="all_provinces"
+        )
+        on_farm_margin_coeff = float(unit_basket_all.get("gdp", 0.52))
+    else:
+        on_farm_margin_coeff = gdp_coeff
+
+gdp_retention_pct = (gdp_coeff / max(on_farm_margin_coeff, 1e-9)) * 100.0
 
 # Dynamic provincial GDP margin calibration (Fixes Gap #8A — replaces hardcoded 0.30)
 base_gdp_dollars = base_output_dollars * gdp_coeff
@@ -903,6 +969,7 @@ df_base_dyn = run_dynamic_projection(
     amortization_rate=amortization_rate,
     icor_value=icor_cfg["icor"],
     brm_subsidy_dollars=0.0,
+    geo_scope=io_geo_scope,
 )
 
 df_dyn = run_dynamic_projection(
@@ -937,6 +1004,7 @@ df_dyn = run_dynamic_projection(
     brm_subsidy_dollars=brm_offset_dollars,
     auto_brm_stabilization=auto_brm_toggle,
     brm_regime=brm_regime,
+    geo_scope=io_geo_scope,
 )
 
 mc_summary = cached_monte_carlo(
@@ -971,6 +1039,7 @@ mc_summary = cached_monte_carlo(
     brm_subsidy_val=brm_offset_dollars,
     auto_brm_val=auto_brm_toggle,
     brm_regime_val=brm_regime,
+    geo_scope_val=io_geo_scope,
 )
 
 # 9. Isolate Pure Shock Impact (Shocked Trajectory minus Unshocked Baseline Trajectory)
@@ -998,6 +1067,7 @@ abp_res = compute_downstream_abp_impact(
     farm_type=farm_type,
     primary_supply_shock_dollars=yr1_primary_delta_output,
     primary_cost_shock_dollars=intermediate_cost_shock_dollars,
+    geo_scope=io_geo_scope,
 )
 
 if include_processing:
@@ -1005,11 +1075,13 @@ if include_processing:
     combined_yr1_gdp_impact_m = (yr1_primary_delta_gdp / 1e6) + abp_res["proc_net_gdp_m"]
     combined_yr1_jobs_impact = yr1_primary_delta_jobs + abp_res["proc_net_jobs"]
     combined_yr1_wages_impact_m = (yr1_primary_delta_wages / 1e6) + abp_res["proc_net_wages_m"]
+    yr1_supply_chain_gross_out_m = ((yr1_primary_delta_output * out_mult) / 1e6) + abp_res["proc_net_output_m"]
 else:
     combined_yr1_output_impact_m = yr1_primary_delta_output / 1e6
     combined_yr1_gdp_impact_m = yr1_primary_delta_gdp / 1e6
     combined_yr1_jobs_impact = yr1_primary_delta_jobs
     combined_yr1_wages_impact_m = yr1_primary_delta_wages / 1e6
+    yr1_supply_chain_gross_out_m = (yr1_primary_delta_output * out_mult) / 1e6
 
 yrN_primary_shock_gdp_m = (float(yrN_row["Direct_GDP"]) - float(base_yrN_row["Direct_GDP"])) / 1e6
 yrN_primary_shock_out_m = (float(yrN_row["Gross_Output"]) - float(base_yrN_row["Gross_Output"])) / 1e6
@@ -1023,6 +1095,7 @@ abp_res_yrN = compute_downstream_abp_impact(
     primary_supply_shock_dollars=yrN_primary_shock_out_m * 1e6,
     primary_cost_shock_dollars=intermediate_cost_shock_dollars,
     is_long_run=True,
+    geo_scope=io_geo_scope,
 )
 if include_processing:
     combined_yrN_gdp_impact_m = yrN_primary_shock_gdp_m + abp_res_yrN["proc_net_gdp_m"]
@@ -1051,6 +1124,7 @@ if pin_current_btn:
         "brm_m": brm_subsidy_m,
         "auto_brm": auto_brm_toggle,
         "brm_regime": brm_regime,
+        "geo_scope": io_geo_scope,
     }
     st.toast(f"📌 Pinned current state as Scenario A: {st.session_state['pinned_scenario_a']['label']}")
 
@@ -1074,6 +1148,30 @@ if compare_mode == "Counterfactual: Active Shocks WITHOUT BRM Offset (Pre-Policy
         "brm_m": 0.0,
         "auto_brm": False,
         "brm_regime": brm_regime,
+        "geo_scope": io_geo_scope,
+    }
+elif compare_mode == "Counterfactual: Opposite IO Scope (All-Provinces vs. Within-Province Spillover Split)":
+    opp_scope = "all_provinces" if io_geo_scope == "within_province" else "within_province"
+    opp_lbl = "All-Provinces Footprint" if opp_scope == "all_provinces" else "Within-Province Only"
+    scen_a_cfg = {
+        "label": f"Same Shocks [{opp_lbl}]",
+        "fuel": shock_fuel,
+        "fert": shock_fert,
+        "chem": shock_chem,
+        "seed": shock_seed,
+        "feed": shock_feed,
+        "wages": shock_wages,
+        "ir_bps": shock_ir_bps,
+        "tariff_comm": tariff_commodity,
+        "tariff_pct": tariff_pct,
+        "direct_rev_pct": direct_rev_shock_pct,
+        "include_proc": include_processing,
+        "capex_pct": shock_capex_pct,
+        "tfp_pct": tfp_growth_pct,
+        "brm_m": brm_subsidy_m,
+        "auto_brm": auto_brm_toggle,
+        "brm_regime": brm_regime,
+        "geo_scope": opp_scope,
     }
 elif compare_mode == "Pinned Custom Snapshot (Scenario A)" or pin_current_btn:
     if st.session_state.get("pinned_scenario_a") is not None:
@@ -1100,12 +1198,64 @@ elif compare_mode.startswith("Preset: "):
             "brm_m": float(pr_a["brm_m"]),
             "auto_brm": False,
             "brm_regime": "statutory_scap_80pct",
+            "geo_scope": io_geo_scope,
         }
 
 df_dyn_a: Optional[pd.DataFrame] = None
 comparison_summary: Optional[Dict[str, Any]] = None
 
 if scen_a_cfg is not None:
+    scen_a_geo_scope = str(scen_a_cfg.get("geo_scope", io_geo_scope))
+    if scen_a_geo_scope == io_geo_scope:
+        base_gdp_dollars_a = base_gdp_dollars
+        df_base_dyn_a = df_base_dyn
+        jobs_mult_per_m_a = jobs_mult_per_m
+    else:
+        if primary_join_code in ("111A", "1114A", "112A"):
+            sub_mults_a = load_subsector_io_multipliers(io_df, region=region, year=target_io_year, geo_scope=scen_a_geo_scope)
+            m_unit_a = sub_mults_a.get(primary_join_code, fallback_mults[primary_join_code])
+            gdp_coeff_a = float(m_unit_a["gdp"])
+            jobs_mult_per_m_a = float(m_unit_a["jobs"])
+        else:
+            unit_basket_a = compute_basket_impact(
+                io_df, baskets_cfg, region, target_io_year, "primary_agriculture", 1.0, geo_scope=scen_a_geo_scope
+            )
+            gdp_coeff_a = float(unit_basket_a.get("gdp", 0.52))
+            jobs_mult_per_m_a = float(unit_basket_a.get("jobs", 6.2e-6)) * 1e6
+        base_gdp_dollars_a = base_output_dollars * gdp_coeff_a
+        df_base_dyn_a = run_dynamic_projection(
+            horizon=horizon,
+            base_output=base_output_dollars,
+            base_gdp=base_gdp_dollars_a,
+            base_cap_stock=base_cap_stock,
+            base_capex=base_capex,
+            shock_capex_pct=0.0,
+            tfp_growth_pct=default_tfp,
+            depreciation_rate_pct=depreciation_rate_pct,
+            cost_shock_dollars=0.0,
+            rev_shock_dollars=0.0,
+            io_df=io_df,
+            baskets_cfg=baskets_cfg,
+            region=region,
+            target_year=target_io_year,
+            base_debt=base_debt,
+            base_interest=base_interest,
+            base_nci=base_nci,
+            shock_interest_pct=0.0,
+            tariff_params=None,
+            capex_gestation_ramp=ramp_schedule,
+            primary_join_code=primary_join_code,
+            farm_type=farm_type,
+            input_price_shocks=None,
+            intermediate_cost_shock_dollars=0.0,
+            labor_cost_shock_dollars=0.0,
+            shock_ir_bps=0.0,
+            amortization_rate=amortization_rate,
+            icor_value=icor_cfg["icor"],
+            brm_subsidy_dollars=0.0,
+            geo_scope=scen_a_geo_scope,
+        )
+
     cs_fuel_a = total_exp_dollars * fuel_r * (float(scen_a_cfg["fuel"]) / 100.0)
     cs_fert_a = total_exp_dollars * fert_r * (float(scen_a_cfg["fert"]) / 100.0)
     cs_chem_a = total_exp_dollars * chem_r * (float(scen_a_cfg["chem"]) / 100.0)
@@ -1167,7 +1317,7 @@ if scen_a_cfg is not None:
     df_dyn_a = run_dynamic_projection(
         horizon=horizon,
         base_output=base_output_dollars,
-        base_gdp=base_gdp_dollars,
+        base_gdp=base_gdp_dollars_a,
         base_cap_stock=base_cap_stock,
         base_capex=base_capex,
         shock_capex_pct=float(scen_a_cfg.get("capex_pct", 0.0)),
@@ -1196,10 +1346,11 @@ if scen_a_cfg is not None:
         brm_subsidy_dollars=brm_off_a,
         auto_brm_stabilization=bool(scen_a_cfg.get("auto_brm", False)),
         brm_regime=str(scen_a_cfg.get("brm_regime", "statutory_scap_80pct")),
+        geo_scope=scen_a_geo_scope,
     )
 
-    yr1_prim_out_a = float(df_dyn_a.iloc[0]["Gross_Output"]) - float(base_yr1_row["Gross_Output"])
-    yrN_prim_out_a = float(df_dyn_a.iloc[-1]["Gross_Output"]) - float(base_yrN_row["Gross_Output"])
+    yr1_prim_out_a = float(df_dyn_a.iloc[0]["Gross_Output"]) - float(df_base_dyn_a.iloc[0]["Gross_Output"])
+    yrN_prim_out_a = float(df_dyn_a.iloc[-1]["Gross_Output"]) - float(df_base_dyn_a.iloc[-1]["Gross_Output"])
     abp_yr1_a = compute_downstream_abp_impact(
         io_df=io_df,
         region=region,
@@ -1208,6 +1359,7 @@ if scen_a_cfg is not None:
         primary_supply_shock_dollars=yr1_prim_out_a,
         primary_cost_shock_dollars=int_cost_a,
         is_long_run=False,
+        geo_scope=scen_a_geo_scope,
     )
     abp_yrN_a = compute_downstream_abp_impact(
         io_df=io_df,
@@ -1217,6 +1369,7 @@ if scen_a_cfg is not None:
         primary_supply_shock_dollars=yrN_prim_out_a,
         primary_cost_shock_dollars=int_cost_a,
         is_long_run=True,
+        geo_scope=scen_a_geo_scope,
     )
     active_b_label = (
         preset_name.split("(")[0].strip()
@@ -1227,6 +1380,9 @@ if scen_a_cfg is not None:
         active_b_label += " (+ Statutory BRM)"
     elif brm_subsidy_m > 0:
         active_b_label += f" (+ ${brm_subsidy_m:,.0f}M BRM)"
+    if scen_a_geo_scope != io_geo_scope:
+        b_scope_lbl = "Within-Province Only" if io_geo_scope == "within_province" else "All-Provinces Footprint"
+        active_b_label += f" [{b_scope_lbl}]"
 
     comparison_summary = compute_scenario_comparison_summary(
         label_a=str(scen_a_cfg["label"]),
@@ -1243,13 +1399,16 @@ if scen_a_cfg is not None:
         include_proc_b=include_processing,
         brm_adhoc_m_a=float(scen_a_cfg.get("brm_m", 0.0)),
         brm_adhoc_m_b=brm_subsidy_m,
+        df_base_dyn_a=df_base_dyn_a,
+        jobs_mult_per_m_a=jobs_mult_per_m_a,
     )
 
 # Factor-by-Factor Attribution using Deep Research Output #5 & #6 Duality, ABP & Repricing Equations
-hh_reg = "Ontario" if region == "Ontario" else "Canada"
-hh_cfg = FARM_HOUSEHOLD_MPC_MULTIPLIERS[hh_reg]
-eff_hh_gdp_sr = float(hh_cfg["eff_induced_gdp_per_dollar_nci_sr"])        # 0.0864 ON / 0.1056 CAN
-eff_hh_fte_sr = float(hh_cfg["eff_induced_fte_per_million_nci_sr"])       # 0.972 ON / 1.140 CAN
+hh_scoped = get_scoped_household_mpc_multipliers(
+    io_df=io_df, region=region, year=target_io_year, geo_scope=io_geo_scope
+)
+eff_hh_gdp_sr = float(hh_scoped["eff_induced_gdp_per_dollar_nci_sr"])
+eff_hh_fte_sr = float(hh_scoped["eff_induced_fte_per_million_nci_sr"])
 inp_elasts = hotelling_prof["inputs"]
 sector_yr1_margin_share = float(hotelling_prof["yr1_margin_share"])
 
@@ -1261,6 +1420,7 @@ abp_unit_supply = compute_downstream_abp_impact(
     farm_type=farm_type,
     primary_supply_shock_dollars=1e6,
     primary_cost_shock_dollars=0.0,
+    geo_scope=io_geo_scope,
 )
 abp_unit_cost = compute_downstream_abp_impact(
     io_df=io_df,
@@ -1269,6 +1429,7 @@ abp_unit_cost = compute_downstream_abp_impact(
     farm_type=farm_type,
     primary_supply_shock_dollars=0.0,
     primary_cost_shock_dollars=1e6,
+    geo_scope=io_geo_scope,
 )
 proc_out_per_m_supply = float(abp_unit_supply["proc_net_output_m"]) if include_processing else 0.0
 proc_gdp_per_m_supply = float(abp_unit_supply["proc_net_gdp_m"]) if include_processing else 0.0
@@ -1292,7 +1453,7 @@ def _build_input_factor_row(
     m_share = sector_yr1_margin_share
     phys_out_d = base_output_dollars * eps_sr * (shock_pct / 100.0)
     margin_comp_d = cost_dollars * m_share
-    nci_delta_d = (phys_out_d * gdp_coeff) - margin_comp_d
+    nci_delta_d = (phys_out_d * on_farm_margin_coeff) - margin_comp_d
     # For intermediate inputs, margin compression reduces Value-Added GDP directly;
     # for Hired Labour (CSNA Primary Income), wages reduce NCI but only affect VA GDP via physical output + induced HH
     va_gdp_d = (phys_out_d * gdp_coeff) - (0.0 if is_labor else margin_comp_d) + (nci_delta_d * eff_hh_gdp_sr)
@@ -1330,7 +1491,7 @@ for row_cand in [
 if abs(shock_ir_bps) > 1e-4:
     eff_yr1_bps = shock_ir_bps * yr1_theta
     ir_phys_out_d = base_output_dollars * (-0.0015) * (eff_yr1_bps / 100.0)
-    ir_nci_d = (ir_phys_out_d * gdp_coeff) - cost_shock_int_yr1
+    ir_nci_d = (ir_phys_out_d * on_farm_margin_coeff) - cost_shock_int_yr1
     ir_hh_gdp_d = ir_nci_d * eff_hh_gdp_sr
     ir_va_gdp_d = (ir_phys_out_d * gdp_coeff) + ir_hh_gdp_d
     ir_proc_out_m = (ir_phys_out_d / 1e6) * proc_out_per_m_supply
@@ -1386,7 +1547,7 @@ for f_lbl, f_set, f_out_d, f_extra_nci_d, f_mech in [
 ]:
     if abs(f_out_d) < 1e3 and abs(f_extra_nci_d) < 1e3:
         continue
-    f_nci_d = (f_out_d * gdp_coeff) + f_extra_nci_d
+    f_nci_d = (f_out_d * on_farm_margin_coeff) + f_extra_nci_d
     f_va_gdp_d = (f_out_d * gdp_coeff) + (f_nci_d * eff_hh_gdp_sr)
     f_proc_out_m = (f_out_d / 1e6) * proc_out_per_m_supply
     f_proc_gdp_m = (f_out_d / 1e6) * proc_gdp_per_m_supply
@@ -1462,6 +1623,11 @@ if abs(shock_capex_pct) > 1e-4:
 # ------------------------------------------------------------------------------
 # HERO BANNER & EXECUTIVE KPI RIBBON
 # ------------------------------------------------------------------------------
+hero_io_scope_lbl = (
+    "National SUT"
+    if region == "Canada"
+    else ("Within-Province Only" if io_geo_scope == "within_province" else "All-Provinces Footprint")
+)
 st.markdown(
     f"""
     <div class="main-header">
@@ -1471,6 +1637,7 @@ st.markdown(
             <strong>Primary Ag Sector:</strong> {farm_type} &nbsp;|&nbsp;
             <strong>Baselines:</strong> StatCan IO ({target_io_year}) · FCR ({fcr_year}) · Expense Profiles ({latest_exp_yr}) · Balance Sheet ({health_year})
             &nbsp;&nbsp;<span class="badge-primary-ag">NAICS 1114 / HS Ch. 06 = Primary Agriculture</span>
+            &nbsp;&nbsp;<span class="badge-io-scope">IO Scope: {hero_io_scope_lbl}</span>
         </p>
     </div>
     """,
@@ -1492,7 +1659,7 @@ with k1:
             <div class="kpi-val" style="color: {'#64748b' if abs(combined_yr1_output_impact_m) < 0.05 else ('#16a34a' if combined_yr1_output_impact_m > 0 else '#dc2626')};">
                 {combined_yr1_output_impact_m:+,.1f} $M
             </div>
-            <div class="kpi-sub">Primary: {yr1_primary_delta_output/1e6:+,.1f}M | Proc ABP: {abp_res['proc_net_output_m'] if include_processing else 0.0:+,.1f}M</div>
+            <div class="kpi-sub">Primary: {yr1_primary_delta_output/1e6:+,.1f}M | Proc ABP: {abp_res['proc_net_output_m'] if include_processing else 0.0:+,.1f}M | Supply-Chain: {yr1_supply_chain_gross_out_m:+,.1f}M</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -1696,6 +1863,12 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 # ==============================================================================
 with tab1:
     st.subheader(f"Macroeconomic, Value-Chain Analysis-by-Parts (ABP) & Fiscal Impact — {region}")
+    st.caption(
+        f"🌐 **Active StatCan `36-10-0595-01` IO Geographical Scope:** **{hero_io_scope_lbl}** | "
+        f"Primary Output Multiplier = **`{out_mult:.3f}`** | Value-Added GDP Multiplier = **`{gdp_coeff:.3f}`** | "
+        f"Employment = **`{jobs_mult_per_m:.2f}` FTEs / \\$1M** | "
+        f"Own-Border GDP Retention = **`{gdp_retention_pct:.1f}%`** of All-Provinces footprint."
+    )
 
     col_left, col_right = st.columns([1.15, 1.0])
 
@@ -1815,7 +1988,13 @@ with tab1:
         ])
         st.dataframe(fisc_df.style.format({"Fiscal Revenue Impact ($M)": "{:+,.2f} $M"}), width="stretch", hide_index=True)
         if total_yr1_brm_cash_m > 0:
-            sub_imp = compute_simulator_subsidy_summary(total_yr1_brm_cash_m * 1e6, region=region, year=target_io_year, io_df=io_df)
+            sub_imp = compute_simulator_subsidy_summary(
+                total_yr1_brm_cash_m * 1e6,
+                region=region,
+                year=target_io_year,
+                io_df=io_df,
+                geo_scope=io_geo_scope,
+            )
             st.success(
                 f"**Active BRM Cash Stabilization (`+${total_yr1_brm_cash_m:,.1f}M` Yr 1 Cash Inflow = "
                 f"`+${yr1_auto_brm_cash_m:,.1f}M` Statutory + `+${brm_subsidy_m:,.1f}M` Ad-Hoc; "
@@ -1831,7 +2010,9 @@ with tab1:
     with f_col2:
         st.markdown("#### 🍎 Sister Engine 5: OAG Horticulture Multi-Stage Value-Chain (HLRF)")
         try:
-            hlrf_rows = cached_hlrf_summary(region_name=region, target_yr=target_io_year)
+            hlrf_rows = cached_hlrf_summary(
+                region_name=region, target_yr=target_io_year, geo_scope_val=io_geo_scope
+            )
             if hlrf_rows:
                 st.dataframe(
                     pd.DataFrame(hlrf_rows).style.format({
@@ -1898,6 +2079,14 @@ with tab2:
         fig_gdp.add_trace(go.Scatter(x=years_x + years_x[::-1], y=gdp_p90 + gdp_p10[::-1], fill="toself", fillcolor="rgba(22, 163, 74, 0.18)", line=dict(color="rgba(255,255,255,0)"), name="P10–P90 Monte Carlo Band"))
         fig_gdp.add_trace(go.Scatter(x=years_x, y=gdp_base, mode="lines", line=dict(color="#64748b", dash="dash", width=2), name=f"Unshocked Baseline Trend (+{default_tfp:.2f}% TFP)"))
         if df_dyn_a is not None and comparison_summary is not None:
+            if scen_a_cfg is not None and str(scen_a_cfg.get("geo_scope", io_geo_scope)) != io_geo_scope:
+                fig_gdp.add_trace(go.Scatter(
+                    x=years_x,
+                    y=[v / 1e9 for v in df_base_dyn_a["Direct_GDP"]],
+                    mode="lines",
+                    line=dict(color="#fdba74", dash="dot", width=1.8),
+                    name=f"Unshocked Baseline A ({comparison_summary['label_a']})",
+                ))
             fig_gdp.add_trace(go.Scatter(
                 x=years_x,
                 y=[v / 1e9 for v in df_dyn_a["Direct_GDP"]],
@@ -2422,6 +2611,38 @@ with tab5:
         st.markdown("**Darku, Malla & Tran (2016) Provincial TFP Decomposition (Technical Change vs. Scale Effects):**")
         st.dataframe(pd.DataFrame(PROVINCIAL_TFP_DECOMPOSITION), width="stretch", hide_index=True)
 
+    with st.expander(
+        f"2B. StatCan 36-10-0595-01 Intra-Provincial vs. Inter-Provincial IO Multiplier Retention Matrix ({region}, {target_io_year})",
+        expanded=False,
+    ):
+        ret_rows = cached_io_retention_table(region_name=region, target_yr=target_io_year)
+        if ret_rows:
+            df_ret_io = pd.DataFrame(ret_rows)
+            st.dataframe(
+                df_ret_io.style.format({
+                    "Direct GDP Mult": "{:.3f}",
+                    "Within-Province Output Mult": "{:.3f}",
+                    "All-Provinces Output Mult": "{:.3f}",
+                    "ROC Output Spillover": "{:.3f}",
+                    "Within-Province GDP Mult": "{:.3f}",
+                    "All-Provinces GDP Mult": "{:.3f}",
+                    "ROC GDP Spillover": "{:.3f}",
+                    "Provincial GDP Retention (%)": "{:.1f}%",
+                    "Within-Province Jobs (/ $1M)": "{:.2f}",
+                    "All-Provinces Jobs (/ $1M)": "{:.2f}",
+                    "Provincial Jobs Retention (%)": "{:.1f}%",
+                }),
+                width="stretch",
+                hide_index=True,
+            )
+            st.download_button(
+                label=f"📥 Download StatCan 36-10-0595-01 IO Scope Retention Matrix ({region}, CSV)",
+                data=df_ret_io.to_csv(index=False).encode("utf-8"),
+                file_name=f"OFA_StatCan_3610059501_IO_Scope_Retention_{region}_{target_io_year}.csv",
+                mime="text/csv",
+                key="btn_dl_io_ret_csv",
+            )
+
     with st.expander("3. Sister Engine 7B: Export Executive Briefing (.docx), Board Deck (.pptx) & Audit CSV", expanded=True):
         export_sig = (
             region,
@@ -2453,6 +2674,7 @@ with tab5:
             brm_regime,
             horizon,
             n_sims,
+            io_geo_scope,
         )
         dl_c1, dl_c2, dl_c3 = st.columns(3)
         with dl_c1:
