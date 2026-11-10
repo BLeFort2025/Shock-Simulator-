@@ -16,11 +16,10 @@ as Primary Agriculture across all farm-gate totals, tariff simulations, and IO m
 
 from __future__ import annotations
 
-import importlib
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -32,16 +31,6 @@ _HERE = Path(__file__).resolve().parent
 PROJECT_ROOT = _HERE if (_HERE / "scripts").exists() else _HERE.parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-
-import scripts.calibrated_parameters as _mod_cp
-import scripts.farm_cost_impact_model as _mod_fcim
-import scripts.forecasting_engine as _mod_fe
-import scripts.growth_risk_engine as _mod_gre
-
-importlib.reload(_mod_cp)
-importlib.reload(_mod_fcim)
-importlib.reload(_mod_fe)
-importlib.reload(_mod_gre)
 
 from app.smart_read import smart_read
 from scripts.calibrated_parameters import (
@@ -224,6 +213,155 @@ df_health = data_bundle["df_health"]
 df_fcr = data_bundle["df_fcr"]
 df_136 = data_bundle["df_136"]
 df_mkt = data_bundle["df_mkt"]
+
+
+@st.cache_data(show_spinner=False)
+def cached_fcr_weights(region_name: str) -> Dict[str, Any]:
+    return compute_provincial_fcr_weights(df_fcr, region=region_name)
+
+
+@st.cache_data(show_spinner=False)
+def cached_hlrf_summary(region_name: str, target_yr: int) -> List[Dict[str, Any]]:
+    return compute_simulator_hlrf_summary(region=region_name, year=target_yr, io_df=io_df)
+
+
+@st.cache_data(show_spinner=False)
+def cached_monte_carlo(
+    n_sims_val: int,
+    horizon_val: int,
+    base_output_val: float,
+    base_gdp_val: float,
+    base_cap_stock_val: float,
+    base_capex_val: float,
+    shock_capex_pct_val: float,
+    tfp_growth_pct_val: float,
+    depreciation_rate_pct_val: float,
+    cost_shock_val: float,
+    rev_shock_val: float,
+    region_val: str,
+    target_year_val: int,
+    base_debt_val: float,
+    base_interest_val: float,
+    base_nci_val: float,
+    shock_interest_pct_val: float,
+    tariff_params_val: Optional[Dict[str, Any]],
+    mc_basis_val: str,
+    ramp_schedule_val: Optional[Tuple[float, ...]],
+    primary_join_code_val: Optional[str],
+    farm_type_val: str,
+    input_price_shocks_val: Dict[str, float],
+    intermediate_cost_shock_val: float,
+    labor_cost_shock_val: float,
+    shock_ir_bps_val: float,
+    amortization_rate_val: float,
+    icor_val: float,
+    brm_subsidy_val: float,
+    auto_brm_val: bool,
+    brm_regime_val: str,
+) -> Dict[int, Dict[str, float]]:
+    return run_monte_carlo_projections(
+        n_sims=n_sims_val,
+        horizon=horizon_val,
+        base_output=base_output_val,
+        base_gdp=base_gdp_val,
+        base_cap_stock=base_cap_stock_val,
+        base_capex=base_capex_val,
+        shock_capex_pct=shock_capex_pct_val,
+        tfp_growth_pct=tfp_growth_pct_val,
+        depreciation_rate_pct=depreciation_rate_pct_val,
+        cost_shock_dollars=cost_shock_val,
+        rev_shock_dollars=rev_shock_val,
+        io_df=io_df,
+        baskets_cfg=baskets_cfg,
+        region=region_val,
+        target_year=target_year_val,
+        base_debt=base_debt_val,
+        base_interest=base_interest_val,
+        base_nci=base_nci_val,
+        shock_interest_pct=shock_interest_pct_val,
+        tariff_params=tariff_params_val,
+        mc_basis=mc_basis_val,
+        capex_gestation_ramp=list(ramp_schedule_val) if ramp_schedule_val is not None else None,
+        primary_join_code=primary_join_code_val,
+        farm_type=farm_type_val,
+        input_price_shocks=input_price_shocks_val,
+        intermediate_cost_shock_dollars=intermediate_cost_shock_val,
+        labor_cost_shock_dollars=labor_cost_shock_val,
+        shock_ir_bps=shock_ir_bps_val,
+        amortization_rate=amortization_rate_val,
+        icor_value=icor_val,
+        brm_subsidy_dollars=brm_subsidy_val,
+        auto_brm_stabilization=auto_brm_val,
+        brm_regime=brm_regime_val,
+    )
+
+
+@st.cache_data(show_spinner=False)
+def cached_word_briefing_bytes(
+    scenario_sig: Tuple[Any, ...],
+    _df_dyn: pd.DataFrame,
+    _df_base_dyn: pd.DataFrame,
+    _mc_summary: Dict[int, Dict[str, float]],
+    _abp_res: Dict[str, Any],
+    _avg_farm_res: Dict[str, Any],
+    _ent_sim: Dict[str, Any],
+) -> Optional[bytes]:
+    (
+        reg, f_type, p_name, base_out, base_gdp,
+        comb_out_m, comb_gdp_m, comb_jobs, t_pct, t_comm,
+        _ent_key, _ent_ac, _inc_rent, _pt_cust,
+    ) = scenario_sig[:14]
+    buf = generate_simulator_word_briefing(
+        region=reg,
+        farm_type=f_type,
+        preset_name=p_name,
+        df_dyn=_df_dyn,
+        mc_summary=_mc_summary,
+        abp_res=_abp_res,
+        avg_farm_res=_avg_farm_res,
+        ent_sim=_ent_sim,
+        base_output_dollars=base_out,
+        base_gdp_dollars=base_gdp,
+        combined_yr1_output_impact_m=comb_out_m,
+        combined_yr1_gdp_impact_m=comb_gdp_m,
+        combined_yr1_jobs_impact=comb_jobs,
+        tariff_pct=t_pct,
+        tariff_commodity=t_comm,
+        df_base_dyn=_df_base_dyn,
+    )
+    return buf.getvalue() if buf is not None else None
+
+
+@st.cache_data(show_spinner=False)
+def cached_pptx_deck_bytes(
+    scenario_sig: Tuple[Any, ...],
+    _df_dyn: pd.DataFrame,
+    _df_base_dyn: pd.DataFrame,
+    _abp_res: Dict[str, Any],
+    _avg_farm_res: Dict[str, Any],
+    _ent_sim: Dict[str, Any],
+) -> Optional[bytes]:
+    (
+        reg, f_type, p_name, base_out, base_gdp,
+        comb_out_m, comb_gdp_m, comb_jobs, _t_pct, _t_comm,
+        _ent_key, _ent_ac, _inc_rent, _pt_cust,
+    ) = scenario_sig[:14]
+    buf = generate_simulator_pptx_deck(
+        region=reg,
+        farm_type=f_type,
+        preset_name=p_name,
+        df_dyn=_df_dyn,
+        abp_res=_abp_res,
+        avg_farm_res=_avg_farm_res,
+        ent_sim=_ent_sim,
+        base_output_dollars=base_out,
+        base_gdp_dollars=base_gdp,
+        combined_yr1_output_impact_m=comb_out_m,
+        combined_yr1_gdp_impact_m=comb_gdp_m,
+        combined_yr1_jobs_impact=comb_jobs,
+        df_base_dyn=_df_base_dyn,
+    )
+    return buf.getvalue() if buf is not None else None
 
 
 @st.cache_data(show_spinner=False)
@@ -519,11 +657,11 @@ with st.sidebar:
         )
         p_col1, p_col2 = st.columns(2)
         with p_col1:
-            pin_current_btn = st.button("📌 Pin Current as A", use_container_width=True)
+            pin_current_btn = st.button("📌 Pin Current as A", width="stretch")
         with p_col2:
             clear_pin_btn = st.button(
                 "🗑️ Clear Pin",
-                use_container_width=True,
+                width="stretch",
                 disabled=(st.session_state.get("pinned_scenario_a") is None),
             )
         if clear_pin_btn:
@@ -541,7 +679,7 @@ io_years = sorted(io_df["YEAR"].dropna().unique())
 target_io_year = int(io_years[-1])
 
 # 1. Provincial FCR Weights & Baselines (32-10-0045-01)
-fcr_info = compute_provincial_fcr_weights(df_fcr, region=region)
+fcr_info = cached_fcr_weights(region)
 fcr_year = fcr_info["year"]
 
 # 2. Expense Profile & Baseline Revenues/Expenses (32-10-0136-01)
@@ -615,9 +753,9 @@ primary_join_code = (
 if primary_join_code in ("111A", "1114A", "112A"):
     sub_mults = load_subsector_io_multipliers(io_df, region=region, year=target_io_year)
     fallback_mults = {
-        "111A": {"output": 1.5430, "gdp": 0.7200, "jobs": 4.9690, "wages": 0.2390},
-        "1114A": {"output": 1.4915, "gdp": 0.7380, "jobs": 9.9510, "wages": 0.4485},
-        "112A": {"output": 2.1120, "gdp": 0.7120, "jobs": 7.0350, "wages": 0.3170},
+        "111A": {"output": 1.6420, "gdp": 0.7780, "jobs": 5.1380, "wages": 0.2530},
+        "1114A": {"output": 1.5530, "gdp": 0.7700, "jobs": 10.0850, "wages": 0.4600},
+        "112A": {"output": 2.2720, "gdp": 0.7760, "jobs": 7.3550, "wages": 0.3380},
     }
     m_unit = sub_mults.get(primary_join_code, fallback_mults[primary_join_code])
     gdp_coeff = float(m_unit["gdp"])
@@ -628,7 +766,7 @@ else:
     unit_basket = compute_basket_impact(io_df, baskets_cfg, region, target_io_year, "primary_agriculture", 1.0)
     gdp_coeff = float(unit_basket.get("gdp", 0.52))
     out_mult = float(unit_basket.get("output", 1.65))
-    jobs_mult_per_m = float(unit_basket.get("jobs", 6.2)) * 1e6
+    jobs_mult_per_m = float(unit_basket.get("jobs", 6.2e-6)) * 1e6
     wages_coeff = float(unit_basket.get("wages", 0.25))
 
 # Dynamic provincial GDP margin calibration (Fixes Gap #8A — replaces hardcoded 0.30)
@@ -801,40 +939,38 @@ df_dyn = run_dynamic_projection(
     brm_regime=brm_regime,
 )
 
-mc_summary = run_monte_carlo_projections(
-    n_sims=n_sims,
-    horizon=horizon,
-    base_output=base_output_dollars,
-    base_gdp=base_gdp_dollars,
-    base_cap_stock=base_cap_stock,
-    base_capex=base_capex,
-    shock_capex_pct=shock_capex_pct,
-    tfp_growth_pct=tfp_growth_pct,
-    depreciation_rate_pct=depreciation_rate_pct,
-    cost_shock_dollars=total_cost_shock_dollars,
-    rev_shock_dollars=direct_mkt_shock_dollars,
-    io_df=io_df,
-    baskets_cfg=baskets_cfg,
-    region=region,
-    target_year=target_io_year,
-    base_debt=base_debt,
-    base_interest=base_interest,
-    base_nci=base_nci,
-    shock_interest_pct=shock_interest_rel_pct,
-    tariff_params=active_tariff_params if tariff_pct > 0 else None,
-    mc_basis=mc_basis,
-    capex_gestation_ramp=ramp_schedule,
-    primary_join_code=primary_join_code,
-    farm_type=farm_type,
-    input_price_shocks=input_price_shocks_dict,
-    intermediate_cost_shock_dollars=intermediate_cost_shock_dollars,
-    labor_cost_shock_dollars=labor_cost_shock_dollars,
-    shock_ir_bps=shock_ir_bps,
-    amortization_rate=amortization_rate,
-    icor_value=icor_cfg["icor"],
-    brm_subsidy_dollars=brm_offset_dollars,
-    auto_brm_stabilization=auto_brm_toggle,
-    brm_regime=brm_regime,
+mc_summary = cached_monte_carlo(
+    n_sims_val=n_sims,
+    horizon_val=horizon,
+    base_output_val=base_output_dollars,
+    base_gdp_val=base_gdp_dollars,
+    base_cap_stock_val=base_cap_stock,
+    base_capex_val=base_capex,
+    shock_capex_pct_val=shock_capex_pct,
+    tfp_growth_pct_val=tfp_growth_pct,
+    depreciation_rate_pct_val=depreciation_rate_pct,
+    cost_shock_val=total_cost_shock_dollars,
+    rev_shock_val=direct_mkt_shock_dollars,
+    region_val=region,
+    target_year_val=target_io_year,
+    base_debt_val=base_debt,
+    base_interest_val=base_interest,
+    base_nci_val=base_nci,
+    shock_interest_pct_val=shock_interest_rel_pct,
+    tariff_params_val=active_tariff_params if tariff_pct > 0 else None,
+    mc_basis_val=mc_basis,
+    ramp_schedule_val=tuple(ramp_schedule) if ramp_schedule is not None else None,
+    primary_join_code_val=primary_join_code,
+    farm_type_val=farm_type,
+    input_price_shocks_val=input_price_shocks_dict,
+    intermediate_cost_shock_val=intermediate_cost_shock_dollars,
+    labor_cost_shock_val=labor_cost_shock_dollars,
+    shock_ir_bps_val=shock_ir_bps,
+    amortization_rate_val=amortization_rate,
+    icor_val=icor_cfg["icor"],
+    brm_subsidy_val=brm_offset_dollars,
+    auto_brm_val=auto_brm_toggle,
+    brm_regime_val=brm_regime,
 )
 
 # 9. Isolate Pure Shock Impact (Shocked Trajectory minus Unshocked Baseline Trajectory)
@@ -1272,6 +1408,7 @@ yr1_auto_brm_ent_m = float(yr1_row.get("Auto_BRM_Entitlement_M", 0.0))
 yr1_auto_brm_lag_m = max(0.0, yr1_auto_brm_ent_m - yr1_auto_brm_cash_m)
 yr1_eff_beta_brm_pct = float(yr1_row.get("Effective_Beta_BRM_Pct", 0.0))
 yr1_brm_tier = str(yr1_row.get("BRM_Severity_Tier", "none"))
+total_yr1_brm_cash_m = brm_subsidy_m + yr1_auto_brm_cash_m
 
 if auto_brm_toggle:
     regime_short = "80% SCAP + RMP" if brm_regime == "statutory_scap_80pct" else "90% Enhanced + RMP"
@@ -1443,7 +1580,7 @@ if comparison_summary is not None:
         cmp_c1, cmp_c2 = st.columns([1.45, 1.0])
         with cmp_c1:
             df_cmp_tbl = pd.DataFrame(comparison_summary["comparison_rows"])
-            st.dataframe(df_cmp_tbl, use_container_width=True, hide_index=True)
+            st.dataframe(df_cmp_tbl, width="stretch", hide_index=True)
             st.download_button(
                 "📥 Download Side-by-Side Scenario Comparison (CSV)",
                 data=df_cmp_tbl.to_csv(index=False).encode("utf-8"),
@@ -1473,7 +1610,7 @@ if comparison_summary is not None:
                 height=340,
             )
             fig_cmp.update_layout(margin=dict(t=35, b=10, l=10, r=10), legend_orientation="h", legend_y=-0.25)
-            st.plotly_chart(fig_cmp, use_container_width=True)
+            st.plotly_chart(fig_cmp, width="stretch")
             st.caption(
                 f"📌 **Net Policy / Scenario Delta (B − A):** Year 1 Farm NCI Margin **`{d_ba['yr1_nci_m']:+,.1f} $M`** | "
                 f"Year 1 DSCR **`{d_ba['yr1_dscr']:+.2f}x`** | Year 1 Distress Prob **`{d_ba['yr1_distress_pct']:+.2f} pp`** | "
@@ -1510,7 +1647,7 @@ if factor_attribution_rows:
                     "Yr 1 Value-Added GDP ($M)": "{:+,.2f} $M",
                     "Employment Impact (FTEs)": "{:+,.0f}",
                 }),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
             st.caption(
@@ -1533,7 +1670,7 @@ if factor_attribution_rows:
                 height=max(240, 85 * len(df_attr_chart) + 95),
             )
             fig_attr.update_layout(margin=dict(t=35, b=10, l=10, r=10), legend_orientation="h", legend_y=-0.28)
-            st.plotly_chart(fig_attr, use_container_width=True)
+            st.plotly_chart(fig_attr, width="stretch")
 else:
     st.info(
         f"**No Active Shock Sliders (`0.0 $M` Shock Impact):** All input cost, interest rate, tariff, CapEx, and BRM sliders are currently at `0`. "
@@ -1597,13 +1734,13 @@ with tab1:
                 height=430,
             )
             fig_cost.update_layout(yaxis={"categoryorder": "total ascending"}, legend_orientation="h", legend_y=-0.22)
-            st.plotly_chart(fig_cost, use_container_width=True)
+            st.plotly_chart(fig_cost, width="stretch")
         else:
             st.info("Adjust any Input Cost or Debt Interest Rate slider in the sidebar to inspect sub-sector cost exposure.")
             if not df_cost_bd.empty:
                 st.dataframe(
                     df_cost_bd[["Commodity", "Total Revenue ($M)", "Total Expenses ($M)"]],
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
 
@@ -1625,7 +1762,7 @@ with tab1:
             height=300,
         )
         fig_disp.update_layout(margin=dict(t=40, b=10, l=10, r=10))
-        st.plotly_chart(fig_disp, use_container_width=True)
+        st.plotly_chart(fig_disp, width="stretch")
 
         st.markdown(
             f"""
@@ -1655,7 +1792,7 @@ with tab1:
                 "ABP Net Wages ($M)": "{:+,.2f}",
                 "Upstream Farm GDP Netted Out ($M)": "{:+,.2f}",
             }),
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
@@ -1676,10 +1813,9 @@ with tab1:
             {"Order of Government": "Municipal Governments (Property & Local Fees)", "Fiscal Revenue Impact ($M)": fiscal_imp["municipal"] / 1e6},
             {"Order of Government": "Total Consolidated Tax Impact", "Fiscal Revenue Impact ($M)": fiscal_imp["total"] / 1e6},
         ])
-        st.dataframe(fisc_df.style.format({"Fiscal Revenue Impact ($M)": "{:+,.2f} $M"}), use_container_width=True, hide_index=True)
-        total_yr1_brm_cash_m = brm_subsidy_m + yr1_auto_brm_cash_m
+        st.dataframe(fisc_df.style.format({"Fiscal Revenue Impact ($M)": "{:+,.2f} $M"}), width="stretch", hide_index=True)
         if total_yr1_brm_cash_m > 0:
-            sub_imp = compute_simulator_subsidy_summary(total_yr1_brm_cash_m * 1e6, region=region, year=target_io_year)
+            sub_imp = compute_simulator_subsidy_summary(total_yr1_brm_cash_m * 1e6, region=region, year=target_io_year, io_df=io_df)
             st.success(
                 f"**Active BRM Cash Stabilization (`+${total_yr1_brm_cash_m:,.1f}M` Yr 1 Cash Inflow = "
                 f"`+${yr1_auto_brm_cash_m:,.1f}M` Statutory + `+${brm_subsidy_m:,.1f}M` Ad-Hoc; "
@@ -1695,7 +1831,7 @@ with tab1:
     with f_col2:
         st.markdown("#### 🍎 Sister Engine 5: OAG Horticulture Multi-Stage Value-Chain (HLRF)")
         try:
-            hlrf_rows = compute_simulator_hlrf_summary(region=region, year=target_io_year)
+            hlrf_rows = cached_hlrf_summary(region_name=region, target_yr=target_io_year)
             if hlrf_rows:
                 st.dataframe(
                     pd.DataFrame(hlrf_rows).style.format({
@@ -1704,7 +1840,7 @@ with tab1:
                         "GDP Impact ($M)": "${:,.2f}M",
                         "Jobs (FTEs)": "{:,.0f}",
                     }),
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
         except Exception as exc:
@@ -1749,7 +1885,7 @@ with tab2:
             ))
         fig_out.add_trace(go.Scatter(x=years_x, y=out_det, mode="lines+markers", line=dict(color="#1e3a5f", width=3), name="Active Scenario B ($B)"))
         fig_out.update_layout(title=f"Gross Output Trajectory: Shocked vs. Baseline Trend ({region}, $B)", yaxis_title="Gross Output ($B)", height=390, legend_orientation="h", legend_y=-0.2)
-        st.plotly_chart(fig_out, use_container_width=True)
+        st.plotly_chart(fig_out, width="stretch")
 
     with c_fan2:
         # Direct Value-Added GDP Fan Chart
@@ -1771,7 +1907,7 @@ with tab2:
             ))
         fig_gdp.add_trace(go.Scatter(x=years_x, y=gdp_det, mode="lines+markers", line=dict(color="#16a34a", width=3), name="Active Scenario B GDP ($B)"))
         fig_gdp.update_layout(title=f"Direct Value-Added GDP: Shocked vs. Baseline Trend ({region}, $B)", yaxis_title="Value-Added GDP ($B)", height=390, legend_orientation="h", legend_y=-0.2)
-        st.plotly_chart(fig_gdp, use_container_width=True)
+        st.plotly_chart(fig_gdp, width="stretch")
 
     c_fan3, c_fan4 = st.columns(2)
     with c_fan3:
@@ -1790,7 +1926,7 @@ with tab2:
         fig_fin.add_trace(go.Scatter(x=years_x, y=df_dyn["LRF"], mode="lines+markers", line=dict(color="#7c3aed", width=3), name="Scenario B LRF"))
         fig_fin.add_hline(y=1.15, line_dash="dot", line_color="#dc2626", annotation_text="DSCR Covenant Threshold (1.15x)")
         fig_fin.update_layout(title="Solvency & Liquidity Trajectory: DSCR and LRF vs. Baseline", yaxis_title="Ratio / Index", height=360, legend_orientation="h", legend_y=-0.2)
-        st.plotly_chart(fig_fin, use_container_width=True)
+        st.plotly_chart(fig_fin, width="stretch")
 
     with c_fan4:
         # Capital Stock & Net Cash Income Trajectory
@@ -1815,7 +1951,7 @@ with tab2:
             legend_orientation="h",
             legend_y=-0.2,
         )
-        st.plotly_chart(fig_cap, use_container_width=True)
+        st.plotly_chart(fig_cap, width="stretch")
 
     c_fan5, c_fan6 = st.columns(2)
     with c_fan5:
@@ -1860,7 +1996,7 @@ with tab2:
             legend_orientation="h",
             legend_y=-0.22,
         )
-        st.plotly_chart(fig_roll, use_container_width=True)
+        st.plotly_chart(fig_roll, width="stretch")
 
     with c_fan6:
         # Endogenous CapEx Crowd-Out (%) & FFSC/FCC Solvency Logit Distress Probability (P_t, %)
@@ -1904,7 +2040,7 @@ with tab2:
             legend_orientation="h",
             legend_y=-0.22,
         )
-        st.plotly_chart(fig_dist, use_container_width=True)
+        st.plotly_chart(fig_dist, width="stretch")
 
     # Complete Year-by-Year Trajectory Table (Fixes Bug #5 — includes Capital Stock, DSCR, FSF, LRF, Debt Rollover, CapEx Crowd-Out)
     st.markdown("#### Complete Year-by-Year Dynamic Trajectory Table (with Isolated Shock vs. Baseline & P10–P90 Bands)")
@@ -1950,11 +2086,15 @@ with tab2:
             "Nerlove Convergence Ω(t)": f"{r['Nerlove_Omega_Pct']:.1f}%" if tariff_pct > 0 else "—",
         })
         table_rows.append(row_dict)
-    st.dataframe(pd.DataFrame(table_rows), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(table_rows), width="stretch", hide_index=True)
 
     # Sister Engine 7A: Short-Term Net Cash Income (NCI) & Realized Net Income (RNI) Bridge (`scripts/forecasting_engine.py`)
     total_yr1_farm_rev_shock_pct = (
-        ((-price_shock_info["effective_price_drop_pct"] + (yr1_tariff_pct_output_change * 100.0)) * active_tariff_params["weight"])
+        (
+            (-price_shock_info["effective_price_drop_pct"] * max(0.0, 1.0 + yr1_tariff_pct_output_change))
+            + (yr1_tariff_pct_output_change * 100.0)
+        )
+        * active_tariff_params["weight"]
         + direct_rev_shock_pct
     )
     with st.expander("🔗 Sister Engine 7A: Short-Term Net Cash Income (NCI) & AgriStability / Agricorp RMP Bridge (`scripts/forecasting_engine.py`)", expanded=False):
@@ -2062,7 +2202,7 @@ with tab3:
             "Year 1 Total FCR / Margin Loss ($M)": "${:+,.1f}M",
             "Year 10 Total FCR / Output Loss ($M)": "${:+,.1f}M",
         }),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
@@ -2073,7 +2213,7 @@ with tab3:
     with t_col1:
         st.markdown("#### 🔎 U.S. Section 338 Historical Statutory Tariff Lines (`trade_exposure.db`)")
         if trade_db["has_db"] and not trade_db["section338_df"].empty:
-            st.dataframe(trade_db["section338_df"], use_container_width=True, hide_index=True, height=320)
+            st.dataframe(trade_db["section338_df"], width="stretch", hide_index=True, height=320)
         else:
             st.info("Section 338 database table not found.")
 
@@ -2090,7 +2230,7 @@ with tab3:
                 ct_df = ct_df[ct_df["is_machinery_tools"] == True]
             elif ct_filter == "Agri-Food & Inputs":
                 ct_df = ct_df[ct_df["is_agri_food"] == True]
-            st.dataframe(ct_df, use_container_width=True, hide_index=True, height=280)
+            st.dataframe(ct_df, width="stretch", hide_index=True, height=280)
 
 
 # ==============================================================================
@@ -2115,7 +2255,8 @@ with tab4:
             shock_wages=shock_wages,
             shock_interest_rel_pct=shock_interest_rel_pct * yr1_theta,
             shock_revenue_pct=total_yr1_farm_rev_shock_pct,
-            brm_subsidy_dollars=brm_offset_dollars,
+            brm_subsidy_dollars=total_yr1_brm_cash_m * 1e6,
+            expense_profiles=expense_profiles,
         )
         if avg_farm_res:
             st.markdown(
@@ -2133,7 +2274,7 @@ with tab4:
                     "Shocked ($/farm)": "${:,.0f}",
                     "Delta ($/farm)": "${:+,.0f}",
                 }),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -2213,7 +2354,7 @@ with tab4:
                 "Delta ($/ac)": "${:+,.2f}",
                 "Whole Farm Delta ($)": "${:+,.0f}",
             }),
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
@@ -2232,7 +2373,7 @@ with tab4:
                 delta_color="inverse",
             )
     if not df_mkt.empty:
-        st.dataframe(df_mkt, use_container_width=True, hide_index=True)
+        st.dataframe(df_mkt, width="stretch", hide_index=True)
 
 
 # ==============================================================================
@@ -2266,71 +2407,88 @@ with tab5:
                 "LOP Spillover ψ_LOP": v["us_lop_spillover"],
                 "Citations": v["citations"],
             })
-        st.dataframe(pd.DataFrame(cal_rows), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(cal_rows), width="stretch", hide_index=True)
 
     with st.expander("2. Empirical 5x5 Stochastic Variance-Covariance Matrix & Provincial TFP Decomposition", expanded=False):
         mc_c1, mc_c2 = st.columns(2)
         labels_5 = ["1. FIPI (% YoY)", "2. TFP (% YoY)", "3. Interest Rate (Δ pp)", "4. Net Cash Income (% YoY)", "5. Farm CapEx (% YoY)"]
         with mc_c1:
             st.markdown(f"**Correlation Matrix $\\mathbf{{R}}$ ({mc_info['region']} — {mc_info['basis']}):**")
-            st.dataframe(pd.DataFrame(mc_info["corr"], index=labels_5, columns=labels_5).style.format("{:.2f}"), use_container_width=True)
+            st.dataframe(pd.DataFrame(mc_info["corr"], index=labels_5, columns=labels_5).style.format("{:.2f}"), width="stretch")
         with mc_c2:
             st.markdown(f"**Variance-Covariance Matrix $\\boldsymbol{{\\Sigma}}$ ({mc_info['region']} — {mc_info['basis']}):**")
-            st.dataframe(pd.DataFrame(mc_info["cov"], index=labels_5, columns=labels_5).style.format("{:.3f}"), use_container_width=True)
+            st.dataframe(pd.DataFrame(mc_info["cov"], index=labels_5, columns=labels_5).style.format("{:.3f}"), width="stretch")
 
         st.markdown("**Darku, Malla & Tran (2016) Provincial TFP Decomposition (Technical Change vs. Scale Effects):**")
-        st.dataframe(pd.DataFrame(PROVINCIAL_TFP_DECOMPOSITION), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(PROVINCIAL_TFP_DECOMPOSITION), width="stretch", hide_index=True)
 
     with st.expander("3. Sister Engine 7B: Export Executive Briefing (.docx), Board Deck (.pptx) & Audit CSV", expanded=True):
+        export_sig = (
+            region,
+            farm_type,
+            preset_name,
+            round(base_output_dollars, 2),
+            round(base_gdp_dollars, 2),
+            round(combined_yr1_output_impact_m, 4),
+            round(combined_yr1_gdp_impact_m, 4),
+            round(combined_yr1_jobs_impact, 2),
+            round(tariff_pct, 2),
+            tariff_commodity,
+            sel_ent_key,
+            round(sel_acres, 2),
+            inc_cash_rent,
+            pt_custom,
+            round(shock_fuel, 3),
+            round(shock_fert, 3),
+            round(shock_chem, 3),
+            round(shock_seed, 3),
+            round(shock_feed, 3),
+            round(shock_wages, 3),
+            round(shock_ir_bps, 2),
+            round(shock_capex_pct, 3),
+            round(tfp_growth_pct, 3),
+            round(direct_rev_shock_pct, 3),
+            round(total_yr1_brm_cash_m, 3),
+            auto_brm_toggle,
+            brm_regime,
+            horizon,
+            n_sims,
+        )
         dl_c1, dl_c2, dl_c3 = st.columns(3)
         with dl_c1:
-            word_buf = generate_simulator_word_briefing(
-                region=region,
-                farm_type=farm_type,
-                preset_name=preset_name,
-                df_dyn=df_dyn,
-                mc_summary=mc_summary,
-                abp_res=abp_res,
-                avg_farm_res=avg_farm_res,
-                ent_sim=ent_sim,
-                base_output_dollars=base_output_dollars,
-                base_gdp_dollars=base_gdp_dollars,
-                combined_yr1_output_impact_m=combined_yr1_output_impact_m,
-                combined_yr1_gdp_impact_m=combined_yr1_gdp_impact_m,
-                combined_yr1_jobs_impact=combined_yr1_jobs_impact,
-                tariff_pct=tariff_pct,
-                tariff_commodity=tariff_commodity,
+            word_bytes = cached_word_briefing_bytes(
+                scenario_sig=export_sig,
+                _df_dyn=df_dyn,
+                _df_base_dyn=df_base_dyn,
+                _mc_summary=mc_summary,
+                _abp_res=abp_res,
+                _avg_farm_res=avg_farm_res,
+                _ent_sim=ent_sim,
             )
-            if word_buf:
+            if word_bytes:
                 st.download_button(
                     label="📄 Download Executive Briefing (.docx)",
-                    data=word_buf,
+                    data=word_bytes,
                     file_name=f"OFA_Executive_Briefing_{region}_{farm_type[:15].strip()}.docx",
                     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    use_container_width=True,
+                    width="stretch",
                 )
         with dl_c2:
-            pptx_buf = generate_simulator_pptx_deck(
-                region=region,
-                farm_type=farm_type,
-                preset_name=preset_name,
-                df_dyn=df_dyn,
-                abp_res=abp_res,
-                avg_farm_res=avg_farm_res,
-                ent_sim=ent_sim,
-                base_output_dollars=base_output_dollars,
-                base_gdp_dollars=base_gdp_dollars,
-                combined_yr1_output_impact_m=combined_yr1_output_impact_m,
-                combined_yr1_gdp_impact_m=combined_yr1_gdp_impact_m,
-                combined_yr1_jobs_impact=combined_yr1_jobs_impact,
+            pptx_bytes = cached_pptx_deck_bytes(
+                scenario_sig=export_sig,
+                _df_dyn=df_dyn,
+                _df_base_dyn=df_base_dyn,
+                _abp_res=abp_res,
+                _avg_farm_res=avg_farm_res,
+                _ent_sim=ent_sim,
             )
-            if pptx_buf:
+            if pptx_bytes:
                 st.download_button(
                     label="📊 Download Board Slide Deck (.pptx)",
-                    data=pptx_buf,
+                    data=pptx_bytes,
                     file_name=f"OFA_Board_Deck_{region}_{farm_type[:15].strip()}.pptx",
                     mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                    use_container_width=True,
+                    width="stretch",
                 )
         with dl_c3:
             csv_bytes = df_dyn.to_csv(index=False).encode("utf-8")
@@ -2339,6 +2497,6 @@ with tab5:
                 data=csv_bytes,
                 file_name=f"OFA_Growth_Risk_Trajectory_{region}_{farm_type[:15].strip()}.csv",
                 mime="text/csv",
-                use_container_width=True,
+                width="stretch",
             )
 

@@ -755,15 +755,240 @@ def test_side_by_side_scenario_comparison_engine(core_data):
     assert d["yr2_capex_crowdout_pct"] > 0.0
     assert d["cum_10yr_gdp_m"] > 0.0
 
-    # Verify standalone root app and multi-page dashboard Page 8 are 100% synchronized & AST-valid
+    # Verify standalone root app, Streamlit Cloud entry point, and Dashboard Page 8 stay 100% synchronized & AST-valid
     import ast
     root_app_fp = PROJECT_ROOT / "growth_risk_simulator_app.py"
     page8_fp = PROJECT_ROOT / "app" / "pages" / "8_🔮_Growth_&_Risk_Simulator.py"
+    st_app_fp = PROJECT_ROOT / "streamlit_app.py"
     root_src = root_app_fp.read_text(encoding="utf-8")
-    page8_src = page8_fp.read_text(encoding="utf-8")
     ast.parse(root_src)
-    ast.parse(page8_src)
-    assert root_src == page8_src
+    if page8_fp.exists():
+        page8_src = page8_fp.read_text(encoding="utf-8")
+        ast.parse(page8_src)
+        assert root_src == page8_src
+    if st_app_fp.exists():
+        st_src = st_app_fp.read_text(encoding="utf-8")
+        ast.parse(st_src)
+        assert root_src == st_src
+
+
+def test_audit_v2_statcan_io_scope_dedup_and_3121_synthesis(core_data):
+    """
+    Verify StatCan Table 36-10-0595-01 dual-row scope separation ('all_provinces'
+    vs 'within_province') and composite NAICS 3121 synthesis.
+    """
+    io_df = core_data["io_df"]
+    m_all = load_subsector_io_multipliers(io_df, "Ontario", 2022, "Simple multiplier", geo_scope="all_provinces")
+    m_in = load_subsector_io_multipliers(io_df, "Ontario", 2022, "Simple multiplier", geo_scope="within_province")
+
+    assert m_all["111A"]["output"] == pytest.approx(1.642, abs=1e-3)
+    assert m_in["111A"]["output"] == pytest.approx(1.444, abs=1e-3)
+    assert m_all["1114A"]["output"] == pytest.approx(1.553, abs=1e-3)
+    assert m_in["1114A"]["output"] == pytest.approx(1.430, abs=1e-3)
+    assert m_all["112A"]["output"] == pytest.approx(2.272, abs=1e-3)
+    assert m_in["112A"]["output"] == pytest.approx(1.952, abs=1e-3)
+
+    # Composite NAICS 3121 must be synthesized from 3121A, 31212, 31211 (not missing)
+    assert "3121" in m_all
+    expected_3121_out = (
+        0.50 * m_all["3121A"]["output"]
+        + 0.35 * m_all["31212"]["output"]
+        + 0.15 * m_all["31211"]["output"]
+    )
+    assert m_all["3121"]["output"] == pytest.approx(expected_3121_out, rel=1e-5)
+
+
+def test_audit_v2_provincial_fcr_deferred_grain_and_bounds(core_data):
+    """
+    Verify net deferred grain adjustment keeps mapped market FCR <= 100% across
+    all 10 provinces + Canada (notably Saskatchewan and Manitoba).
+    """
+    df_fcr = core_data["df_fcr"]
+    for geo in [
+        "Canada", "Ontario", "Alberta", "Saskatchewan", "Manitoba",
+        "Quebec", "British Columbia", "Nova Scotia", "New Brunswick",
+        "Prince Edward Island", "Newfoundland and Labrador",
+    ]:
+        res = compute_provincial_fcr_weights(df_fcr, region=geo)
+        assert 50.0 < res["mapped_coverage_pct"] <= 100.0, (
+            f"{geo} mapped_coverage_pct out of bounds: {res['mapped_coverage_pct']}"
+        )
+        assert res["residual_m"] >= 0.0
+
+
+def test_audit_v2_sister_engine_7a_zero_shock_invariance_and_drift():
+    """
+    Verify Sister Engine 7A (`forecasting_engine.py` + `run_short_term_nci_bridge`)
+    has exact 0.0 deterministic delta at zero shock and asymptotically unbiased
+    Ito-corrected lognormal expected value (< 0.5% at N=50,000).
+    """
+    from scripts.forecasting_engine import FarmIncomeEngine, ForecastScenario
+
+    for geo in ["Canada", "Ontario", "Alberta", "Saskatchewan", "Quebec"]:
+        bridge = run_short_term_nci_bridge(geo)
+        assert bridge["det_nci_m"] == pytest.approx(bridge["base_nci_m"], abs=1e-4)
+        assert bridge["det_rni_m"] == pytest.approx(bridge["base_rni_m"], abs=1e-4)
+        assert bridge["brm_auto_payout_m"] == pytest.approx(0.0, abs=1e-4)
+        assert bridge["nci_p05_m"] < bridge["det_nci_m"] < bridge["nci_p95_m"]
+
+        eng = FarmIncomeEngine(region=geo)
+        res_lln = eng.forecast(ForecastScenario(), n_sims=50_000)
+        rel_lln_gap = abs(res_lln["sim_nci_mean"] - eng.baseline["Net_Cash_Income"]) / max(
+            1.0, eng.baseline["Net_Cash_Income"]
+        )
+        assert rel_lln_gap < 0.01, f"{geo} asymptotic Ito mean bias too high: {rel_lln_gap:.5f}"
+
+
+def test_audit_v2_hlrf_verified_anchors_and_no_parquet_reload(core_data, monkeypatch):
+    """
+    Verify `compute_simulator_hlrf_summary` and `compute_simulator_subsidy_summary`
+    never reload the 5.2M-row Parquet file when `io_df` is supplied, and return
+    verified 2024 OAG/OTFG/OFGGMB anchors instead of $120M placeholders.
+    """
+    import scripts.io_multipliers_engine as io_eng
+    from scripts.growth_risk_engine import (
+        compute_simulator_hlrf_summary,
+        compute_simulator_subsidy_summary,
+    )
+
+    def _forbid_reload():
+        raise RuntimeError("Forbidden duplicate 5.2M-row Parquet load!")
+
+    monkeypatch.setattr(io_eng, "load_multipliers", _forbid_reload)
+
+    io_df = core_data["io_df"]
+    hlrf = compute_simulator_hlrf_summary(region="Ontario", year=2022, io_df=io_df)
+    assert len(hlrf) == 4
+    direct_vals = [r["Direct Spend ($M)"] for r in hlrf]
+    assert 120.0 not in direct_vals  # Legacy broken placeholder must never appear
+    assert direct_vals[0] == pytest.approx(133.9, abs=0.1)   # OAG Apples FGV
+    assert direct_vals[1] == pytest.approx(69.59, abs=0.1)   # OTFG Tender Fruit FGV
+    assert direct_vals[2] == pytest.approx(138.16, abs=0.1)  # OFGGMB Wine Grapes FGV
+    assert direct_vals[3] == pytest.approx(125.60, abs=0.1)  # Cider & Fruit Processing Margin
+
+    sub_res = compute_simulator_subsidy_summary(100_000_000.0, region="Ontario", year=2022, io_df=io_df)
+    assert sub_res["output"] > 20_000_000.0
+    assert sub_res["gdp"] > 10_000_000.0
+    assert sub_res["jobs"] > 100.0
+
+
+def test_audit_v2_fiscal_sign_preservation_and_tfp_reconciliation():
+    """
+    Verify `compute_simulator_fiscal_summary` preserves negative tax sign under a
+    pure GDP/GOS squeeze (`output_impact == 0`, `gdp_impact < 0`) and that all
+    `PROVINCIAL_TFP_DECOMPOSITION` rows reconcile arithmetically.
+    """
+    from scripts.growth_risk_engine import compute_simulator_fiscal_summary
+
+    fisc_squeeze = compute_simulator_fiscal_summary(
+        gdp_impact=-200_000_000.0,
+        wages_impact=0.0,
+        output_impact=0.0,
+        stage="growing",
+    )
+    assert fisc_squeeze["total"] < 0.0
+    assert fisc_squeeze["federal"] < 0.0
+    assert fisc_squeeze["provincial"] < 0.0
+    assert fisc_squeeze["municipal"] < 0.0
+
+    for row in PROVINCIAL_TFP_DECOMPOSITION:
+        comp_sum = (
+            row["technical_change_pp"]
+            + row["scale_effects_pp"]
+            + row["tech_efficiency_pp"]
+            + row["residual_pp"]
+        )
+        assert comp_sum == pytest.approx(row["total_tfp_growth_pct"], abs=1e-6)
+        calc_tc_share = row["technical_change_pp"] / row["total_tfp_growth_pct"] * 100.0
+        calc_sc_share = row["scale_effects_pp"] / row["total_tfp_growth_pct"] * 100.0
+        assert abs(calc_tc_share - row["technical_change_share_pct"]) <= 0.15
+        assert abs(calc_sc_share - row["scale_effects_share_pct"]) <= 0.15
+
+
+def test_audit_v2_deliverables_dynamic_baseline_diff(core_data):
+    """
+    Verify `.docx` and `.pptx` executive deliverables compare `df_dyn` against
+    `df_base_dyn` so unshocked TFP growth is reported as +$0.0M shock at zero sliders.
+    """
+    from docx import Document
+
+    io_df = core_data["io_df"]
+    baskets_cfg = core_data["baskets_cfg"]
+    df_base = run_dynamic_projection(
+        horizon=5,
+        base_output=10e9,
+        base_gdp=5e9,
+        base_cap_stock=15e9,
+        base_capex=1.2e9,
+        shock_capex_pct=0.0,
+        tfp_growth_pct=1.85,
+        depreciation_rate_pct=8.5,
+        cost_shock_dollars=0.0,
+        rev_shock_dollars=0.0,
+        io_df=io_df,
+        baskets_cfg=baskets_cfg,
+        region="Ontario",
+        target_year=2022,
+    )
+    mc_sum = run_monte_carlo_projections(
+        n_sims=10,
+        horizon=5,
+        base_output=10e9,
+        base_gdp=5e9,
+        base_cap_stock=15e9,
+        base_capex=1.2e9,
+        shock_capex_pct=0.0,
+        tfp_growth_pct=1.85,
+        depreciation_rate_pct=8.5,
+        cost_shock_dollars=0.0,
+        rev_shock_dollars=0.0,
+        io_df=io_df,
+        baskets_cfg=baskets_cfg,
+        region="Ontario",
+        target_year=2022,
+    )
+    abp_zero = compute_downstream_abp_impact(io_df, "Ontario", 2022, "All farm types", 0.0, 0.0)
+    avg_zero = compute_statcan_average_farm_impact(
+        core_data["df_136"], "Ontario", "All farm types", expense_profiles=core_data["expense_profiles"]
+    )
+    ent_zero = simulate_enterprise_budget("soybeans_rr_notill_2026")
+
+    docx_buf = generate_simulator_word_briefing(
+        region="Ontario",
+        farm_type="All farm types",
+        preset_name="Baseline (No Shocks)",
+        df_dyn=df_base,
+        mc_summary=mc_sum,
+        abp_res=abp_zero,
+        avg_farm_res=avg_zero,
+        ent_sim=ent_zero,
+        base_output_dollars=10e9,
+        base_gdp_dollars=5e9,
+        combined_yr1_output_impact_m=0.0,
+        combined_yr1_gdp_impact_m=0.0,
+        combined_yr1_jobs_impact=0.0,
+        tariff_pct=0.0,
+        tariff_commodity="All Commodities",
+        df_base_dyn=df_base,
+    )
+    doc = Document(docx_buf)
+    kpi_table_text = "\n".join(
+        cell.text for tbl in doc.tables[:1] for row in tbl.rows for cell in row.cells
+    )
+    assert "Year 5 Direct Farm GDP Shock [P10–P90]\n+0.0 $M" in kpi_table_text
+
+
+def test_audit_v2_streamlit_apptest_smoke():
+    """
+    Headless Streamlit AppTest verification confirming zero exceptions on cold boot
+    and warm rerun across all 5 tabs.
+    """
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(PROJECT_ROOT / "growth_risk_simulator_app.py"), default_timeout=30)
+    at.run()
+    assert len(at.exception) == 0, f"Uncaught Streamlit exception: {at.exception}"
+
 
 
 

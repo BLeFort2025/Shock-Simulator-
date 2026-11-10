@@ -110,25 +110,29 @@ def compute_simulator_fiscal_summary(
     stage: str = "growing",
 ) -> Dict[str, float]:
     """
-    Wrap `compute_derived_fiscal_impact` from `scripts/io_multipliers_engine.py`
-    into Federal, Provincial, Municipal, and Total fiscal impact channels.
+    Compute sign-preserving Federal, Provincial, Municipal, and Total fiscal tax
+    revenue impacts using verified stage-specific statutory scalars from
+    `scripts/io_multipliers_engine.py` without `abs()` sign-conflation when
+    output, GDP, and wages shocks differ in sign or when output_impact == 0.
     """
-    sign = -1.0 if output_impact < 0 else 1.0
-    io_res = pd.DataFrame([
-        {"metric": "Output", "Type": "Direct", "impact": abs(output_impact)},
-        {"metric": "Gross domestic product (GDP) at basic prices", "Type": "Direct", "impact": abs(gdp_impact)},
-        {"metric": "Wages and salaries", "Type": "Direct", "impact": abs(wages_impact)},
-        {"metric": "Gross operating surplus", "Type": "Direct", "impact": max(0.0, abs(gdp_impact) - abs(wages_impact))},
-        {"metric": "Employers' social contributions", "Type": "Direct", "impact": abs(wages_impact) * 0.08},
-        {"metric": "Taxes on production", "Type": "Direct", "impact": abs(output_impact) * 0.012},
-        {"metric": "Taxes on products", "Type": "Direct", "impact": abs(output_impact) * 0.005},
-    ])
-    f_df = compute_derived_fiscal_impact(io_res, segment_type=stage)
-    if f_df is None or f_df.empty:
-        tot = output_impact * 0.08
-        return {"federal": tot * 0.50, "provincial": tot * 0.38, "municipal": tot * 0.12, "total": tot}
+    seg = str(stage).lower()
+    pit_map = {"growing": 0.0452, "packing": 0.1460, "processing": 0.1388}
+    cit_map = {"growing": 0.0403, "packing": 0.0780, "processing": 0.0780}
+    pay_map = {"growing": 0.0760, "packing": 0.0902, "processing": 0.0902}
 
-    tot_amt = float(f_df["amount"].sum()) * sign
+    pit_rate = pit_map.get(seg, 0.1231)
+    cit_rate = cit_map.get(seg, 0.0549)
+    pay_rate = pay_map.get(seg, 0.0800)
+    hst_rate = 0.0195
+
+    gos_impact = gdp_impact - wages_impact
+    pit_amt = wages_impact * pit_rate
+    cit_amt = gos_impact * cit_rate
+    payroll_amt = wages_impact * pay_rate
+    hst_amt = output_impact * hst_rate
+    io_prod_tax_amt = output_impact * 0.017
+
+    tot_amt = pit_amt + cit_amt + payroll_amt + hst_amt + io_prod_tax_amt
     return {
         "federal": tot_amt * 0.52,
         "provincial": tot_amt * 0.38,
@@ -141,17 +145,41 @@ def compute_simulator_subsidy_summary(
     subsidy_dollars: float,
     region: str = "Ontario",
     year: int = 2022,
+    io_df: Optional[pd.DataFrame] = None,
 ) -> Dict[str, float]:
     """
-    Wrap `compute_subsidy_impact` from `scripts/io_multipliers_engine.py` for BRM policy offsets.
+    Compute Induced-only economic impact (`Total multiplier - Simple multiplier`)
+    of government BRM transfer payments directly from `io_df` when provided
+    (preventing duplicate 5.2M-row Parquet reloads), falling back to
+    `compute_subsidy_impact` only if `io_df` is omitted.
     """
+    if abs(subsidy_dollars) < 1e-6:
+        return {"output": 0.0, "gdp": 0.0, "jobs": 0.0}
+
+    if io_df is not None and not io_df.empty:
+        tot_m = load_subsector_io_multipliers(io_df, region=region, year=year, multiplier_type="Total multiplier")
+        smp_m = load_subsector_io_multipliers(io_df, region=region, year=year, multiplier_type="Simple multiplier")
+        w_map = {"111A": 0.44, "112A": 0.44, "1114A": 0.12} if region == "Ontario" else {"111A": 0.52, "112A": 0.43, "1114A": 0.05}
+        avail = [k for k in w_map if k in tot_m and k in smp_m]
+        if avail:
+            tot_w = sum(w_map[k] for k in avail)
+            ind_out = sum(max(0.0, tot_m[k]["output"] - smp_m[k]["output"]) * w_map[k] for k in avail) / tot_w
+            ind_gdp = sum(max(0.0, tot_m[k]["gdp"] - smp_m[k]["gdp"]) * w_map[k] for k in avail) / tot_w
+            ind_jobs = sum(max(0.0, tot_m[k]["jobs"] - smp_m[k]["jobs"]) * w_map[k] for k in avail) / tot_w
+            if ind_gdp > 0:
+                return {
+                    "output": subsidy_dollars * ind_out,
+                    "gdp": subsidy_dollars * ind_gdp,
+                    "jobs": (subsidy_dollars / 1e6) * ind_jobs,
+                }
+
     b_df = industries_for_basket("primary_agriculture")
     codes = b_df["join_code"].unique().tolist() if not b_df.empty else ["111A", "1114A", "112A"]
     bd = compute_subsidy_impact(subsidy_dollars, region, year, codes)
     if bd is not None and not bd.empty:
-        gdp_m = bd["metric"].astype(str).str.contains("Gross domestic", case=False, na=False)
+        gdp_m = bd["metric"].astype(str).str.contains("Gross domestic product \\(GDP\\) at basic", case=False, na=False)
         jobs_m = bd["metric"].astype(str).str.contains("Jobs", case=False, na=False)
-        out_m = bd["metric"].astype(str).str.contains("Output", case=False, na=False)
+        out_m = bd["metric"] == "Output"
         gdp_val = float(bd.loc[gdp_m, "impact"].sum()) if gdp_m.any() else subsidy_dollars * 0.35
         jobs_val = float(bd.loc[jobs_m, "impact"].sum()) if jobs_m.any() else (subsidy_dollars / 1e6) * 3.1
         out_val = float(bd.loc[out_m, "impact"].sum()) if out_m.any() else subsidy_dollars * 0.65
@@ -162,49 +190,107 @@ def compute_simulator_subsidy_summary(
     return {"output": subsidy_dollars * 0.65, "gdp": subsidy_dollars * 0.35, "jobs": (subsidy_dollars / 1e6) * 3.1}
 
 
-def compute_simulator_hlrf_summary(region: str = "Ontario", year: int = 2022) -> List[Dict[str, Any]]:
+def compute_simulator_hlrf_summary(
+    region: str = "Ontario",
+    year: int = 2022,
+    io_df: Optional[pd.DataFrame] = None,
+) -> List[Dict[str, Any]]:
     """
-    Wrap `load_oag_config` and `compute_hlrf_breakdown` from `scripts/io_multipliers_engine.py`
-    to summarize the OAG Horticulture Multi-Stage Value Chain (Growing, Packing, Processing).
+    Summarize the verified 2024 OAG / OTFG / OFGGMB Horticulture Multi-Stage
+    Value Chain (`config/oag_apple_data.yml`) across Primary Growing, Cold-Chain
+    Packing/Wholesaling (net margin), and Fruit/Cider Processing (net margin)
+    directly from `io_df` without triggering a duplicate 5.2M-row Parquet load.
     """
     oag = load_oag_config()
     emp = oag.get("oag_employment_2024", {})
-    rows = []
-    stage_labels = [
-        ("apples", "1. Primary Orchard & Fruit Production (NAICS 1113)", ["111A"]),
-        ("tender_fruit", "2. Tender Fruit & Berry Production (NAICS 1113)", ["111A"]),
-        ("packing_wholesaling", "3. Fresh Packing, Storage & Wholesaling (NAICS 411)", ["411"]),
-        ("cider_processing", "4. Fruit, Juice & Hard Cider Processing (NAICS 3114/3121)", ["3114", "3121A"]),
-    ]
-    for key, label, codes in stage_labels:
-        cfg = emp.get(key, {})
-        if not isinstance(cfg, dict):
-            continue
-        spend_m = float(cfg.get("fcr_M", cfg.get("direct_output_M", 120.0)))
-        ftes = float(cfg.get("ftes", 1200.0))
-        wages_m = float(cfg.get("wages_M", spend_m * 0.32))
-        bd = compute_hlrf_breakdown(
-            shock=spend_m * 1e6,
-            geo=region,
-            year=year,
-            join_codes=codes,
-            hlrf_overrides={"Jobs": ftes, "Wages and salaries": wages_m * 1e6},
-        )
-        if bd is not None and not bd.empty:
-            out_v = float(bd.loc[bd["metric"] == "Output", "impact"].sum()) / 1e6
-            gdp_v = float(bd.loc[bd["metric"] == "Gross domestic product (GDP) at basic prices", "impact"].sum()) / 1e6
-            jobs_v = float(bd.loc[bd["metric"] == "Jobs", "impact"].sum())
-        else:
-            out_v = spend_m * 1.75
-            gdp_v = spend_m * 0.88
-            jobs_v = ftes * 1.45
-        rows.append({
-            "Value-Chain Stage": label,
-            "Direct Spend ($M)": spend_m,
-            "Output Impact ($M)": out_v,
-            "GDP Impact ($M)": gdp_v,
-            "Jobs (FTEs)": jobs_v,
-        })
+    fgv = oag.get("fgv_2024", {})
+    vc_apple = oag.get("value_chain_2024", {})
+    vc_tf = oag.get("tender_fruit_value_chain_2024", {})
+    vc_grape = oag.get("grape_value_chain_2024", {})
+
+    tot_m = load_subsector_io_multipliers(io_df, region=region, year=year, multiplier_type="Total multiplier") if (io_df is not None and not io_df.empty) else {}
+    smp_m = load_subsector_io_multipliers(io_df, region=region, year=year, multiplier_type="Simple multiplier") if (io_df is not None and not io_df.empty) else {}
+    dir_m = load_subsector_io_multipliers(io_df, region=region, year=year, multiplier_type="Direct multiplier") if (io_df is not None and not io_df.empty) else {}
+
+    rows: List[Dict[str, Any]] = []
+
+    # Stage 1: Ontario Commercial Apples (Primary Orchard Production, NAICS 1113)
+    ap_cfg = emp.get("apples", {})
+    ap_fgv_m = float(fgv.get("apples_M", 133.9))
+    ap_ftes = float(ap_cfg.get("ftes", 1651.0))
+    ap_dir_gdp = float(ap_cfg.get("direct_gdp_basic_M", 90.40))
+    ap_ind_scale = float(ap_cfg.get("indirect_scale_factor", 0.588633))
+    ap_inc_scale = float(ap_cfg.get("induced_scale_factor", 3.475))
+    if "111A" in tot_m and "111A" in smp_m and "111A" in dir_m:
+        m_d, m_s, m_t = dir_m["111A"], smp_m["111A"], tot_m["111A"]
+        ap_out = ap_fgv_m * (1.0 + max(0.0, m_s["output"] - m_d["output"]) * ap_ind_scale + max(0.0, m_t["output"] - m_s["output"]) * ap_inc_scale)
+        ap_gdp = ap_dir_gdp + ap_fgv_m * (max(0.0, m_s["gdp"] - m_d["gdp"]) * ap_ind_scale + max(0.0, m_t["gdp"] - m_s["gdp"]) * ap_inc_scale)
+        ap_jobs = ap_ftes + ap_fgv_m * (max(0.0, m_s["jobs"] - m_d["jobs"]) * ap_ind_scale + max(0.0, m_t["jobs"] - m_s["jobs"]) * ap_inc_scale)
+    else:
+        ap_out, ap_gdp, ap_jobs = ap_fgv_m * 1.69, ap_dir_gdp + ap_fgv_m * 0.42, ap_ftes + 545.6
+    rows.append({
+        "Value-Chain Stage": "1. Apple Orchard Production (NAICS 1113)",
+        "Direct Spend ($M)": round(ap_fgv_m, 2),
+        "Output Impact ($M)": round(ap_out, 2),
+        "GDP Impact ($M)": round(ap_gdp, 2),
+        "Jobs (FTEs)": round(ap_jobs, 1),
+    })
+
+    # Stage 2: Tender Fruit & Fresh Table Grapes (Primary Production, NAICS 1113)
+    tf_cfg = emp.get("tender_fruit", {})
+    gr_cfg = emp.get("grapes", {})
+    tf_fgv_m = float(fgv.get("tender_fruit_M", 65.84)) + float(fgv.get("grapes_table_M", 3.75))
+    tf_out = (
+        tf_fgv_m
+        + float(tf_cfg.get("indirect_output_M", 31.12)) + float(tf_cfg.get("induced_output_M", 13.79))
+        + float(gr_cfg.get("indirect_output_M", 1.87)) + float(gr_cfg.get("induced_output_M", 0.72))
+    )
+    tf_gdp = (
+        float(tf_cfg.get("direct_gdp_basic_M", 39.65)) + float(tf_cfg.get("indirect_gdp_basic_M", 15.05)) + float(tf_cfg.get("induced_gdp_basic_M", 8.00))
+        + float(gr_cfg.get("direct_gdp_basic_M", 2.19)) + float(gr_cfg.get("indirect_gdp_basic_M", 0.92)) + float(gr_cfg.get("induced_gdp_basic_M", 0.38))
+    )
+    tf_jobs = (
+        float(tf_cfg.get("ftes", 717.0)) + float(tf_cfg.get("indirect_jobs", 124.8)) + float(tf_cfg.get("induced_jobs", 72.0))
+        + float(gr_cfg.get("ftes", 28.1)) + float(gr_cfg.get("indirect_jobs", 7.6)) + float(gr_cfg.get("induced_jobs", 3.4))
+    )
+    rows.append({
+        "Value-Chain Stage": "2. Tender Fruit & Fresh Table Grapes (NAICS 1113)",
+        "Direct Spend ($M)": round(tf_fgv_m, 2),
+        "Output Impact ($M)": round(tf_out, 2),
+        "GDP Impact ($M)": round(tf_gdp, 2),
+        "Jobs (FTEs)": round(tf_jobs, 1),
+    })
+
+    # Stage 3: Cold-Chain Packing, Storage & Wholesaling (Net Margin, NAICS 411)
+    pack_margin_m = (
+        float(vc_apple.get("packing_margin_M", 110.8))
+        + float(vc_tf.get("packing_margin_M", 25.26))
+        + float(vc_grape.get("distribution_margin_M", 2.10))
+    )
+    m_411 = tot_m.get("411", {"output": 1.79, "gdp": 0.94, "jobs": 8.45})
+    rows.append({
+        "Value-Chain Stage": "3. Fresh Packing, Cold Storage & Wholesaling (NAICS 411 Net Margin)",
+        "Direct Spend ($M)": round(pack_margin_m, 2),
+        "Output Impact ($M)": round(pack_margin_m * m_411["output"], 2),
+        "GDP Impact ($M)": round(pack_margin_m * m_411["gdp"], 2),
+        "Jobs (FTEs)": round(pack_margin_m * m_411["jobs"], 1),
+    })
+
+    # Stage 4: Fruit, Juice, Sauce & Hard Cider Processing (Net Margin, NAICS 3114/3121A)
+    proc_margin_m = float(vc_apple.get("processing_margin_M", 125.6))
+    m_3114 = tot_m.get("3114", {"output": 2.060, "gdp": 0.707, "jobs": 5.777})
+    m_3121a = tot_m.get("3121A", m_3114)
+    blended_out = 0.80 * m_3114["output"] + 0.20 * m_3121a["output"]
+    blended_gdp = 0.80 * m_3114["gdp"] + 0.20 * m_3121a["gdp"]
+    blended_jobs = 0.80 * m_3114["jobs"] + 0.20 * m_3121a["jobs"]
+    rows.append({
+        "Value-Chain Stage": "4. Fruit, Juice & Hard Cider Processing (NAICS 3114/3121 Net Margin)",
+        "Direct Spend ($M)": round(proc_margin_m, 2),
+        "Output Impact ($M)": round(proc_margin_m * blended_out, 2),
+        "GDP Impact ($M)": round(proc_margin_m * blended_gdp, 2),
+        "Jobs (FTEs)": round(proc_margin_m * blended_jobs, 1),
+    })
+
     return rows
 
 
@@ -352,7 +438,10 @@ def compute_provincial_fcr_weights(
     if direct_pmt_m <= 0:
         direct_pmt_m = _fcr_val_m("Direct payments [11A]")
     cannabis_m = _fcr_val_m("Cannabis seeds, vegetative plants and flowering tops (including leaves) [213AA]")
-    deferred_grain_m = _fcr_val_m("Liquidation of deferred grain receipts")
+    deferred_grain_net_m = (
+        _fcr_val_m("Deferred grain receipts")
+        + _fcr_val_m("Liquidation of deferred grain receipts")
+    )
     total_crops_m = _fcr_val_m("Total crop receipts")
     if total_crops_m <= 0:
         total_crops_m = _fcr_val_m("Total crops [11B]")
@@ -360,9 +449,9 @@ def compute_provincial_fcr_weights(
     if total_livestock_m <= 0:
         total_livestock_m = _fcr_val_m("Total livestock and livestock products [11C]")
     market_fcr_m = (
-        (total_fcr_m - direct_pmt_m - cannabis_m - deferred_grain_m)
+        (total_fcr_m - direct_pmt_m - cannabis_m - deferred_grain_net_m)
         if total_fcr_m > (direct_pmt_m + cannabis_m)
-        else (total_crops_m - cannabis_m + total_livestock_m)
+        else (total_crops_m - cannabis_m - deferred_grain_net_m + total_livestock_m)
     )
     if market_fcr_m <= 0:
         market_fcr_m = 1.0
@@ -577,7 +666,7 @@ def compute_cost_commodity_breakdown(
 #    upstream farm double-counting.
 # ==============================================================================
 
-_SUBSECTOR_IO_CACHE: Dict[Tuple[int, str, int, str], Dict[str, Dict[str, float]]] = {}
+_SUBSECTOR_IO_CACHE: Dict[Tuple[int, str, int, str, str], Dict[str, Dict[str, float]]] = {}
 
 
 def load_subsector_io_multipliers(
@@ -585,25 +674,50 @@ def load_subsector_io_multipliers(
     region: str = "Ontario",
     year: int = 2022,
     multiplier_type: str = "Simple multiplier",
+    geo_scope: str = "all_provinces",
 ) -> Dict[str, Dict[str, float]]:
     """
     Extract official Statistics Canada provincial IO multipliers for Primary Ag
-    (`111A`, `1114A`, `112A`) and all 12 Food & Beverage Manufacturing sub-sectors
-    (`3111`-`3119`, `31211`, `31212`, `3121A`).
+    (`111A`, `1114A`, `112A`), Wholesaling (`411`), and all Food & Beverage
+    Manufacturing sub-sectors (`3111`-`3119`, `31211`, `31212`, `3121A`, plus
+    synthesized composite `3121`).
+
+    Properly resolves StatCan Table 36-10-0595-01's dual-row provincial format
+    (Row 1 = 'all_provinces', Row 2 = 'within_province') without averaging the
+    two geographical scopes together.
     """
-    cache_key = (id(io_df), str(region), int(year), str(multiplier_type))
+    cache_key = (id(io_df), str(region), int(year), str(multiplier_type), str(geo_scope))
     if cache_key in _SUBSECTOR_IO_CACHE:
         return _SUBSECTOR_IO_CACHE[cache_key]
 
+    eff_region = region
     sub = io_df[(io_df["GEO"] == region) & (io_df["multiplier_type"] == multiplier_type)]
     if sub.empty:
         sub = io_df[(io_df["GEO"] == "Canada") & (io_df["multiplier_type"] == multiplier_type)]
+        eff_region = "Canada"
 
     avail_yrs = sorted(sub["YEAR"].dropna().unique())
     yr = year if year in avail_yrs else (int(avail_yrs[-1]) if avail_yrs else 2022)
     sub = sub[sub["YEAR"] == yr]
+    if "value" in sub.columns:
+        sub = sub.dropna(subset=["value"])
 
-    piv = sub.pivot_table(index="join_code", columns="variable", values="value", observed=False)
+    # StatCan 36-10-0595-01 stores two rows per provincial metric:
+    #   first occurrence  -> 'all_provinces' (inter-provincial supply chain included)
+    #   second occurrence -> 'within_province' (strictly intra-provincial retention)
+    if eff_region != "Canada" and not sub.empty:
+        target_scope = "within_province" if str(geo_scope).lower() == "within_province" else "all_provinces"
+        if "geo_scope" in sub.columns:
+            scoped = sub[sub["geo_scope"] == target_scope]
+            if not scoped.empty:
+                sub = scoped
+        else:
+            keep_rule = "last" if target_scope == "within_province" else "first"
+            dedup_cols = [c for c in ["YEAR", "GEO", "join_code", "variable", "multiplier_type"] if c in sub.columns]
+            if len(dedup_cols) >= 3:
+                sub = sub.drop_duplicates(subset=dedup_cols, keep=keep_rule)
+
+    piv = sub.pivot_table(index="join_code", columns="variable", values="value", aggfunc="first", observed=False)
     out: Dict[str, Dict[str, float]] = {}
     for jcode in piv.index:
         row = piv.loc[jcode]
@@ -613,6 +727,19 @@ def load_subsector_io_multipliers(
             "jobs": float(row.get("Jobs", 5.0)),
             "wages": float(row.get("Labour income", 0.25)),
         }
+
+    # Synthesize composite NAICS 3121 (Beverage Manufacturing) from published StatCan
+    # leaf codes (3121A Wineries/Distilleries, 31212 Breweries, 31211 Soft Drinks)
+    if "3121" not in out:
+        bev_weights = [("3121A", 0.50), ("31212", 0.35), ("31211", 0.15)]
+        avail_bev = [(c, w) for c, w in bev_weights if c in out]
+        if avail_bev:
+            tw = sum(w for _, w in avail_bev)
+            out["3121"] = {
+                metric: sum(out[c][metric] * w for c, w in avail_bev) / tw
+                for metric in ("output", "gdp", "jobs", "wages")
+            }
+
     _SUBSECTOR_IO_CACHE[cache_key] = out
     return out
 
@@ -638,9 +765,9 @@ def compute_downstream_abp_impact(
     reg_key = "Ontario" if region == "Ontario" else "Canada"
     mults = load_subsector_io_multipliers(io_df, region=region, year=year, multiplier_type=multiplier_type)
 
-    m_111A = mults.get("111A", {"output": 1.543, "gdp": 0.720, "jobs": 4.969, "wages": 0.239})
-    m_1114A = mults.get("1114A", {"output": 1.492, "gdp": 0.738, "jobs": 9.951, "wages": 0.449})
-    m_112A = mults.get("112A", {"output": 2.112, "gdp": 0.712, "jobs": 7.035, "wages": 0.317})
+    m_111A = mults.get("111A", {"output": 1.642, "gdp": 0.778, "jobs": 5.138, "wages": 0.253})
+    m_1114A = mults.get("1114A", {"output": 1.553, "gdp": 0.770, "jobs": 10.085, "wages": 0.460})
+    m_112A = mults.get("112A", {"output": 2.272, "gdp": 0.776, "jobs": 7.355, "wages": 0.338})
 
     disp_cfg = PRIMARY_AG_DISPOSITION_MATRIX.get(
         farm_type, PRIMARY_AG_DISPOSITION_MATRIX["All farm types"]
@@ -875,9 +1002,9 @@ def run_dynamic_projection(
     elif primary_join_code in ("111A", "1114A", "112A"):
         mults = load_subsector_io_multipliers(io_df, region=region, year=target_year)
         fallback_mults = {
-            "111A": {"output": 1.5430, "gdp": 0.7200, "jobs": 4.9690, "wages": 0.2390},
-            "1114A": {"output": 1.4915, "gdp": 0.7380, "jobs": 9.9510, "wages": 0.4485},
-            "112A": {"output": 2.1120, "gdp": 0.7120, "jobs": 7.0350, "wages": 0.3170},
+            "111A": {"output": 1.6420, "gdp": 0.7780, "jobs": 5.1380, "wages": 0.2530},
+            "1114A": {"output": 1.5530, "gdp": 0.7700, "jobs": 10.0850, "wages": 0.4600},
+            "112A": {"output": 2.2720, "gdp": 0.7760, "jobs": 7.3550, "wages": 0.3380},
         }
         m_sub = mults.get(primary_join_code, fallback_mults[primary_join_code])
         unit_out_mult = float(m_sub["output"])
@@ -1349,9 +1476,9 @@ def run_monte_carlo_projections(
     if primary_join_code in ("111A", "1114A", "112A"):
         mults = load_subsector_io_multipliers(io_df, region=region, year=target_year)
         fallback_mults = {
-            "111A": {"output": 1.5430, "gdp": 0.7200, "jobs": 4.9690, "wages": 0.2390},
-            "1114A": {"output": 1.4915, "gdp": 0.7380, "jobs": 9.9510, "wages": 0.4485},
-            "112A": {"output": 2.1120, "gdp": 0.7120, "jobs": 7.0350, "wages": 0.3170},
+            "111A": {"output": 1.6420, "gdp": 0.7780, "jobs": 5.1380, "wages": 0.2530},
+            "1114A": {"output": 1.5530, "gdp": 0.7700, "jobs": 10.0850, "wages": 0.4600},
+            "112A": {"output": 2.2720, "gdp": 0.7760, "jobs": 7.3550, "wages": 0.3380},
         }
         m_sub = mults.get(primary_join_code, fallback_mults[primary_join_code])
         pre_io_coeffs = (float(m_sub["output"]), float(m_sub["gdp"]))
@@ -1504,6 +1631,7 @@ def compute_statcan_average_farm_impact(
     shock_interest_rel_pct: float = 0.0,
     shock_revenue_pct: float = 0.0,
     brm_subsidy_dollars: float = 0.0,
+    expense_profiles: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Query official Statistics Canada Table 32-10-0136-01 ('Average per farm' and
@@ -1592,10 +1720,13 @@ def compute_statcan_average_farm_impact(
     # apply the exact NAICS sub-sector expense profile from `data/derived/farm_expense_profiles.json`
     if used_subsector_profile:
         try:
-            prof_path = PROJECT_ROOT / "data" / "derived" / "farm_expense_profiles.json"
-            if prof_path.exists():
-                with open(prof_path, "r", encoding="utf-8") as f:
-                    exp_profs = json.load(f)
+            exp_profs = expense_profiles
+            if exp_profs is None:
+                prof_path = PROJECT_ROOT / "data" / "derived" / "farm_expense_profiles.json"
+                if prof_path.exists():
+                    with open(prof_path, "r", encoding="utf-8") as f:
+                        exp_profs = json.load(f)
+            if exp_profs:
                 sub_p = None
                 for ft_cand in alt_types:
                     sub_p = exp_profs.get(f"{region}|{ft_cand}") or exp_profs.get(f"Canada|{ft_cand}")
@@ -1617,8 +1748,8 @@ def compute_statcan_average_farm_impact(
                         base_seed = base_exp * float(r.get("seed", 0.0))
                     else:
                         crop_inp = base_exp * float(r.get("crop_inputs", 0.0))
-                        base_chem = 0.45 * crop_inp
-                        base_seed = 0.55 * crop_inp
+                        base_chem = 0.50 * crop_inp
+                        base_seed = 0.50 * crop_inp
                     base_feed = base_exp * float(r.get("feed", 0.0))
                     base_fuel = base_exp * float(r.get("fuel", r.get("energy", 0.0)))
                     base_wages = base_exp * float(r.get("wages", r.get("labor", 0.0)))
@@ -1841,8 +1972,9 @@ def run_short_term_nci_bridge(
             "det_livestock_m": float(res["det_livestock"]) / 1e6,
             "det_program_m": float(res["det_program"]) / 1e6,
             "det_expenses_m": float(res["det_expenses"]) / 1e6,
-            "det_nci_m": float(res["sim_nci_median"]) / 1e6,
-            "det_rni_m": float(res["sim_rni_median"]) / 1e6,
+            "det_nci_m": float(res.get("det_nci", res["sim_nci_median"])) / 1e6,
+            "det_rni_m": float(res.get("det_rni", res["sim_rni_median"])) / 1e6,
+            "nci_mean_m": float(res.get("sim_nci_mean", res["det_nci"])) / 1e6,
             "nci_p05_m": float(res["p05"]) / 1e6,
             "nci_p50_m": float(res["p50"]) / 1e6,
             "nci_p95_m": float(res["p95"]) / 1e6,
@@ -1872,11 +2004,13 @@ def generate_simulator_word_briefing(
     combined_yr1_jobs_impact: float,
     tariff_pct: float,
     tariff_commodity: str,
+    df_base_dyn: Optional[pd.DataFrame] = None,
 ) -> Optional[Any]:
     """
     Generate a consulting-grade Word (.docx) Executive Briefing BytesIO buffer
     summarizing the macro, ABP value-chain, 10-year Monte Carlo trajectory, and
-    farm-gate results.
+    farm-gate results. Compares multi-year impacts against `df_base_dyn` (when
+    supplied) so unshocked TFP drift is never misreported as a policy/shock impact.
     """
     import io
     from datetime import datetime
@@ -1912,7 +2046,7 @@ def generate_simulator_word_briefing(
     doc.add_heading("1. Executive Summary & Headline KPIs", level=1)
     doc.add_paragraph(
         f"This briefing quantifies the macroeconomic, downstream value-chain (Analysis-by-Parts), "
-        f"10-year stock-flow trajectory, and farm-gate profitability impacts for {farm_type} in {region}. "
+        f"multi-year stock-flow trajectory, and farm-gate profitability impacts for {farm_type} in {region}. "
         f"Nursery, Floriculture, Sod, and Greenhouse operators (NAICS 1114 / HS Ch. 06 & 07) are modeled "
         f"strictly within Primary Agriculture."
     )
@@ -1922,15 +2056,27 @@ def generate_simulator_word_briefing(
     horizon = len(df_dyn)
     mc_N = mc_summary[horizon]
 
+    if df_base_dyn is not None and len(df_base_dyn) >= horizon:
+        base_gdp_yrN = float(df_base_dyn.iloc[horizon - 1]["Direct_GDP"])
+    else:
+        base_gdp_yrN = base_gdp_dollars
+
+    yrN_gdp_shock_m = (float(yrN["Direct_GDP"]) - base_gdp_yrN) / 1e6
+    mc_p10_shock_m = (float(mc_N["Direct_GDP_p10"]) - base_gdp_yrN) / 1e6
+    mc_p90_shock_m = (float(mc_N["Direct_GDP_p90"]) - base_gdp_yrN) / 1e6
+
     kpis = [
         ("Jurisdiction & Primary Ag Sector", f"{region} — {farm_type}"),
         ("Baseline Sector Output / Value-Added GDP", f"${base_output_dollars/1e9:,.2f}B / ${base_gdp_dollars/1e9:,.2f}B"),
         ("Year 1 Total Output Impact (Incl. ABP)", f"{combined_yr1_output_impact_m:+,.1f} $M"),
         ("Year 1 Value-Added GDP Impact (Incl. ABP)", f"{combined_yr1_gdp_impact_m:+,.1f} $M"),
         ("Year 1 Supply Chain Employment Impact", f"{combined_yr1_jobs_impact:+,.0f} FTEs"),
-        (f"Year {horizon} Direct Farm GDP Impact [P10–P90]", f"{yrN['Total_GDP_Impact']/1e6:+,.1f} $M [{(mc_N['Direct_GDP_p10']-base_gdp_dollars)/1e6:+,.0f}M to {(mc_N['Direct_GDP_p90']-base_gdp_dollars)/1e6:+,.0f}M]"),
+        (
+            f"Year {horizon} Direct Farm GDP Shock [P10–P90]",
+            f"{yrN_gdp_shock_m:+,.1f} $M [{mc_p10_shock_m:+,.0f}M to {mc_p90_shock_m:+,.0f}M]",
+        ),
         (f"Debt Service Coverage Ratio (Yr 1 → Yr {horizon})", f"{yr1['DSCR']:.2f}x → {yrN['DSCR']:.2f}x"),
-        ("U.S. Section 338 Tariff Setting", f"{tariff_pct:.0f}% on {tariff_commodity}"),
+        ("U.S. Section 338 Tariff Setting", f"{tariff_pct:g}% on {tariff_commodity}"),
     ]
     tbl_kpi = doc.add_table(rows=len(kpis), cols=2)
     tbl_kpi.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -1948,16 +2094,20 @@ def generate_simulator_word_briefing(
     )
 
     doc.add_heading(f"3. {horizon}-Year Dynamic Stock-Flow Trajectory", level=1)
-    headers = ["Year", "Output ($B)", "GDP ($B)", "GDP Impact ($M)", "Cap Stock ($B)", "DSCR", "FSF (%)", "LRF"]
+    headers = ["Year", "Output ($B)", "GDP ($B)", "GDP Shock ($M)", "Cap Stock ($B)", "DSCR", "FSF (%)", "LRF"]
     tbl_dyn = doc.add_table(rows=len(df_dyn) + 1, cols=len(headers))
     for j, h in enumerate(headers):
         tbl_dyn.rows[0].cells[j].text = h
     for i, (_, r) in enumerate(df_dyn.iterrows()):
+        if df_base_dyn is not None and i < len(df_base_dyn):
+            gdp_shock_row_m = (float(r["Direct_GDP"]) - float(df_base_dyn.iloc[i]["Direct_GDP"])) / 1e6
+        else:
+            gdp_shock_row_m = float(r["Total_GDP_Impact"]) / 1e6
         vals = [
             str(r["Year"]),
             f"${r['Gross_Output']/1e9:.2f}B",
             f"${r['Direct_GDP']/1e9:.2f}B",
-            f"{r['Total_GDP_Impact']/1e6:+,.1f}M",
+            f"{gdp_shock_row_m:+,.1f}M",
             f"${r['Capital_Stock']/1e9:.2f}B",
             f"{r['DSCR']:.2f}x",
             f"{r['FSF']:.2f}%",
@@ -2002,10 +2152,12 @@ def generate_simulator_pptx_deck(
     combined_yr1_output_impact_m: float,
     combined_yr1_gdp_impact_m: float,
     combined_yr1_jobs_impact: float,
+    df_base_dyn: Optional[pd.DataFrame] = None,
 ) -> Optional[Any]:
     """
     Generate a board-ready PowerPoint (.pptx) presentation deck BytesIO buffer
-    with native editable charts and summary tables.
+    with native editable charts and summary tables. Plots dynamic unshocked
+    `df_base_dyn['Direct_GDP']` when supplied so baseline TFP growth is visible.
     """
     import io
     try:
@@ -2057,11 +2209,14 @@ def generate_simulator_pptx_deck(
     # Slide 3: Native Editable Chart of Multi-Year GDP Trajectory
     s3 = prs.slides.add_slide(prs.slide_layouts[5])
     if s3.shapes.title:
-        s3.shapes.title.text = f"{len(df_dyn)}-Year Direct Value-Added GDP & Capital Stock Trajectory ($B)"
+        s3.shapes.title.text = f"{len(df_dyn)}-Year Direct Value-Added GDP Trajectory ($B)"
     c_data = CategoryChartData()
     c_data.categories = df_dyn["Year"].tolist()
-    c_data.add_series("Direct Farm GDP ($B)", [round(v / 1e9, 3) for v in df_dyn["Direct_GDP"]])
-    c_data.add_series("Baseline GDP ($B)", [round(base_gdp_dollars / 1e9, 3)] * len(df_dyn))
+    c_data.add_series("Shocked Direct Farm GDP ($B)", [round(v / 1e9, 3) for v in df_dyn["Direct_GDP"]])
+    if df_base_dyn is not None and len(df_base_dyn) == len(df_dyn):
+        c_data.add_series("Unshocked Baseline GDP ($B)", [round(v / 1e9, 3) for v in df_base_dyn["Direct_GDP"]])
+    else:
+        c_data.add_series("Baseline GDP ($B)", [round(base_gdp_dollars / 1e9, 3)] * len(df_dyn))
     s3.shapes.add_chart(
         XL_CHART_TYPE.LINE_MARKERS,
         Inches(0.8),

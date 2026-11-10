@@ -119,7 +119,7 @@ class FarmIncomeEngine:
         }
         
         mask = (df_rev[geo_col] == self.region) & (df_rev[item_col].isin(target_items.keys()))
-        df_pivot = df_rev[mask].pivot_table(index=date_col, columns=item_col, values=val_col, aggfunc='sum').reset_index().rename(columns={date_col: 'Year'})
+        df_pivot = df_rev[mask].pivot_table(index=date_col, columns=item_col, values=val_col, aggfunc='sum', observed=False).reset_index().rename(columns={date_col: 'Year'})
         df_pivot = df_pivot.rename(columns={k:v for k,v in target_items.items()})
         for col in target_items.values():
             if col not in df_pivot.columns: df_pivot[col] = 0.0
@@ -148,7 +148,7 @@ class FarmIncomeEngine:
                 'Interest, after rebates': 'Interest_Expenses',
             }
             mask_exp = (df_exp[geo_col_ex] == self.region) & (df_exp[item_col_ex].isin(expense_map.keys()))
-            df_exp_pivot = df_exp[mask_exp].pivot_table(index=date_col_ex, columns=item_col_ex, values=val_col_ex, aggfunc='sum').reset_index().rename(columns={date_col_ex: 'Year'})
+            df_exp_pivot = df_exp[mask_exp].pivot_table(index=date_col_ex, columns=item_col_ex, values=val_col_ex, aggfunc='sum', observed=False).reset_index().rename(columns={date_col_ex: 'Year'})
             df_exp_pivot = df_exp_pivot.rename(columns=expense_map)
             
             if 'Fuel_Machinery' not in df_exp_pivot.columns: df_exp_pivot['Fuel_Machinery'] = 0
@@ -170,7 +170,7 @@ class FarmIncomeEngine:
             df_subset = df_nfi[(df_nfi[geo_col_nfi] == self.region) & (df_nfi[item_col_nfi].isin(targets_nfi.keys()))].copy()
 
             if not df_subset.empty:
-                df_nfi_pivot = df_subset.pivot_table(index=date_col_nfi, columns=item_col_nfi, values=val_col_nfi, aggfunc='first').reset_index().rename(columns={date_col_nfi: 'Year'})
+                df_nfi_pivot = df_subset.pivot_table(index=date_col_nfi, columns=item_col_nfi, values=val_col_nfi, aggfunc='first', observed=False).reset_index().rename(columns={date_col_nfi: 'Year'})
                 df_nfi_pivot = df_nfi_pivot.rename(columns=targets_nfi)
                 df_pivot = pd.merge(df_pivot, df_nfi_pivot, on='Year', how='left')
 
@@ -319,16 +319,16 @@ class FarmIncomeEngine:
         det_vic = self.baseline['Crop_Receipts'] * excess_yield_pct * 0.50
         det_tni = det_rni + det_vic
         
-        # --- 2. Probabilistic Logic ---
-        np.random.seed(42)
+        # --- 2. Probabilistic Logic (Mean-Preserving Lognormal Multiplicative Shocks) ---
+        rng = np.random.default_rng(42)
         vol_crops, vol_live = 0.18, 0.08
         if self.market_signals is not None and not self.market_signals.empty:
-            if 'ZC=F' in self.market_signals.index: vol_crops = self.market_signals.loc['ZC=F', 'volatility']
-            if 'LE=F' in self.market_signals.index: vol_live = self.market_signals.loc['LE=F', 'volatility']
+            if 'ZC=F' in self.market_signals.index: vol_crops = float(self.market_signals.loc['ZC=F', 'volatility'])
+            if 'LE=F' in self.market_signals.index: vol_live = float(self.market_signals.loc['LE=F', 'volatility'])
         
-        sim_crops = adj_crops * np.random.lognormal(0, vol_crops, n_sims)
-        sim_live = adj_livestock * np.random.lognormal(0, vol_live, n_sims)
-        sim_exp = adj_total_expenses * np.random.normal(1, 0.05, n_sims)
+        sim_crops = adj_crops * rng.lognormal(-0.5 * (vol_crops ** 2), vol_crops, n_sims)
+        sim_live = adj_livestock * rng.lognormal(-0.5 * (vol_live ** 2), vol_live, n_sims)
+        sim_exp = adj_total_expenses * rng.normal(1.0, 0.05, n_sims)
         
         sim_nci = (sim_crops + sim_live + adj_program) - sim_exp
         sim_rni = sim_nci - adj_depreciation 
@@ -343,7 +343,11 @@ class FarmIncomeEngine:
             "det_program": adj_program,
             "det_expenses": adj_total_expenses,
             "det_depreciation": adj_depreciation,
-            "det_vic": det_vic, 
+            "det_vic": det_vic,
+            "det_nci": det_nci,
+            "det_rni": det_rni,
+            "det_tni": det_tni,
+            "sim_nci_mean": float(np.mean(sim_nci)),
             "sim_nci_median": np.percentile(sim_nci, 50),
             "sim_rni_median": np.percentile(sim_rni, 50),
             "sim_tni_median": np.percentile(sim_tni, 50),

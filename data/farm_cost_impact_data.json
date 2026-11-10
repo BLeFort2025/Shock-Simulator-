@@ -1,0 +1,375 @@
+{
+  "metadata": {
+    "title": "Ontario Farm Energy & Fertilizer Cost Impact Dataset",
+    "purpose": "Year-over-year comparison: April 2025 vs April 2026",
+    "generated_at": "2026-04-07T10:28:06.616258",
+    "generated_by": "input_cost_data_collector.py",
+    "version": "1.0"
+  },
+  "baseline_2025": {
+    "source": "University of Guelph Ridgetown Campus - Ontario Farm Input Monitoring Project",
+    "survey_date": "2025-04-16",
+    "currency": "CAD",
+    "confidence": "HIGH",
+    "url": "https://www.ridgetownc.com",
+    "fertilizer": {
+      "urea_46_0_0": {
+        "price_per_tonne": 819.0,
+        "range_low": 715.0,
+        "range_high": 890.0,
+        "unit": "CAD/metric tonne",
+        "n_content_pct": 46.0
+      },
+      "map_11_52_0": {
+        "price_per_tonne": 1164.0,
+        "range_low": 1090.0,
+        "range_high": 1205.0,
+        "unit": "CAD/metric tonne",
+        "n_content_pct": 11.0,
+        "p2o5_content_pct": 52.0
+      },
+      "potash_mop_0_0_60": {
+        "price_per_tonne": 678.0,
+        "range_low": 615.0,
+        "range_high": 740.0,
+        "unit": "CAD/metric tonne",
+        "k2o_content_pct": 60.0
+      },
+      "uan_28_0_0": {
+        "price_per_tonne": 560.0,
+        "range_low": 425.0,
+        "range_high": 645.0,
+        "unit": "CAD/metric tonne",
+        "n_content_pct": 28.0
+      }
+    },
+    "fuel": {
+      "diesel_coloured_farm": {
+        "price_per_litre": 1.16,
+        "unit": "CAD/litre",
+        "notes": "Coloured (dyed) diesel, exempt from ON provincial fuel tax"
+      },
+      "gasoline_regular": {
+        "price_per_litre": 1.12,
+        "unit": "CAD/litre"
+      }
+    },
+    "us_comparison": {
+      "source": "Ridgetown cross-border survey (MI, OH, IN)",
+      "cad_usd_rate": 0.7199,
+      "urea_us_avg_per_ton": 607.0,
+      "map_us_avg_per_ton": 833.0,
+      "potash_us_avg_per_ton": 470.0,
+      "notes": "Ontario was 6-12% CHEAPER than US on currency-adjusted basis in April 2025"
+    }
+  },
+  "dtn_march_2026": {
+    "source": "DTN Retail Fertilizer Index",
+    "report_date": "2026-04-01",
+    "period": "4th week of March 2026",
+    "currency": "USD",
+    "unit": "USD/US short ton (2000 lbs)",
+    "confidence": "MEDIUM - US national average, not Ontario-specific",
+    "url": "https://www.dtnpf.com",
+    "prices": {
+      "urea": {
+        "price_per_us_ton": 826.0,
+        "mom_change_pct": 35.0
+      },
+      "dap": {
+        "price_per_us_ton": 857.0
+      },
+      "potash": {
+        "price_per_us_ton": 489.0
+      }
+    }
+  },
+  "world_bank": {
+    "source": "World Bank Commodity Markets - Pink Sheet",
+    "release_date": "2026-04-03",
+    "confidence": "HIGH",
+    "url": "https://www.worldbank.org/en/research/commodity-markets",
+    "march_2026_changes": {
+      "fertilizer_index_mom_pct": 26.2,
+      "urea_mom_pct": 53.7,
+      "energy_index_mom_pct": 41.6,
+      "natural_gas_europe_mom_pct": 59.4,
+      "crude_oil_mom_pct_range": "40.5-45.8"
+    },
+    "raw_data": {
+      "monthly_prices": {},
+      "monthly_indices": {}
+    }
+  },
+  "exchange_rate": {
+    "cad_usd": 0.7185,
+    "usd_cad": 1.3919,
+    "date": "2026-04-07",
+    "source": "XE/MTFX"
+  },
+  "fuel_april_2026": {
+    "diesel_retail_clear": {
+      "price_per_litre": 2.37,
+      "source": "CTV News, early April 2026",
+      "confidence": "MEDIUM",
+      "notes": "Retail pump price, not farm bulk"
+    },
+    "diesel_farm_bulk_estimated": {
+      "conservative": 2.22,
+      "mid": 2.18,
+      "optimistic": 2.04,
+      "working_estimate": 2.15,
+      "unit": "CAD/litre",
+      "methodology": "Applied validated 14% / 19c/L discount from Ridgetown 2025 comparison",
+      "tax_components": {
+        "provincial_fuel_tax_exemption": 0.09,
+        "bulk_delivery_margin_savings": 0.055,
+        "hst_on_tax_diff": 0.012,
+        "volume_pricing": 0.035
+      }
+    },
+    "brent_crude": {
+      "price_per_barrel_usd": 110.0,
+      "date": "2026-04-07",
+      "source": "Trading Economics / multiple outlets"
+    },
+    "propane": {
+      "lock_in_2025": {
+        "low": 0.69,
+        "high": 0.75,
+        "unit": "CAD/litre"
+      },
+      "spot_2026_estimated": {
+        "low": 0.95,
+        "high": 1.15,
+        "unit": "CAD/litre",
+        "notes": "Estimated based on crude oil price correlation"
+      }
+    }
+  },
+  "estimated_april_2026_ontario": {
+    "methodology": "Three-way triangulation: World Bank index escalation (primary), DTN cross-reference, news validation",
+    "confidence": "MEDIUM - derived estimates, not direct Ontario survey data",
+    "fertilizer": {
+      "urea_46_0_0": {
+        "method_a_wb_escalation": 1259.0,
+        "method_b_dtn_crossref": 1191.0,
+        "method_c_news_midpoint": 1188.0,
+        "working_range": {
+          "low": 1188.0,
+          "high": 1259.0
+        },
+        "midpoint": 1213.0,
+        "unit": "CAD/metric tonne",
+        "yoy_change_pct_range": {
+          "low": 45.1,
+          "high": 53.7
+        }
+      },
+      "map_11_52_0": {
+        "method_a_wb_escalation": 1469.0,
+        "method_b_dtn_crossref": 1236.0,
+        "working_range": {
+          "low": 1236.0,
+          "high": 1469.0
+        },
+        "midpoint": 1352.0,
+        "unit": "CAD/metric tonne"
+      },
+      "potash_mop_0_0_60": {
+        "method_a_wb_escalation": 856.0,
+        "method_b_dtn_crossref": 705.0,
+        "working_range": {
+          "low": 705.0,
+          "high": 856.0
+        },
+        "midpoint": 780.0,
+        "unit": "CAD/metric tonne"
+      }
+    },
+    "fuel": {
+      "diesel_coloured_farm": {
+        "working_range": {
+          "low": 2.04,
+          "high": 2.22
+        },
+        "midpoint": 2.15,
+        "unit": "CAD/litre",
+        "yoy_change_pct": 85.3
+      }
+    }
+  },
+  "application_rates": {
+    "source": "OMAFRA Publications 60, 811, 839 + Ontario Corn N Calculator",
+    "grain_crops": {
+      "corn": {
+        "n_rate_lbs_per_acre": {
+          "typical": 150,
+          "range": [
+            130,
+            170
+          ]
+        },
+        "p2o5_rate_lbs_per_acre": {
+          "typical": 50,
+          "range": [
+            30,
+            70
+          ]
+        },
+        "k2o_rate_lbs_per_acre": {
+          "typical": 80,
+          "range": [
+            50,
+            100
+          ]
+        },
+        "diesel_litres_per_acre": {
+          "no_till": 22.9,
+          "min_till": 25,
+          "conventional": 40,
+          "source": "OMAFRA 2025 Field Crop Budget (no-till = 22.90 L/ac)"
+        },
+        "yield_bu_per_acre": {
+          "typical": 180,
+          "range": [
+            160,
+            200
+          ]
+        },
+        "drying_moisture_removal_points": 10,
+        "propane_gal_per_point_per_bu": 0.02,
+        "notes": "N rate highly variable — use Ontario Corn N Calculator for precision"
+      },
+      "soybeans": {
+        "n_rate_lbs_per_acre": 0,
+        "p2o5_rate_lbs_per_acre": {
+          "typical": 30,
+          "range": [
+            20,
+            50
+          ]
+        },
+        "k2o_rate_lbs_per_acre": {
+          "typical": 60,
+          "range": [
+            40,
+            80
+          ]
+        },
+        "diesel_litres_per_acre": {
+          "min_till": 20,
+          "conventional": 35
+        },
+        "notes": "Soybeans fix their own nitrogen"
+      },
+      "winter_wheat": {
+        "n_rate_lbs_per_acre": {
+          "typical": 70,
+          "range": [
+            50,
+            90
+          ]
+        },
+        "p2o5_rate_lbs_per_acre": {
+          "typical": 40,
+          "range": [
+            25,
+            55
+          ]
+        },
+        "k2o_rate_lbs_per_acre": {
+          "typical": 50,
+          "range": [
+            30,
+            70
+          ]
+        },
+        "diesel_litres_per_acre": {
+          "min_till": 20,
+          "conventional": 35
+        }
+      }
+    },
+    "vegetable_crops": {
+      "source": "OMAFRA Publication 839 - Guide to Vegetable Production",
+      "sweet_corn": {
+        "n_rate_lbs_per_acre": {
+          "typical": 135,
+          "range": [
+            120,
+            150
+          ]
+        }
+      },
+      "potatoes": {
+        "n_rate_lbs_per_acre": {
+          "typical": 175,
+          "range": [
+            150,
+            200
+          ]
+        }
+      },
+      "tomatoes_processing": {
+        "n_rate_lbs_per_acre": {
+          "typical": 120,
+          "range": [
+            100,
+            140
+          ]
+        }
+      },
+      "peppers": {
+        "n_rate_lbs_per_acre": {
+          "typical": 115,
+          "range": [
+            100,
+            130
+          ]
+        }
+      },
+      "leafy_greens": {
+        "n_rate_lbs_per_acre": {
+          "typical": 100,
+          "range": [
+            80,
+            120
+          ]
+        }
+      }
+    },
+    "conversions": {
+      "lbs_per_tonne": 2204.6,
+      "lbs_per_us_ton": 2000,
+      "litres_per_us_gallon": 3.785,
+      "urea_n_content": 0.46,
+      "map_n_content": 0.11,
+      "map_p2o5_content": 0.52,
+      "dap_n_content": 0.18,
+      "dap_p2o5_content": 0.46,
+      "mop_k2o_content": 0.6,
+      "uan28_n_content": 0.28
+    }
+  },
+  "geopolitical_context": {
+    "conflict": "Iran War / Strait of Hormuz Disruption",
+    "onset": "Late February 2026",
+    "key_facts": [
+      "Strait of Hormuz traffic declined >90%",
+      "~20-30% of global oil transits Hormuz",
+      "~1/3 of global fertilizer trade transits Hormuz",
+      "Brent crude surged to $110+/barrel",
+      "Natural gas (Europe TTF) up ~59% in March 2026",
+      "Urea prices globally up 40-54% since conflict",
+      "Ontario farmers entered spring with low on-farm fertilizer inventory",
+      "Federal carbon tax zeroed April 1, 2025 (no longer a factor)",
+      "Canada 35% tariff on Russian fertilizer still in effect"
+    ],
+    "ontario_vulnerability": {
+      "potash": "LOW - Canada is world's largest producer (Saskatchewan)",
+      "nitrogen_urea": "HIGH - Eastern Canada (incl. Ontario) is net importer of finished N products",
+      "phosphate_dap_map": "HIGH - Canada has very limited domestic phosphate production"
+    }
+  }
+}
