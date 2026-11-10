@@ -69,6 +69,7 @@ def load_multipliers() -> pd.DataFrame:
         'industry_name': 'category',
         'multiplier_type': 'category',
         'variable': 'category',
+        'geo_scope': 'category',
         'value': 'float32'
     }
 
@@ -87,25 +88,26 @@ def load_multipliers() -> pd.DataFrame:
     if not df.empty and "value" in df.columns:
         df = df.dropna(subset=["value"])
 
-    # --- GEO SCOPE TAGGING (replaces aggressive deduplication) ---
-    # StatCan Table 36-10-0595 publishes TWO rows per provincial metric:
-    #   Row 1 = "All provinces" (includes inter-provincial supply chain)
-    #   Row 2 = "Within province" (impacts retained within the province)
-    # We tag each row so the UI can let the user choose.
-    if not df.empty:
-        subset_cols = ['YEAR', 'GEO', 'join_code', 'variable', 'multiplier_type']
+    # --- EXPLICIT 5TH-DIMENSION CODR GEO SCOPE TAGGING ---
+    # StatCan Table 36-10-0595-01 publishes a 5th CODR dimension (`Geographical coverage`):
+    #   'All provinces' -> 'all_provinces' (inter-regional IRIO backward linkages)
+    #   'Within province' -> 'within_province' (strictly intra-provincial single-region closure)
+    # When persisted in Parquet, use `geo_scope` directly; if reading a legacy file without
+    # `geo_scope`, key strictly on `industry_code` (not stripped `join_code`, which collides
+    # on BS/NP sectors 61, 623, 624) and gate provincial rows on `GEO != 'Canada'`.
+    if not df.empty and 'geo_scope' not in df.columns:
+        key_col = 'industry_code' if 'industry_code' in df.columns else 'join_code'
+        subset_cols = ['YEAR', 'GEO', key_col, 'variable', 'multiplier_type']
         existing_cols = [c for c in subset_cols if c in df.columns]
 
-        if len(existing_cols) == 5:
-            # Mark duplicates: first occurrence = all_provinces, second = within_province
-            is_dup = df.duplicated(subset=existing_cols, keep='first')
-            has_dup = df.duplicated(subset=existing_cols, keep=False)
-            # Rows that ARE duplicated and are the first occurrence
-            df['geo_scope'] = 'national'  # default for non-duplicated rows
-            df.loc[has_dup & ~is_dup, 'geo_scope'] = 'all_provinces'
-            df.loc[is_dup, 'geo_scope'] = 'within_province'
-        else:
-            df['geo_scope'] = 'national'
+        df['geo_scope'] = 'national'
+        if len(existing_cols) == 5 and 'GEO' in df.columns:
+            prov_mask = df['GEO'] != 'Canada'
+            is_dup = df.loc[prov_mask].duplicated(subset=existing_cols, keep='first')
+            has_dup = df.loc[prov_mask].duplicated(subset=existing_cols, keep=False)
+            prov_idx = df.index[prov_mask]
+            df.loc[prov_idx[has_dup & ~is_dup], 'geo_scope'] = 'all_provinces'
+            df.loc[prov_idx[is_dup], 'geo_scope'] = 'within_province'
 
     # --- MEMORY OPTIMISATION ---
     # String columns have very few unique values (3-250) but 5.2M rows.

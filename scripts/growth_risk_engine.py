@@ -28,6 +28,7 @@ from scripts.calibrated_parameters import (
     ABP_PROCESSOR_TABLE,
     ARMA_MONTE_CARLO_PERSISTENCE,
     BRM_EFFECTIVE_PAYOUT_PARAMETERS,
+    CONSTANT_2022_PRICE_DEFLATORS,
     DEBT_AMORTIZATION_AND_DISTRESS_PARAMS,
     DEBT_REPRICING_SCHEDULE,
     EMPIRICAL_ICOR_PROFILES,
@@ -42,6 +43,7 @@ from scripts.calibrated_parameters import (
     PROVINCIAL_TFP_DECOMPOSITION,
     TFP_AND_MC_REGIMES,
     compute_effective_brm_marginal_payout,
+    get_constant_2022_price_deflator,
     get_debt_amortization_params,
     get_debt_repricing_schedule,
     get_hotelling_sector_profile,
@@ -68,23 +70,40 @@ def compute_basket_impact(
     shock_dollars: float = 1.0,
     scope: str = "Simple",
     geo_scope: str = "all_provinces",
+    nominal_year: int = 2022,
 ) -> Dict[str, float]:
     """
     Compute output, GDP at basic prices, jobs, and wages impact for a given
     industry basket (`primary_agriculture` by default) directly from `io_df`
     without re-loading the 5.2M-row Parquet file in `io_multipliers_engine`.
     Supports both `all_provinces` (Canadian supply chain) and `within_province`
-    (strictly intra-provincial retention) from StatCan Table 36-10-0595-01.
+    (strictly intra-provincial retention) from StatCan Table 36-10-0595-01,
+    deflating post-2022 nominal shocks into constant 2022$ for employment.
     """
+    scope_norm = str(scope).strip().lower()
+    if "type i" in scope_norm or "type ii" in scope_norm:
+        raise ValueError(
+            f"Invalid multiplier scope '{scope}': StatCan Type I / Type II ratio multipliers "
+            "are (Total/Direct) ratios and cannot be multiplied directly by dollar shocks. "
+            "Use 'Simple' ('Simple multiplier') or 'Total' ('Total multiplier')."
+        )
+
+    defl_2022 = get_constant_2022_price_deflator(region=region, sector_key="all_ag", nominal_year=nominal_year)
     try:
-        mtype = "Total multiplier" if str(scope).lower() in ("total", "direct_indirect_induced") else (
-            "Direct multiplier" if str(scope).lower() == "direct" else "Simple multiplier"
+        mtype = "Total multiplier" if scope_norm in ("total", "direct_indirect_induced") else (
+            "Direct multiplier" if scope_norm == "direct" else "Simple multiplier"
         )
         sub_mults = load_subsector_io_multipliers(
             io_df, region=region, year=year, multiplier_type=mtype, geo_scope=geo_scope
         )
-        # Empirical Primary Ag FCR weights across 111A (Crops), 112A (Animal), and 1114A (Greenhouse/Nursery)
-        w_map = {"111A": 0.44, "112A": 0.44, "1114A": 0.12} if region == "Ontario" else {"111A": 0.52, "112A": 0.43, "1114A": 0.05}
+        # Exact 2022 StatCan SUT (36-10-0478-01) Primary Ag basic-price output shares
+        # across 111A (Crops), 112A (Animal excl. Aquaculture), 1114A (Greenhouse/Nursery/Floriculture),
+        # and 1125 (Aquaculture), strictly excluding 111CL (Licensed Cannabis).
+        w_map = (
+            {"111A": 0.4296, "112A": 0.4268, "1114A": 0.1422, "1125": 0.0015}
+            if region == "Ontario"
+            else {"111A": 0.5940, "112A": 0.3386, "1114A": 0.0533, "1125": 0.0142}
+        )
         avail = {k: sub_mults[k] for k in w_map if k in sub_mults}
         if avail:
             tot_w = sum(w_map[k] for k in avail)
@@ -95,15 +114,17 @@ def compute_basket_impact(
             return {
                 "output": shock_dollars * out_m,
                 "gdp": shock_dollars * gdp_m,
-                "jobs": (shock_dollars / 1e6) * jobs_per_m,
+                "jobs": ((shock_dollars / defl_2022) / 1e6) * jobs_per_m,
                 "wages": shock_dollars * wages_m,
             }
+    except ValueError:
+        raise
     except Exception:
         pass
     return {
         "output": shock_dollars * 1.56,
         "gdp": shock_dollars * 0.52,
-        "jobs": (shock_dollars / 1e6) * 6.2,
+        "jobs": ((shock_dollars / defl_2022) / 1e6) * 6.2,
         "wages": shock_dollars * 0.22,
     }
 
@@ -152,17 +173,19 @@ def compute_simulator_subsidy_summary(
     year: int = 2022,
     io_df: Optional[pd.DataFrame] = None,
     geo_scope: str = "all_provinces",
+    nominal_year: int = 2025,
 ) -> Dict[str, float]:
     """
     Compute Induced-only economic impact (`Total multiplier - Simple multiplier`)
     of government BRM transfer payments directly from `io_df` when provided
     (preventing duplicate 5.2M-row Parquet reloads), respecting `geo_scope`
-    (`all_provinces` vs. `within_province`), and falling back to
-    `compute_subsidy_impact` only if `io_df` is omitted.
+    (`all_provinces` vs. `within_province`), and deflating post-2022 nominal
+    subsidy dollars into constant 2022$ for employment.
     """
     if abs(subsidy_dollars) < 1e-6:
         return {"output": 0.0, "gdp": 0.0, "jobs": 0.0}
 
+    defl_2022 = get_constant_2022_price_deflator(region=region, sector_key="hfce", nominal_year=nominal_year)
     if io_df is not None and not io_df.empty:
         tot_m = load_subsector_io_multipliers(
             io_df, region=region, year=year, multiplier_type="Total multiplier", geo_scope=geo_scope
@@ -170,7 +193,11 @@ def compute_simulator_subsidy_summary(
         smp_m = load_subsector_io_multipliers(
             io_df, region=region, year=year, multiplier_type="Simple multiplier", geo_scope=geo_scope
         )
-        w_map = {"111A": 0.44, "112A": 0.44, "1114A": 0.12} if region == "Ontario" else {"111A": 0.52, "112A": 0.43, "1114A": 0.05}
+        w_map = (
+            {"111A": 0.4296, "112A": 0.4268, "1114A": 0.1422, "1125": 0.0015}
+            if region == "Ontario"
+            else {"111A": 0.5940, "112A": 0.3386, "1114A": 0.0533, "1125": 0.0142}
+        )
         avail = [k for k in w_map if k in tot_m and k in smp_m]
         if avail:
             tot_w = sum(w_map[k] for k in avail)
@@ -181,7 +208,7 @@ def compute_simulator_subsidy_summary(
                 return {
                     "output": subsidy_dollars * ind_out,
                     "gdp": subsidy_dollars * ind_gdp,
-                    "jobs": (subsidy_dollars / 1e6) * ind_jobs,
+                    "jobs": ((subsidy_dollars / defl_2022) / 1e6) * ind_jobs,
                 }
 
     b_df = industries_for_basket("primary_agriculture")
@@ -710,14 +737,22 @@ def load_subsector_io_multipliers(
 ) -> Dict[str, Dict[str, float]]:
     """
     Extract official Statistics Canada provincial IO multipliers for Primary Ag
-    (`111A`, `1114A`, `112A`), Wholesaling (`411`), and all Food & Beverage
+    (`111A`, `1114A`, `112A`, `1125`), Wholesaling (`411`), and all Food & Beverage
     Manufacturing sub-sectors (`3111`-`3119`, `31211`, `31212`, `3121A`, plus
     synthesized composite `3121`).
 
-    Properly resolves StatCan Table 36-10-0595-01's dual-row provincial format
-    (Row 1 = 'all_provinces', Row 2 = 'within_province') without averaging the
-    two geographical scopes together.
+    Resolves StatCan Table 36-10-0595-01's 5th CODR dimension (`geo_scope`:
+    `'all_provinces'` vs. `'within_province'`) explicitly without averaging scopes,
+    and rejects Type I / Type II ratio multipliers on dollar-shock paths.
     """
+    mt_norm = str(multiplier_type).strip().lower()
+    if "type i" in mt_norm or "type ii" in mt_norm:
+        raise ValueError(
+            f"Invalid multiplier_type '{multiplier_type}': StatCan 'Type I multiplier' and "
+            "'Type II multiplier' series are (Total/Direct) ratios and cannot be multiplied "
+            "by dollar shocks. Use 'Simple multiplier', 'Total multiplier', or 'Direct multiplier'."
+        )
+
     cache_key = (id(io_df), str(region), int(year), str(multiplier_type), str(geo_scope))
     if cache_key in _SUBSECTOR_IO_CACHE:
         return _SUBSECTOR_IO_CACHE[cache_key]
@@ -734,9 +769,7 @@ def load_subsector_io_multipliers(
     if "value" in sub.columns:
         sub = sub.dropna(subset=["value"])
 
-    # StatCan 36-10-0595-01 stores two rows per provincial metric:
-    #   first occurrence  -> 'all_provinces' (inter-provincial supply chain included)
-    #   second occurrence -> 'within_province' (strictly intra-provincial retention)
+    # StatCan 36-10-0595-01 5th CODR dimension: 'all_provinces' vs 'within_province'
     if eff_region != "Canada" and not sub.empty:
         target_scope = "within_province" if str(geo_scope).lower() == "within_province" else "all_provinces"
         if "geo_scope" in sub.columns:
@@ -745,9 +778,16 @@ def load_subsector_io_multipliers(
                 sub = scoped
         else:
             keep_rule = "last" if target_scope == "within_province" else "first"
-            dedup_cols = [c for c in ["YEAR", "GEO", "join_code", "variable", "multiplier_type"] if c in sub.columns]
+            id_col = "industry_code" if "industry_code" in sub.columns else "join_code"
+            dedup_cols = [c for c in ["YEAR", "GEO", id_col, "variable", "multiplier_type"] if c in sub.columns]
             if len(dedup_cols) >= 3:
                 sub = sub.drop_duplicates(subset=dedup_cols, keep=keep_rule)
+
+    # Filter out NP non-profit institutions if sharing a join_code with BS business sector
+    if "industry_code" in sub.columns:
+        bs_or_other = ~sub["industry_code"].astype(str).str.startswith("NP")
+        if bs_or_other.any():
+            sub = sub[bs_or_other]
 
     piv = sub.pivot_table(index="join_code", columns="variable", values="value", aggfunc="first", observed=False)
     out: Dict[str, Dict[str, float]] = {}
@@ -760,10 +800,16 @@ def load_subsector_io_multipliers(
             "wages": float(row.get("Labour income", 0.25)),
         }
 
-    # Synthesize composite NAICS 3121 (Beverage Manufacturing) from published StatCan
-    # leaf codes (3121A Wineries/Distilleries, 31212 Breweries, 31211 Soft Drinks)
+    # Synthesize composite NAICS 3121 (Beverage Manufacturing) from published IOIC 2022
+    # Detail leaf codes using exact 2022 StatCan SUT (36-10-0478-01) basic-price output shares:
+    #   Ontario ($5,501.7M): 31211 Soft Drinks (0.4224), 31212 Breweries (0.3612), 3121A Wineries/Distilleries (0.2164)
+    #   Canada ($14,817.5M): 31211 Soft Drinks (0.3649), 31212 Breweries (0.3874), 3121A Wineries/Distilleries (0.2477)
     if "3121" not in out:
-        bev_weights = [("3121A", 0.50), ("31212", 0.35), ("31211", 0.15)]
+        bev_weights = (
+            [("31211", 0.4224), ("31212", 0.3612), ("3121A", 0.2164)]
+            if eff_region == "Ontario"
+            else [("31211", 0.3649), ("31212", 0.3874), ("3121A", 0.2477)]
+        )
         avail_bev = [(c, w) for c, w in bev_weights if c in out]
         if avail_bev:
             tw = sum(w for _, w in avail_bev)
@@ -783,35 +829,37 @@ def get_scoped_household_mpc_multipliers(
     geo_scope: str = "all_provinces",
 ) -> Dict[str, float]:
     """
-    Return induced farm-household consumption multipliers (`gdp_basic_prices_mult`,
-    `fte_per_million_consumption`, `eff_induced_gdp_per_dollar_nci_sr`,
-    `eff_induced_fte_per_million_nci_sr`) calibrated to StatCan Tables 36-10-0594-01
-    and 36-10-0595-01 for the active `geo_scope` (`all_provinces` vs. `within_province`).
-
-    - Under `all_provinces` (or `region == 'Canada'`), uses the Canadian personal
-      expenditure footprint (`0.880` GDP / `9.50` FTE per `$1M` consumption) for
-      non-Ontario regions and `0.880` / `9.50` across the Canadian supply chain.
-    - Under `within_province` for `Ontario`, uses StatCan 36-10-0594-01's exact
-      Ontario intra-provincial household footprint (`0.720` GDP / `8.10` FTE).
-    - Under `within_province` for other provinces, scales the national household
-      footprint by that province's exact StatCan 36-10-0595-01 induced retention
-      ratio `(Total - Simple)_within / (Total - Simple)_all`.
+    Return CSNA purchaser-to-basic-price bridged Open Household Final Consumption
+    Expenditure (HFCE) multipliers (`gdp_basic_prices_mult`, `jobs_per_million_consumption_2022`)
+    from StatCan Tables 36-10-0478-01 (`PEC*`) and 36-10-0595-01, paired with
+    source- and solvency-regime-disaggregated farm-household MPCs (`mpc_mkt_normal_sr`,
+    `mpc_mkt_distress_sr`, `mpc_stat_brm_sr`, `mpc_adhoc_brm_sr`, `mpc_sust`).
     """
-    mpc_sr = float(FARM_HOUSEHOLD_MPC_MULTIPLIERS["mpc_nci_sr"])
+    mpc_mkt_normal_sr = float(FARM_HOUSEHOLD_MPC_MULTIPLIERS["mpc_mkt_normal_sr"])
+    mpc_mkt_distress_sr = float(FARM_HOUSEHOLD_MPC_MULTIPLIERS["mpc_mkt_distress_sr"])
+    mpc_stat_brm_sr = float(FARM_HOUSEHOLD_MPC_MULTIPLIERS["mpc_stat_brm_sr"])
+    mpc_adhoc_brm_sr = float(FARM_HOUSEHOLD_MPC_MULTIPLIERS["mpc_adhoc_brm_sr"])
+    mpc_sr = mpc_mkt_normal_sr
     mpc_sust = float(FARM_HOUSEHOLD_MPC_MULTIPLIERS["mpc_nci_sustained"])
     can_cfg = FARM_HOUSEHOLD_MPC_MULTIPLIERS["Canada"]
     on_cfg = FARM_HOUSEHOLD_MPC_MULTIPLIERS["Ontario"]
 
     scope_norm = "within_province" if str(geo_scope).lower() == "within_province" else "all_provinces"
-    if region == "Canada" or scope_norm == "all_provinces":
+    if region == "Canada":
         gdp_m = float(can_cfg["gdp_basic_prices_mult"])
-        fte_m = float(can_cfg["fte_per_million_consumption"])
+        jobs_m = float(can_cfg["jobs_per_million_consumption_2022"])
+    elif region == "Ontario" and scope_norm == "all_provinces":
+        gdp_m = float(on_cfg["gdp_basic_prices_mult_all_provinces"])
+        jobs_m = float(on_cfg["jobs_per_million_consumption_2022_all_provinces"])
     elif region == "Ontario":
         gdp_m = float(on_cfg["gdp_basic_prices_mult"])
-        fte_m = float(on_cfg["fte_per_million_consumption"])
+        jobs_m = float(on_cfg["jobs_per_million_consumption_2022"])
+    elif scope_norm == "all_provinces":
+        gdp_m = float(can_cfg["gdp_basic_prices_mult"])
+        jobs_m = float(can_cfg["jobs_per_million_consumption_2022"])
     else:
         gdp_m = float(can_cfg["gdp_basic_prices_mult"])
-        fte_m = float(can_cfg["fte_per_million_consumption"])
+        jobs_m = float(can_cfg["jobs_per_million_consumption_2022"])
         if io_df is not None and not io_df.empty:
             tot_all = load_subsector_io_multipliers(io_df, region=region, year=year, multiplier_type="Total multiplier", geo_scope="all_provinces")
             smp_all = load_subsector_io_multipliers(io_df, region=region, year=year, multiplier_type="Simple multiplier", geo_scope="all_provinces")
@@ -825,17 +873,29 @@ def get_scoped_household_mpc_multipliers(
                 if ind_g_all > 1e-6:
                     gdp_m *= float(np.clip(ind_g_in / ind_g_all, 0.15, 1.0))
                 if ind_j_all > 1e-6:
-                    fte_m *= float(np.clip(ind_j_in / ind_j_all, 0.15, 1.0))
+                    jobs_m *= float(np.clip(ind_j_in / ind_j_all, 0.15, 1.0))
 
     return {
         "mpc_sr": mpc_sr,
+        "mpc_mkt_normal_sr": mpc_mkt_normal_sr,
+        "mpc_mkt_distress_sr": mpc_mkt_distress_sr,
+        "mpc_stat_brm_sr": mpc_stat_brm_sr,
+        "mpc_adhoc_brm_sr": mpc_adhoc_brm_sr,
         "mpc_sust": mpc_sust,
         "gdp_basic_prices_mult": gdp_m,
-        "fte_per_million_consumption": fte_m,
-        "eff_induced_gdp_per_dollar_nci_sr": mpc_sr * gdp_m,
+        "jobs_per_million_consumption_2022": jobs_m,
+        "fte_per_million_consumption": jobs_m,
+        "eff_induced_gdp_per_dollar_nci_sr": mpc_mkt_normal_sr * gdp_m,
+        "eff_induced_gdp_per_dollar_mkt_distress_sr": mpc_mkt_distress_sr * gdp_m,
+        "eff_induced_gdp_per_dollar_stat_brm_sr": mpc_stat_brm_sr * gdp_m,
+        "eff_induced_gdp_per_dollar_adhoc_brm_sr": mpc_adhoc_brm_sr * gdp_m,
         "eff_induced_gdp_per_dollar_nci_sustained": mpc_sust * gdp_m,
-        "eff_induced_fte_per_million_nci_sr": mpc_sr * fte_m,
-        "eff_induced_fte_per_million_nci_sustained": mpc_sust * fte_m,
+        "eff_induced_jobs_per_million_nci_sr": mpc_mkt_normal_sr * jobs_m,
+        "eff_induced_jobs_per_million_mkt_distress_sr": mpc_mkt_distress_sr * jobs_m,
+        "eff_induced_jobs_per_million_stat_brm_sr": mpc_stat_brm_sr * jobs_m,
+        "eff_induced_jobs_per_million_adhoc_brm_sr": mpc_adhoc_brm_sr * jobs_m,
+        "eff_induced_fte_per_million_nci_sr": mpc_mkt_normal_sr * jobs_m,
+        "eff_induced_fte_per_million_nci_sustained": mpc_sust * jobs_m,
     }
 
 
@@ -846,30 +906,35 @@ def compute_io_scope_retention_table(
     multiplier_type: str = "Simple multiplier",
 ) -> List[Dict[str, Any]]:
     """
-    Build an audit-ready comparison table across Primary Agriculture (`111A`,
-    `1114A` Greenhouse/Nursery/Floriculture, `112A`), Agri-Wholesaling (`411`),
-    and Food & Beverage Manufacturing (`3111`–`3121`) contrasting `Within-Province`
-    retention against `All-Provinces` Canadian supply-chain multipliers from
-    StatCan Table 36-10-0595-01.
+    Build an audit-ready IOIC 2022 comparison table across Primary Agriculture
+    (`111A`, `1114A` Greenhouse/Nursery/Floriculture, `112A` Animal excl. Aquaculture,
+    `1125` Aquaculture), Agri-Wholesaling (`411`), and all 12 Food & Beverage
+    Manufacturing Detail industries (`3111`–`3121A` + `3121` composite) contrasting
+    `Within-Province` retention against `All-Provinces` Canadian supply-chain
+    multipliers from StatCan Table 36-10-0595-01.
     """
     m_dir = load_subsector_io_multipliers(io_df, region=region, year=year, multiplier_type="Direct multiplier", geo_scope="all_provinces")
     m_all = load_subsector_io_multipliers(io_df, region=region, year=year, multiplier_type=multiplier_type, geo_scope="all_provinces")
     m_in = load_subsector_io_multipliers(io_df, region=region, year=year, multiplier_type=multiplier_type, geo_scope="within_province")
 
     sector_catalog = [
-        ("111A", "Primary Agriculture", "Crop Production (excl. Greenhouse/Nursery) [111A]"),
-        ("1114A", "Primary Agriculture", "Greenhouse, Nursery, Floriculture & Sod [1114A / NAICS 1114]"),
-        ("112A", "Primary Agriculture", "Animal Production & Aquaculture [112A]"),
+        ("111A", "Primary Agriculture", "Crop Production (excl. Cannabis, Greenhouse/Nursery) [111A]"),
+        ("1114A", "Primary Agriculture", "Greenhouse, Nursery, Floriculture & Sod (Primary Ag, excl. Cannabis) [1114A / NAICS 1114]"),
+        ("112A", "Primary Agriculture", "Animal Production (excl. Aquaculture) [112A]"),
+        ("1125", "Primary Agriculture", "Aquaculture [1125]"),
         ("411", "Cold-Chain & Distribution", "Farm Product Packing & Wholesaling [411]"),
         ("3111", "Downstream Processing", "Animal Food Manufacturing [3111]"),
         ("3112", "Downstream Processing", "Grain & Oilseed Milling [3112]"),
+        ("3113", "Downstream Processing", "Sugar & Confectionery Product Manufacturing [3113]"),
         ("3114", "Downstream Processing", "Fruit & Vegetable Preserving & Specialty Food [3114]"),
         ("3115", "Downstream Processing", "Dairy Product Manufacturing [3115]"),
         ("3116", "Downstream Processing", "Meat Product Manufacturing [3116]"),
+        ("3117", "Downstream Processing", "Seafood Product Preparation & Packaging [3117]"),
         ("3118", "Downstream Processing", "Bakeries & Tortilla Manufacturing [3118]"),
         ("3119", "Downstream Processing", "Other Food Manufacturing [3119]"),
-        ("3121A", "Downstream Processing", "Wineries & Distilleries [3121A]"),
+        ("31211", "Downstream Processing", "Soft Drink & Ice Manufacturing [31211]"),
         ("31212", "Downstream Processing", "Breweries [31212]"),
+        ("3121A", "Downstream Processing", "Wineries & Distilleries [3121A]"),
         ("3121", "Downstream Processing", "Beverage Manufacturing Composite [3121]"),
     ]
 
@@ -879,6 +944,8 @@ def compute_io_scope_retention_table(
             continue
         a = m_all[code]
         w = m_in[code]
+        if a["gdp"] <= 0.0 or w["gdp"] <= 0.0:
+            continue
         d = m_dir.get(code, {"output": 1.0, "gdp": w["gdp"], "jobs": w["jobs"], "wages": w["wages"]})
         gdp_ret_pct = (w["gdp"] / a["gdp"] * 100.0) if a["gdp"] > 0 else 100.0
         jobs_ret_pct = (w["jobs"] / a["jobs"] * 100.0) if a["jobs"] > 0 else 100.0
@@ -911,15 +978,22 @@ def compute_downstream_abp_impact(
     multiplier_type: str = "Simple multiplier",
     is_long_run: bool = False,
     geo_scope: str = "all_provinces",
+    nominal_year: int = 2025,
 ) -> Dict[str, Any]:
     """
     Compute netted Analysis-by-Parts (ABP) downstream Food & Beverage processing
     (NAICS 311/312) economic impacts without double-counting upstream Primary Ag,
     supporting both `all_provinces` and `within_province` IO scopes.
 
-    Implements the SUT netting formula (Deep Research Output #3) and empirical
-    market-regime forward cost-push pass-through psi_cost (Deep Research Output #6):
-      M_p^{net} = M_p^{gross} - sum_{f in {111A, 1114A, 112A}} a_{f,p}^{dom} * M_f^{gross} * (1 + a_{311,p})
+    Implements exact scope-matched Leontief first-round column decomposition using
+    2022 StatCan SUT (36-10-0478-01) basic-price technical coefficients:
+      - `region == 'Canada'` (pan-Canadian co-shock): nets `a_{f,p}^{dom}`
+      - `region == 'Ontario'` (single-province shock): nets `a_{f,p}^{within}`
+        (since Rest-of-Canada primary farms are unshocked in a provincial run)
+      - Other provinces: scales `a_{f,p}^{dom}` by the province's indirect
+        supply-chain retention ratio `(m_p^{within} - 1) / (m_p^{all} - 1)`
+    By Hawkins-Simon non-negativity, `m_p^{net} > v_p` holds strictly across all
+    12 NAICS 311/312 processors without artificial floor binding.
     """
     reg_key = "Ontario" if region == "Ontario" else "Canada"
     mults = load_subsector_io_multipliers(
@@ -928,10 +1002,24 @@ def compute_downstream_abp_impact(
     dir_mults = load_subsector_io_multipliers(
         io_df, region=region, year=year, multiplier_type="Direct multiplier", geo_scope=geo_scope
     )
+    mults_all_prov: Dict[str, Dict[str, float]] = {}
+    mults_in_prov: Dict[str, Dict[str, float]] = {}
+    if region not in ("Canada", "Ontario"):
+        mults_all_prov = load_subsector_io_multipliers(
+            io_df, region=region, year=year, multiplier_type=multiplier_type, geo_scope="all_provinces"
+        )
+        mults_in_prov = load_subsector_io_multipliers(
+            io_df, region=region, year=year, multiplier_type=multiplier_type, geo_scope="within_province"
+        )
 
     m_111A = mults.get("111A", {"output": 1.642, "gdp": 0.778, "jobs": 5.138, "wages": 0.253})
     m_1114A = mults.get("1114A", {"output": 1.553, "gdp": 0.770, "jobs": 10.085, "wages": 0.460})
     m_112A = mults.get("112A", {"output": 2.272, "gdp": 0.776, "jobs": 7.355, "wages": 0.338})
+    m_1125 = mults.get("1125", {"output": 1.800, "gdp": 0.450, "jobs": 4.500, "wages": 0.220})
+
+    proc_deflator_2022 = get_constant_2022_price_deflator(
+        region=region, sector_key="311_312", nominal_year=nominal_year
+    )
 
     disp_cfg = PRIMARY_AG_DISPOSITION_MATRIX.get(
         farm_type, PRIMARY_AG_DISPOSITION_MATRIX["All farm types"]
@@ -940,10 +1028,6 @@ def compute_downstream_abp_impact(
     s_proc = float(disp_shares["s_proc"])
     proc_weights = disp_cfg["processor_weights"]
 
-    # How much of the farm-gate shock flows to domestic NAICS 311/312 processors:
-    # For physical supply shocks (e.g. tariff/CapEx/TFP), domestic processors absorb s_proc
-    # of the farm supply change, which translates into processor gross output via 1 / a_{farm, proc}
-    # capped at a realistic capacity-utilization transmission ratio (1.5x of raw input value).
     farm_to_proc_flow_dollars = primary_supply_shock_dollars * s_proc
 
     subsector_rows: List[Dict[str, Any]] = []
@@ -962,39 +1046,57 @@ def compute_downstream_abp_impact(
         p_mult_gross = mults.get(p_code, {"output": 1.85, "gdp": 0.58, "jobs": 4.20, "wages": 0.30})
         p_mult_dir = dir_mults.get(p_code, {"output": 1.0, "gdp": 0.22, "jobs": 1.20, "wages": 0.12})
 
-        a_111A = float(p_coeffs["a_111A_dom"])
-        a_1114A = float(p_coeffs["a_1114A_dom"])
-        a_112A = float(p_coeffs["a_112A_dom"])
         a_farm_dom = float(p_coeffs["a_farm_proc_dom"])
-        a_311 = float(p_coeffs["a_311_intra"])
         psi_pt = float(p_coeffs["psi_pass_through"])
-        intra_factor = 1.0 + a_311
 
-        # Subtract upstream farm multiplier embedded inside processor multiplier, floored at own Direct multiplier
-        # per Leontief non-negativity (I - A*)^{-1} >= I
-        dc_out = (a_111A * m_111A["output"] + a_1114A * m_1114A["output"] + a_112A * m_112A["output"]) * intra_factor
-        dc_gdp = (a_111A * m_111A["gdp"] + a_1114A * m_1114A["gdp"] + a_112A * m_112A["gdp"]) * intra_factor
-        dc_jobs = (a_111A * m_111A["jobs"] + a_1114A * m_1114A["jobs"] + a_112A * m_112A["jobs"]) * intra_factor
-        dc_wages = (a_111A * m_111A["wages"] + a_1114A * m_1114A["wages"] + a_112A * m_112A["wages"]) * intra_factor
+        if region == "Canada":
+            a_111A = float(p_coeffs["a_111A_dom"])
+            a_1114A = float(p_coeffs["a_1114A_dom"])
+            a_112A = float(p_coeffs["a_112A_dom"])
+            a_1125 = float(p_coeffs.get("a_1125_dom", 0.0))
+            a_farm_scoped = a_farm_dom
+        elif region == "Ontario":
+            a_111A = float(p_coeffs.get("a_111A_within", p_coeffs["a_111A_dom"]))
+            a_1114A = float(p_coeffs.get("a_1114A_within", p_coeffs["a_1114A_dom"]))
+            a_112A = float(p_coeffs.get("a_112A_within", p_coeffs["a_112A_dom"]))
+            a_1125 = float(p_coeffs.get("a_1125_within", 0.0))
+            a_farm_scoped = float(p_coeffs.get("a_farm_proc_within", a_111A + a_1114A + a_112A + a_1125))
+        else:
+            m_all_p = mults_all_prov.get(p_code, p_mult_gross)
+            m_in_p = mults_in_prov.get(p_code, p_mult_gross)
+            prov_ret = float(
+                np.clip((m_in_p["output"] - 1.0) / max(m_all_p["output"] - 1.0, 1e-6), 0.15, 0.90)
+            )
+            a_111A = float(p_coeffs["a_111A_dom"]) * prov_ret
+            a_1114A = float(p_coeffs["a_1114A_dom"]) * prov_ret
+            a_112A = float(p_coeffs["a_112A_dom"]) * prov_ret
+            a_1125 = float(p_coeffs.get("a_1125_dom", 0.0)) * prov_ret
+            a_farm_scoped = a_farm_dom * prov_ret
 
-        m_net_out = max(0.25, min(p_mult_gross["output"], max(p_mult_dir["output"], p_mult_gross["output"] - dc_out)))
-        m_net_gdp = max(0.10, min(p_mult_gross["gdp"], max(p_mult_dir["gdp"], p_mult_gross["gdp"] - dc_gdp)))
-        m_net_jobs = max(0.50, min(p_mult_gross["jobs"], max(p_mult_dir["jobs"], p_mult_gross["jobs"] - dc_jobs)))
-        m_net_wages = max(0.08, min(p_mult_gross["wages"], max(p_mult_dir["wages"], p_mult_gross["wages"] - dc_wages)))
+        # Exact Leontief column decomposition: M_f^{gross} already embeds downstream A_{311,f}
+        # and A_{311,311} feedbacks via (I - A)^{-1}, so no (1 + a_311_intra) multiplier is applied.
+        dc_out = a_111A * m_111A["output"] + a_1114A * m_1114A["output"] + a_112A * m_112A["output"] + a_1125 * m_1125["output"]
+        dc_gdp = a_111A * m_111A["gdp"] + a_1114A * m_1114A["gdp"] + a_112A * m_112A["gdp"] + a_1125 * m_1125["gdp"]
+        dc_jobs = a_111A * m_111A["jobs"] + a_1114A * m_1114A["jobs"] + a_112A * m_112A["jobs"] + a_1125 * m_1125["jobs"]
+        dc_wages = a_111A * m_111A["wages"] + a_1114A * m_1114A["wages"] + a_112A * m_112A["wages"] + a_1125 * m_1125["wages"]
+
+        raw_net_out = p_mult_gross["output"] - dc_out
+        raw_net_gdp = p_mult_gross["gdp"] - dc_gdp
+        raw_net_jobs = p_mult_gross["jobs"] - dc_jobs
+        raw_net_wages = p_mult_gross["wages"] - dc_wages
+
+        m_net_out = min(p_mult_gross["output"], max(p_mult_dir["output"], raw_net_out))
+        m_net_gdp = min(p_mult_gross["gdp"], max(p_mult_dir["gdp"], raw_net_gdp))
+        m_net_jobs = min(p_mult_gross["jobs"], max(p_mult_dir["jobs"], raw_net_jobs))
+        m_net_wages = min(p_mult_gross["wages"], max(p_mult_dir["wages"], raw_net_wages))
 
         eff_dc_gdp = max(0.0, p_mult_gross["gdp"] - m_net_gdp)
 
         # Processor output change from physical farm supply channel + COP regime forward pass-through
         alloc_farm_flow = farm_to_proc_flow_dollars * w_share
-        # Value-added leverage: $1 of raw farm product supports 1 / max(a_farm_dom, 0.20) of processor sales,
-        # attenuated by import substitution (1 - m_farm_imp)
         leverage = min(2.2, 1.0 / max(a_farm_dom, 0.20)) * (1.0 - float(p_coeffs["m_farm_imp"]))
         proc_supply_shock = alloc_farm_flow * leverage
 
-        # Forward COP cost-push pass-through psi_cost (Deep Research Output #6 Section 2):
-        # Differentiates export price-takers (Grains 3112: 0.02, Beef/Pork 3116: 0.00 SR / 0.055 LR),
-        # supply-managed COP regimes (Dairy 3115: 0.20 SR / 0.433 LR, Poultry 3116: 0.79 SR / 0.90 LR),
-        # and contracted processing horticulture/greenhouse (3114: 0.10-0.15 SR / 0.25-0.38 LR).
         cop_forward_share = get_processor_cost_pass_through(
             p_code=p_code, farm_type=farm_type, is_long_run=is_long_run
         )
@@ -1007,7 +1109,7 @@ def compute_downstream_abp_impact(
 
         net_out_val = proc_direct_delta * m_net_out
         net_gdp_val = proc_direct_delta * m_net_gdp
-        net_jobs_val = (proc_direct_delta / 1e6) * m_net_jobs
+        net_jobs_val = ((proc_direct_delta / proc_deflator_2022) / 1e6) * m_net_jobs
         net_wages_val = proc_direct_delta * m_net_wages
         dc_removed_gdp_val = proc_direct_delta * eff_dc_gdp
 
@@ -1022,7 +1124,7 @@ def compute_downstream_abp_impact(
             "NAICS Code": p_code,
             "Processor Sub-Sector": p_info["name"],
             "Allocation Share (%)": w_share * 100.0,
-            "a_farm_dom": a_farm_dom,
+            "a_farm_dom": a_farm_scoped,
             "psi_cost_forward": cop_forward_share,
             "Gross Output Mult": p_mult_gross["output"],
             "ABP Net Output Mult": m_net_out,
@@ -1032,7 +1134,7 @@ def compute_downstream_abp_impact(
             "Direct Processor Shock ($M)": proc_direct_delta / 1e6,
             "ABP Net Output Impact ($M)": net_out_val / 1e6,
             "ABP Net GDP Impact ($M)": net_gdp_val / 1e6,
-            "ABP Net Jobs (FTEs)": net_jobs_val,
+            "ABP Net Jobs": net_jobs_val,
             "ABP Net Wages ($M)": net_wages_val / 1e6,
             "Upstream Farm GDP Netted Out ($M)": dc_removed_gdp_val / 1e6,
         })
@@ -1101,6 +1203,7 @@ def run_dynamic_projection(
     precomputed_io_coeffs: Optional[Tuple[float, ...]] = None,
     return_records_only: bool = False,
     geo_scope: str = "all_provinces",
+    nominal_year: int = 2025,
 ) -> Any:
     """
     Project macro-financial stock-flow path over `horizon` years using the 5-Module
@@ -1108,7 +1211,8 @@ def run_dynamic_projection(
       - Module 1: 5-Year Contractual Debt Repricing Schedule (theta_yr1..theta_yr5)
       - Module 2: Hotelling's Lemma Duality Output Contraction vs. Value-Added Margin Split
       - Module 3: Jorgenson User-Cost & Pecking-Order Cash-Flow CapEx Accelerator
-      - Module 4: Induced Farm-Household Consumption Multiplier (MPC_NCI)
+      - Module 4: Induced Farm-Household Consumption Multiplier (CSNA HFCE Bridge &
+                  Source/Regime-Disaggregated MPC_NCI)
       - Module 5: Empirical Principal Amortization (gamma_principal = 0.0658 ON / 0.0713 CAN),
                   Regime-Switching Distress Working-Capital Borrowing (phi_debt = 0.58 / 0.82),
                   and FFSC / FCC Credit-Scoring Logit Distress Probability
@@ -1161,26 +1265,33 @@ def run_dynamic_projection(
     )
     yr1_out_semi_r = float(JORGENSON_CAPEX_ELASTICITIES["yr1_output_semi_elast_per_100bps"])  # -0.0015 per +100 bps
 
-    # Module 4: Induced Farm-Household Consumption Multipliers (StatCan 36-10-0594-01 & 36-10-0595-01)
+    # Module 4: Induced Farm-Household Consumption Multipliers (StatCan 36-10-0478-01 PEC* & 36-10-0595-01)
     hh_scoped = get_scoped_household_mpc_multipliers(
         io_df=io_df, region=region, year=target_year, geo_scope=geo_scope
     )
-    mpc_sr = float(hh_scoped["mpc_sr"])                                       # 0.120
-    mpc_sust = float(hh_scoped["mpc_sust"])                                   # 0.220
-    hh_gdp_mult = float(hh_scoped["gdp_basic_prices_mult"])                   # 0.88 all_provinces / 0.72 ON within_province
-    hh_fte_mult = float(hh_scoped["fte_per_million_consumption"])             # 9.5 all_provinces / 8.1 ON within_province
+    mpc_mkt_normal_sr = float(hh_scoped["mpc_mkt_normal_sr"])                 # 0.030
+    mpc_mkt_distress_sr = float(hh_scoped["mpc_mkt_distress_sr"])             # 0.085
+    mpc_stat_brm_sr = float(hh_scoped["mpc_stat_brm_sr"])                     # 0.062
+    mpc_adhoc_brm_sr = float(hh_scoped["mpc_adhoc_brm_sr"])                   # 0.220
+    mpc_sust = float(hh_scoped["mpc_sust"])                                   # 0.280
+    hh_gdp_mult = float(hh_scoped["gdp_basic_prices_mult"])                   # 0.6815 CAN / 0.6047 ON within
+    hh_jobs_mult_2022 = float(hh_scoped["jobs_per_million_consumption_2022"]) # 6.091 CAN / 5.423 ON within
+    hfce_deflator_2022 = get_constant_2022_price_deflator(
+        region=region, sector_key="hfce", nominal_year=nominal_year
+    )
 
     # Query IO impact for $1 of primary output shock (separating active geo_scope from farm-gate margin basis)
     fallback_mults = {
         "111A": {"output": 1.6420, "gdp": 0.7780, "jobs": 5.1380, "wages": 0.2530},
         "1114A": {"output": 1.5530, "gdp": 0.7700, "jobs": 10.0850, "wages": 0.4600},
         "112A": {"output": 2.2720, "gdp": 0.7760, "jobs": 7.3550, "wages": 0.3380},
+        "1125": {"output": 1.8000, "gdp": 0.4500, "jobs": 4.5000, "wages": 0.2200},
     }
     if precomputed_io_coeffs is not None:
         unit_out_mult = float(precomputed_io_coeffs[0])
         gdp_coeff = float(precomputed_io_coeffs[1])
         on_farm_margin_coeff = float(precomputed_io_coeffs[2]) if len(precomputed_io_coeffs) >= 3 else gdp_coeff
-    elif primary_join_code in ("111A", "1114A", "112A"):
+    elif primary_join_code in ("111A", "1114A", "112A", "1125"):
         mults_scoped = load_subsector_io_multipliers(io_df, region=region, year=target_year, geo_scope=geo_scope)
         mults_all = (
             mults_scoped
@@ -1468,16 +1579,39 @@ def run_dynamic_projection(
             - interest_delta
         )
 
+        # Compute DSCR_t first from invariant farm-gate NCI_t & Interest_t (100% invariant to geo_scope)
+        extra_capex = max(0.0, I_t - base_capex)
+        NCI_for_dscr = NCI_t + Interest_t
+        principal_repayment = Debt_t * amortization_rate
+        total_debt_service = Interest_t + principal_repayment
+        DSCR_t = (NCI_for_dscr / total_debt_service) if total_debt_service > 0 else 99.0
+
         # ----------------------------------------------------------------------
-        # MODULE 4: Induced Farm-Household Consumption Multiplier (MPC_NCI)
+        # MODULE 4: Induced Farm-Household Consumption Multiplier (CSNA HFCE & MPC_NCI)
         # ----------------------------------------------------------------------
-        # Compare NCI_t against unshocked trend NCI (base_nci + (Y_t_endogenous - base_output)*on_farm_margin_coeff)
+        # Decompose NCI_t shock delta into Market NCI vs. Statutory BRM vs. Ad-Hoc Relief
         nci_unshocked_t = base_nci + (base_output * (((1.0 + tfp_rate) ** t) - 1.0)) * on_farm_margin_coeff
         nci_shock_delta_t = NCI_t - nci_unshocked_t
-        mpc_t = mpc_sr if t == 1 else (mpc_sr + w_lr * (mpc_sust - mpc_sr))
-        hh_consumption_delta_t = mpc_t * nci_shock_delta_t
+        statutory_brm_delta_t = auto_brm_cash_inflow_t
+        adhoc_brm_delta_t = brm_subsidy_dollars
+        market_nci_delta_t = nci_shock_delta_t - statutory_brm_delta_t - adhoc_brm_delta_t
+
+        mpc_mkt_sr_active = (
+            mpc_mkt_distress_sr
+            if (DSCR_t < dscr_trigger and market_nci_delta_t < 0.0)
+            else mpc_mkt_normal_sr
+        )
+        mpc_mkt_t = mpc_mkt_sr_active + w_lr * (mpc_sust - mpc_mkt_sr_active)
+        mpc_stat_t = mpc_stat_brm_sr + w_lr * (mpc_sust - mpc_stat_brm_sr)
+        mpc_adhoc_t = mpc_adhoc_brm_sr + w_lr * (mpc_sust - mpc_adhoc_brm_sr)
+
+        hh_consumption_delta_t = (
+            mpc_mkt_t * market_nci_delta_t
+            + mpc_stat_t * statutory_brm_delta_t
+            + mpc_adhoc_t * adhoc_brm_delta_t
+        )
         hh_induced_gdp_delta_t = hh_consumption_delta_t * hh_gdp_mult
-        hh_induced_jobs_delta_t = (hh_consumption_delta_t / 1e6) * hh_fte_mult
+        hh_induced_jobs_delta_t = ((hh_consumption_delta_t / hfce_deflator_2022) / 1e6) * hh_jobs_mult_2022
 
         GDP_t = max(0.0, va_before_hh_induced + hh_induced_gdp_delta_t)
 
@@ -1485,12 +1619,6 @@ def run_dynamic_projection(
         # MODULE 5: Endogenous Debt Amortization, Regime-Switching Distress Borrowing,
         #           FFSC / FCC Solvency Ratios (DSCR, FSF, LRF) & Logit Distress Prob
         # ----------------------------------------------------------------------
-        extra_capex = max(0.0, I_t - base_capex)
-        NCI_for_dscr = NCI_t + Interest_t
-
-        principal_repayment = Debt_t * amortization_rate
-        total_debt_service = Interest_t + principal_repayment
-        DSCR_t = (NCI_for_dscr / total_debt_service) if total_debt_service > 0 else 99.0
 
         # Regime-switching working-capital distress borrowing (phi_debt):
         # Regime 1 (DSCR_{t-1} >= 1.15, single-year deficit): phi_debt = 0.580
@@ -1623,6 +1751,7 @@ def run_monte_carlo_projections(
     brm_regime: str = "statutory_scap_80pct",
     seed: int = 42,
     geo_scope: str = "all_provinces",
+    nominal_year: int = 2025,
 ) -> Dict[int, Dict[str, float]]:
     """
     Run correlated Monte Carlo dynamic simulations using:
@@ -1675,8 +1804,9 @@ def run_monte_carlo_projections(
         "111A": {"output": 1.6420, "gdp": 0.7780, "jobs": 5.1380, "wages": 0.2530},
         "1114A": {"output": 1.5530, "gdp": 0.7700, "jobs": 10.0850, "wages": 0.4600},
         "112A": {"output": 2.2720, "gdp": 0.7760, "jobs": 7.3550, "wages": 0.3380},
+        "1125": {"output": 1.8000, "gdp": 0.4500, "jobs": 4.5000, "wages": 0.2200},
     }
-    if primary_join_code in ("111A", "1114A", "112A"):
+    if primary_join_code in ("111A", "1114A", "112A", "1125"):
         mults_scoped = load_subsector_io_multipliers(io_df, region=region, year=target_year, geo_scope=geo_scope)
         mults_all = (
             mults_scoped
@@ -1810,6 +1940,7 @@ def run_monte_carlo_projections(
             precomputed_io_coeffs=pre_io_coeffs,
             return_records_only=True,
             geo_scope=geo_scope,
+            nominal_year=nominal_year,
         )
 
         for row in sim_records:
@@ -2302,7 +2433,7 @@ def generate_simulator_word_briefing(
         ("Baseline Sector Output / Value-Added GDP", f"${base_output_dollars/1e9:,.2f}B / ${base_gdp_dollars/1e9:,.2f}B"),
         ("Year 1 Total Output Impact (Incl. ABP)", f"{combined_yr1_output_impact_m:+,.1f} $M"),
         ("Year 1 Value-Added GDP Impact (Incl. ABP)", f"{combined_yr1_gdp_impact_m:+,.1f} $M"),
-        ("Year 1 Supply Chain Employment Impact", f"{combined_yr1_jobs_impact:+,.0f} FTEs"),
+        ("Year 1 Supply Chain Employment Impact", f"{combined_yr1_jobs_impact:+,.0f} Jobs"),
         (
             f"Year {horizon} Direct Farm GDP Shock [P10–P90]",
             f"{yrN_gdp_shock_m:+,.1f} $M [{mc_p10_shock_m:+,.0f}M to {mc_p90_shock_m:+,.0f}M]",
@@ -2321,7 +2452,7 @@ def generate_simulator_word_briefing(
         f"Using Statistics Canada Supply and Use Table (36-10-0478-01) basic-price domestic farm input "
         f"coefficients (a_farm,proc^dom), upstream primary farm output is netted out of NAICS 311/312 "
         f"processor multipliers to eliminate double-counting. Downstream processor net GDP impact: "
-        f"{abp_res.get('proc_net_gdp_m', 0.0):+,.1f} $M ({abp_res.get('proc_net_jobs', 0.0):+,.0f} FTEs); "
+        f"{abp_res.get('proc_net_gdp_m', 0.0):+,.1f} $M ({abp_res.get('proc_net_jobs', 0.0):+,.0f} Jobs); "
         f"double-counted upstream farm GDP removed: {abp_res.get('double_counted_farm_gdp_removed_m', 0.0):+,.1f} $M."
     )
 
@@ -2428,7 +2559,7 @@ def generate_simulator_pptx_deck(
     bullets = [
         f"Baseline Sector Output: ${base_output_dollars/1e9:,.2f}B | Baseline Value-Added GDP ({scope_short}): ${base_gdp_dollars/1e9:,.2f}B",
         f"Year 1 Combined Output Impact: {combined_yr1_output_impact_m:+,.1f} $M",
-        f"Year 1 Combined Value-Added GDP Impact: {combined_yr1_gdp_impact_m:+,.1f} $M ({combined_yr1_jobs_impact:+,.0f} FTEs)",
+        f"Year 1 Combined Value-Added GDP Impact: {combined_yr1_gdp_impact_m:+,.1f} $M ({combined_yr1_jobs_impact:+,.0f} Jobs)",
         f"Downstream NAICS 311/312 Processor ABP Net GDP: {abp_res.get('proc_net_gdp_m', 0.0):+,.1f} $M (Upstream Farm GDP Removed: {abp_res.get('double_counted_farm_gdp_removed_m', 0.0):+,.1f} $M)",
     ]
     if avg_farm_res:
@@ -2584,11 +2715,11 @@ def compute_scenario_comparison_summary(
             "Economic / Policy Interpretation": "Direct farm-gate cash margin after repriced debt interest & BRM inflows",
         },
         {
-            "Metric": "Year 1 Employment Impact (FTEs)",
-            f"Scenario A: {label_a}": f"{m_a['yr1_jobs']:+,.0f} FTEs",
-            f"Scenario B: {label_b}": f"{m_b['yr1_jobs']:+,.0f} FTEs",
-            "Net Delta (B − A)": f"{deltas['yr1_jobs']:+,.0f} FTEs",
-            "Economic / Policy Interpretation": "Direct, supply-chain, processor ABP & rural household induced jobs",
+            "Metric": "Year 1 Employment Impact (Jobs)",
+            f"Scenario A: {label_a}": f"{m_a['yr1_jobs']:+,.0f} Jobs",
+            f"Scenario B: {label_b}": f"{m_b['yr1_jobs']:+,.0f} Jobs",
+            "Net Delta (B − A)": f"{deltas['yr1_jobs']:+,.0f} Jobs",
+            "Economic / Policy Interpretation": "Direct, supply-chain, processor ABP & rural household induced jobs (2022$ deflated)",
         },
         {
             "Metric": f"BRM Stabilization Cash Inflow (Yr 1 / {horizon}-Yr Cum)",

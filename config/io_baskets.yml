@@ -39,22 +39,34 @@ baskets:
       - agri_food_wholesale
 
   # -----------------------------------------------------------------------
-  # 1. PRIMARY AGRICULTURE (Verified: $111.4B)
+  # 1. PRIMARY AGRICULTURE (OFA Traditional Farming Perimeter — Excl. Cannabis)
+  #    Includes Field Crops (BS111A00), Greenhouse/Nursery/Floriculture
+  #    (BS1114A0 = NAICS 1114 / HS Ch. 06 Primary Ag), Animal Production
+  #    (BS112A00), Aquaculture (BS112500), and Ag Support (BS115A00).
+  #    Terminated legacy code BS111400 removed per IOIC 2022 (1303_D7_V4);
+  #    Licensed Cannabis isolated in `licensed_cannabis_production` below.
   # -----------------------------------------------------------------------
   primary_agriculture:
     label: Primary Agriculture
     weight_type: full
-    description: 'Core Production: Crops, Animals, Greenhouse, Support, and Licensed Cannabis.'
+    description: 'Core Primary Agriculture (OFA Perimeter, Excl. Cannabis): Crops (BS111A00), Greenhouse/Nursery/Floriculture (BS1114A0 / NAICS 1114 / HS Ch. 06), Animal Production (BS112A00), Aquaculture (BS112500), and Support Activities (BS115A00).'
     match:
       any_code_prefix:
-        - BS111A      # Crops (Excluding Cannabis)
-        - BS112       # Animal production
+        - BS111A      # Crop production (except cannabis, greenhouse, nursery and floriculture)
+        - BS112       # Animal production (BS112A00) & Aquaculture (BS112500)
       any_code_exact:
-        - BS111400    # Greenhouse
-        - BS1114A0    # Greenhouse Alt
-        - BS115A00    # Support activities
-        - 111CL       # Licensed Cannabis
-        - BS111CL0    # (Variant)
+        - BS1114A0    # Greenhouse, nursery and floriculture production (except cannabis) [NAICS 1114]
+        - BS112500    # Aquaculture [NAICS 1125]
+        - BS115A00    # Support activities for crop and animal production
+
+  licensed_cannabis_production:
+    label: Licensed Cannabis Production
+    weight_type: full
+    description: 'Licensed cannabis cultivation (BS111CL0 / NAICS 111412 & 111995), isolated from traditional primary farming benchmarks.'
+    match:
+      any_code_exact:
+        - 111CL
+        - BS111CL0
 
   # -----------------------------------------------------------------------
   # 2. FOOD & BEVERAGE MANUFACTURING (Target: ~$178B)
@@ -62,26 +74,24 @@ baskets:
   food_beverage_manufacturing:
     label: Food & Beverage Manufacturing
     weight_type: full
-    description: 'Processing: Food (BS311) + All Beverage & Tobacco.'
+    description: 'Processing: Food (BS3111–BS3119) + Beverage & Tobacco (BS312110, BS312120, BS3121A0, BS312200).'
     match:
       any_code_prefix:
-        - BS311       # Food Manufacturing
-        - BS312       # Beverage & Tobacco
+        - BS311       # Food Manufacturing (3111-3119 incl. 3113 Sugar & 3117 Seafood)
+        - BS312       # Beverage & Tobacco (312110, 312120, 3121A0, 312200)
       any_code_exact:
-        - BS3121      # Specific Bev codes
-        - BS312100
-        - BS3122
+        - BS312110
+        - BS312120
+        - BS3121A0
         - BS312200
-        - BS312A00
 
   # -----------------------------------------------------------------------
   # 3. THE CORE ENGINE (SIMULATOR BASELINE)
-  # Target: ~$289B (Includes Cannabis)
   # -----------------------------------------------------------------------
   cfa_food_system:
     label: Agri-Food Production (Core)  # Renamed for accuracy: Primary Ag + Mfg only
     weight_type: full
-    description: 'Simulator Base: Primary Ag + Food/Bev Mfg. (Excludes Satellites)'
+    description: 'Simulator Base: Primary Ag (incl. NAICS 1114 & Aquaculture, excl. Cannabis) + Food/Bev Mfg.'
     match:
       any_code_prefix:
         - BS111A
@@ -89,13 +99,12 @@ baskets:
         - BS311
         - BS312
       any_code_exact:
-        - BS111400
         - BS1114A0
+        - BS112500
         - BS115A00
-        - 111CL
-        - BS111CL0
-        - BS3121
-        - BS312A00
+        - BS312110
+        - BS312120
+        - BS3121A0
 
   # -----------------------------------------------------------------------
   # 4. UPSTREAM SATELLITES (Inputs)

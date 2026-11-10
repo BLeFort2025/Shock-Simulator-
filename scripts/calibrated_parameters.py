@@ -513,7 +513,8 @@ PRIMARY_AG_TARIFF_CONFIG: Dict[str, Dict[str, Any]] = {
 # ==============================================================================
 # 3. ANALYSIS-BY-PARTS (ABP) TECHNICAL COEFFICIENTS (a_{farm, proc}^{dom})
 #    AND PRIMARY FARM DISPOSITION MATRICES (s_proc, s_intra_ag, s_fresh, s_exp)
-#    Source: Statistics Canada SUT 36-10-0478-01 / 36-10-0438-01 & AAEA 36-10-0623-01
+#    Source: Statistics Canada Detail SUT 36-10-0478-01 (2022 Reference Year,
+#    Basic-Price Make/Use Matrix Extraction) & AAEA 36-10-0623-01
 # ==============================================================================
 
 ABP_PROCESSOR_TABLE: Dict[str, Dict[str, Dict[str, Any]]] = {
@@ -521,23 +522,30 @@ ABP_PROCESSOR_TABLE: Dict[str, Dict[str, Dict[str, Any]]] = {
         "name": "Animal food manufacturing (NAICS 3111)",
         "join_code": "3111",
         "Canada": {
-            "int_share": 0.8119,
-            "a_111A_dom": 0.2450,
-            "a_1114A_dom": 0.0000,
-            "a_112A_dom": 0.0120,
-            "a_farm_proc_dom": 0.2570,
-            "m_farm_imp": 0.0480,
-            "a_311_intra": 0.2650,
+            "int_share": 0.8580,
+            "a_111A_dom": 0.2481,
+            "a_1114A_dom": 0.0001,
+            "a_112A_dom": 0.0001,
+            "a_1125_dom": 0.0003,
+            "a_farm_proc_dom": 0.2486,
+            "m_farm_imp": 0.0402,
+            "a_311_intra": 0.2591,
             "psi_pass_through": 0.69,
         },
         "Ontario": {
-            "int_share": 0.7702,
-            "a_111A_dom": 0.2180,
+            "int_share": 0.8220,
+            "a_111A_within": 0.1652,
+            "a_1114A_within": 0.0000,
+            "a_112A_within": 0.0001,
+            "a_1125_within": 0.0000,
+            "a_farm_proc_within": 0.1653,
+            "a_111A_dom": 0.2136,
             "a_1114A_dom": 0.0000,
-            "a_112A_dom": 0.0100,
-            "a_farm_proc_dom": 0.2280,
-            "m_farm_imp": 0.0720,
-            "a_311_intra": 0.2400,
+            "a_112A_dom": 0.0001,
+            "a_1125_dom": 0.0001,
+            "a_farm_proc_dom": 0.2138,
+            "m_farm_imp": 0.0718,
+            "a_311_intra": 0.1695,
             "psi_pass_through": 0.69,
         },
     },
@@ -545,23 +553,30 @@ ABP_PROCESSOR_TABLE: Dict[str, Dict[str, Dict[str, Any]]] = {
         "name": "Grain and oilseed milling (NAICS 3112)",
         "join_code": "3112",
         "Canada": {
-            "int_share": 0.8399,
-            "a_111A_dom": 0.5180,
-            "a_1114A_dom": 0.0000,
+            "int_share": 0.8850,
+            "a_111A_dom": 0.5630,
+            "a_1114A_dom": 0.0003,
             "a_112A_dom": 0.0000,
-            "a_farm_proc_dom": 0.5180,
-            "m_farm_imp": 0.0640,
-            "a_311_intra": 0.0580,
+            "a_1125_dom": 0.0000,
+            "a_farm_proc_dom": 0.5633,
+            "m_farm_imp": 0.0297,
+            "a_311_intra": 0.0680,
             "psi_pass_through": 0.69,
         },
         "Ontario": {
-            "int_share": 0.8250,
-            "a_111A_dom": 0.3620,
+            "int_share": 0.8830,
+            "a_111A_within": 0.2571,
+            "a_1114A_within": 0.0000,
+            "a_112A_within": 0.0000,
+            "a_1125_within": 0.0000,
+            "a_farm_proc_within": 0.2571,
+            "a_111A_dom": 0.3863,
             "a_1114A_dom": 0.0000,
             "a_112A_dom": 0.0000,
-            "a_farm_proc_dom": 0.3620,
-            "m_farm_imp": 0.1950,
-            "a_311_intra": 0.0680,
+            "a_1125_dom": 0.0000,
+            "a_farm_proc_dom": 0.3863,
+            "m_farm_imp": 0.0832,
+            "a_311_intra": 0.0945,
             "psi_pass_through": 0.69,
         },
     },
@@ -569,23 +584,30 @@ ABP_PROCESSOR_TABLE: Dict[str, Dict[str, Dict[str, Any]]] = {
         "name": "Sugar and confectionery product manufacturing (NAICS 3113)",
         "join_code": "3113",
         "Canada": {
-            "int_share": 0.6820,
-            "a_111A_dom": 0.0320,
+            "int_share": 0.6610,
+            "a_111A_dom": 0.0409,
             "a_1114A_dom": 0.0000,
-            "a_112A_dom": 0.0030,
-            "a_farm_proc_dom": 0.0350,
-            "m_farm_imp": 0.1850,
-            "a_311_intra": 0.2150,
+            "a_112A_dom": 0.0000,
+            "a_1125_dom": 0.0000,
+            "a_farm_proc_dom": 0.0409,
+            "m_farm_imp": 0.0473,
+            "a_311_intra": 0.1665,
             "psi_pass_through": 0.45,
         },
         "Ontario": {
-            "int_share": 0.6750,
-            "a_111A_dom": 0.0180,
+            "int_share": 0.6130,
+            "a_111A_within": 0.0099,
+            "a_1114A_within": 0.0000,
+            "a_112A_within": 0.0000,
+            "a_1125_within": 0.0000,
+            "a_farm_proc_within": 0.0099,
+            "a_111A_dom": 0.0113,
             "a_1114A_dom": 0.0000,
-            "a_112A_dom": 0.0030,
-            "a_farm_proc_dom": 0.0210,
-            "m_farm_imp": 0.2100,
-            "a_311_intra": 0.2200,
+            "a_112A_dom": 0.0000,
+            "a_1125_dom": 0.0000,
+            "a_farm_proc_dom": 0.0113,
+            "m_farm_imp": 0.0394,
+            "a_311_intra": 0.1329,
             "psi_pass_through": 0.45,
         },
     },
@@ -593,23 +615,30 @@ ABP_PROCESSOR_TABLE: Dict[str, Dict[str, Dict[str, Any]]] = {
         "name": "Fruit and vegetable preserving and specialty food mfg (NAICS 3114)",
         "join_code": "3114",
         "Canada": {
-            "int_share": 0.6908,
-            "a_111A_dom": 0.1680,
-            "a_1114A_dom": 0.0240,
-            "a_112A_dom": 0.0060,
-            "a_farm_proc_dom": 0.1980,
-            "m_farm_imp": 0.0950,
-            "a_311_intra": 0.1550,
+            "int_share": 0.7300,
+            "a_111A_dom": 0.0825,
+            "a_1114A_dom": 0.0261,
+            "a_112A_dom": 0.0001,
+            "a_1125_dom": 0.0001,
+            "a_farm_proc_dom": 0.1088,
+            "m_farm_imp": 0.0802,
+            "a_311_intra": 0.1260,
             "psi_pass_through": 0.52,
         },
         "Ontario": {
-            "int_share": 0.6880,
-            "a_111A_dom": 0.1350,
-            "a_1114A_dom": 0.0380,
-            "a_112A_dom": 0.0060,
-            "a_farm_proc_dom": 0.1790,
-            "m_farm_imp": 0.1250,
-            "a_311_intra": 0.1600,
+            "int_share": 0.7830,
+            "a_111A_within": 0.0248,
+            "a_1114A_within": 0.0469,
+            "a_112A_within": 0.0000,
+            "a_1125_within": 0.0001,
+            "a_farm_proc_within": 0.0718,
+            "a_111A_dom": 0.0329,
+            "a_1114A_dom": 0.0469,
+            "a_112A_dom": 0.0001,
+            "a_1125_dom": 0.0004,
+            "a_farm_proc_dom": 0.0803,
+            "m_farm_imp": 0.0873,
+            "a_311_intra": 0.1275,
             "psi_pass_through": 0.52,
         },
     },
@@ -617,23 +646,30 @@ ABP_PROCESSOR_TABLE: Dict[str, Dict[str, Dict[str, Any]]] = {
         "name": "Dairy product manufacturing (NAICS 3115)",
         "join_code": "3115",
         "Canada": {
-            "int_share": 0.7696,
-            "a_111A_dom": 0.0040,
+            "int_share": 0.7470,
+            "a_111A_dom": 0.0013,
             "a_1114A_dom": 0.0000,
-            "a_112A_dom": 0.4680,
-            "a_farm_proc_dom": 0.4720,
-            "m_farm_imp": 0.0150,
-            "a_311_intra": 0.1180,
+            "a_112A_dom": 0.4040,
+            "a_1125_dom": 0.0000,
+            "a_farm_proc_dom": 0.4053,
+            "m_farm_imp": 0.0012,
+            "a_311_intra": 0.1089,
             "psi_pass_through": 0.75,
         },
         "Ontario": {
-            "int_share": 0.7650,
-            "a_111A_dom": 0.0040,
+            "int_share": 0.7230,
+            "a_111A_within": 0.0016,
+            "a_1114A_within": 0.0000,
+            "a_112A_within": 0.2993,
+            "a_1125_within": 0.0000,
+            "a_farm_proc_within": 0.3009,
+            "a_111A_dom": 0.0019,
             "a_1114A_dom": 0.0000,
-            "a_112A_dom": 0.4450,
-            "a_farm_proc_dom": 0.4490,
-            "m_farm_imp": 0.0320,
-            "a_311_intra": 0.1240,
+            "a_112A_dom": 0.3308,
+            "a_1125_dom": 0.0000,
+            "a_farm_proc_dom": 0.3327,
+            "m_farm_imp": 0.0006,
+            "a_311_intra": 0.1196,
             "psi_pass_through": 0.75,
         },
     },
@@ -641,23 +677,30 @@ ABP_PROCESSOR_TABLE: Dict[str, Dict[str, Dict[str, Any]]] = {
         "name": "Meat product manufacturing (NAICS 3116)",
         "join_code": "3116",
         "Canada": {
-            "int_share": 0.7652,
-            "a_111A_dom": 0.0030,
+            "int_share": 0.7500,
+            "a_111A_dom": 0.0001,
             "a_1114A_dom": 0.0000,
-            "a_112A_dom": 0.4390,
-            "a_farm_proc_dom": 0.4420,
-            "m_farm_imp": 0.0380,
-            "a_311_intra": 0.1420,
+            "a_112A_dom": 0.4468,
+            "a_1125_dom": 0.0002,
+            "a_farm_proc_dom": 0.4471,
+            "m_farm_imp": 0.0115,
+            "a_311_intra": 0.1280,
             "psi_pass_through": 0.24,
         },
         "Ontario": {
-            "int_share": 0.7580,
-            "a_111A_dom": 0.0030,
+            "int_share": 0.7650,
+            "a_111A_within": 0.0001,
+            "a_1114A_within": 0.0000,
+            "a_112A_within": 0.2744,
+            "a_1125_within": 0.0001,
+            "a_farm_proc_within": 0.2746,
+            "a_111A_dom": 0.0001,
             "a_1114A_dom": 0.0000,
-            "a_112A_dom": 0.3480,
-            "a_farm_proc_dom": 0.3510,
-            "m_farm_imp": 0.1050,
-            "a_311_intra": 0.1650,
+            "a_112A_dom": 0.3804,
+            "a_1125_dom": 0.0003,
+            "a_farm_proc_dom": 0.3808,
+            "m_farm_imp": 0.0112,
+            "a_311_intra": 0.1536,
             "psi_pass_through": 0.24,
         },
     },
@@ -665,23 +708,30 @@ ABP_PROCESSOR_TABLE: Dict[str, Dict[str, Dict[str, Any]]] = {
         "name": "Seafood product preparation and packaging (NAICS 3117)",
         "join_code": "3117",
         "Canada": {
-            "int_share": 0.7855,
-            "a_111A_dom": 0.0010,
+            "int_share": 0.7730,
+            "a_111A_dom": 0.0001,
             "a_1114A_dom": 0.0000,
-            "a_112A_dom": 0.0020,
-            "a_farm_proc_dom": 0.0030,
+            "a_112A_dom": 0.0000,
+            "a_1125_dom": 0.0803,
+            "a_farm_proc_dom": 0.0804,
             "m_farm_imp": 0.0850,
-            "a_311_intra": 0.0650,
+            "a_311_intra": 0.1422,
             "psi_pass_through": 0.35,
         },
         "Ontario": {
-            "int_share": 0.7500,
-            "a_111A_dom": 0.0010,
+            "int_share": 0.7220,
+            "a_111A_within": 0.0005,
+            "a_1114A_within": 0.0000,
+            "a_112A_within": 0.0002,
+            "a_1125_within": 0.0084,
+            "a_farm_proc_within": 0.0091,
+            "a_111A_dom": 0.0006,
             "a_1114A_dom": 0.0000,
-            "a_112A_dom": 0.0020,
-            "a_farm_proc_dom": 0.0030,
+            "a_112A_dom": 0.0003,
+            "a_1125_dom": 0.0538,
+            "a_farm_proc_dom": 0.0547,
             "m_farm_imp": 0.4200,
-            "a_311_intra": 0.0950,
+            "a_311_intra": 0.0452,
             "psi_pass_through": 0.35,
         },
     },
@@ -689,23 +739,30 @@ ABP_PROCESSOR_TABLE: Dict[str, Dict[str, Dict[str, Any]]] = {
         "name": "Bakeries and tortilla manufacturing (NAICS 3118)",
         "join_code": "3118",
         "Canada": {
-            "int_share": 0.6125,
-            "a_111A_dom": 0.0140,
-            "a_1114A_dom": 0.0010,
-            "a_112A_dom": 0.0190,
-            "a_farm_proc_dom": 0.0340,
-            "m_farm_imp": 0.0220,
-            "a_311_intra": 0.2850,
+            "int_share": 0.6570,
+            "a_111A_dom": 0.0255,  # 0.0015 direct 111A + 0.0240 2nd-tier domestic grain via 3112 milled flour
+            "a_1114A_dom": 0.0004,
+            "a_112A_dom": 0.0067,  # 0.0007 direct 112A + 0.0060 2nd-tier domestic dairy/eggs via 3115/3119
+            "a_1125_dom": 0.0000,
+            "a_farm_proc_dom": 0.0326,
+            "m_farm_imp": 0.0023,
+            "a_311_intra": 0.2289,
             "psi_pass_through": 0.55,
         },
         "Ontario": {
-            "int_share": 0.6080,
-            "a_111A_dom": 0.0110,
-            "a_1114A_dom": 0.0010,
-            "a_112A_dom": 0.0180,
-            "a_farm_proc_dom": 0.0300,
-            "m_farm_imp": 0.0280,
-            "a_311_intra": 0.2920,
+            "int_share": 0.6800,
+            "a_111A_within": 0.0149,  # 0.0009 direct ON 111A + 0.0140 2nd-tier ON grain via ON 3112 flour mills
+            "a_1114A_within": 0.0007,
+            "a_112A_within": 0.0042,  # 0.0002 direct ON 112A + 0.0040 2nd-tier ON dairy via ON 3115
+            "a_1125_within": 0.0000,
+            "a_farm_proc_within": 0.0198,
+            "a_111A_dom": 0.0222,
+            "a_1114A_dom": 0.0007,
+            "a_112A_dom": 0.0053,
+            "a_1125_dom": 0.0000,
+            "a_farm_proc_dom": 0.0282,
+            "m_farm_imp": 0.0028,
+            "a_311_intra": 0.2052,
             "psi_pass_through": 0.55,
         },
     },
@@ -713,23 +770,30 @@ ABP_PROCESSOR_TABLE: Dict[str, Dict[str, Dict[str, Any]]] = {
         "name": "Other food manufacturing (NAICS 3119)",
         "join_code": "3119",
         "Canada": {
-            "int_share": 0.6622,
-            "a_111A_dom": 0.0680,
-            "a_1114A_dom": 0.0040,
-            "a_112A_dom": 0.0180,
-            "a_farm_proc_dom": 0.0900,
-            "m_farm_imp": 0.1150,
-            "a_311_intra": 0.2100,
+            "int_share": 0.7140,
+            "a_111A_dom": 0.0775,
+            "a_1114A_dom": 0.0073,
+            "a_112A_dom": 0.0230,
+            "a_1125_dom": 0.0000,
+            "a_farm_proc_dom": 0.1078,
+            "m_farm_imp": 0.0941,
+            "a_311_intra": 0.1309,
             "psi_pass_through": 0.50,
         },
         "Ontario": {
-            "int_share": 0.6580,
-            "a_111A_dom": 0.0520,
-            "a_1114A_dom": 0.0050,
-            "a_112A_dom": 0.0160,
-            "a_farm_proc_dom": 0.0730,
-            "m_farm_imp": 0.1320,
-            "a_311_intra": 0.2180,
+            "int_share": 0.7400,
+            "a_111A_within": 0.0381,
+            "a_1114A_within": 0.0108,
+            "a_112A_within": 0.0096,
+            "a_1125_within": 0.0000,
+            "a_farm_proc_within": 0.0585,
+            "a_111A_dom": 0.0557,
+            "a_1114A_dom": 0.0108,
+            "a_112A_dom": 0.0118,
+            "a_1125_dom": 0.0000,
+            "a_farm_proc_dom": 0.0783,
+            "m_farm_imp": 0.1817,
+            "a_311_intra": 0.1241,
             "psi_pass_through": 0.50,
         },
     },
@@ -737,23 +801,30 @@ ABP_PROCESSOR_TABLE: Dict[str, Dict[str, Dict[str, Any]]] = {
         "name": "Soft drink and ice manufacturing (NAICS 31211)",
         "join_code": "31211",
         "Canada": {
-            "int_share": 0.6850,
-            "a_111A_dom": 0.0040,
+            "int_share": 0.7350,
+            "a_111A_dom": 0.0025,  # 0.0001 direct 111A + 0.0024 2nd-tier domestic corn/beet sweeteners via 3112/3113
             "a_1114A_dom": 0.0000,
             "a_112A_dom": 0.0000,
-            "a_farm_proc_dom": 0.0040,
+            "a_1125_dom": 0.0000,
+            "a_farm_proc_dom": 0.0025,
             "m_farm_imp": 0.0180,
-            "a_311_intra": 0.2450,
+            "a_311_intra": 0.0987,
             "psi_pass_through": 0.40,
         },
         "Ontario": {
-            "int_share": 0.6800,
-            "a_111A_dom": 0.0030,
+            "int_share": 0.7290,
+            "a_111A_within": 0.0018,  # 0.0001 direct ON 111A + 0.0017 2nd-tier ON corn sweeteners via ON 3112
+            "a_1114A_within": 0.0000,
+            "a_112A_within": 0.0000,
+            "a_1125_within": 0.0000,
+            "a_farm_proc_within": 0.0018,
+            "a_111A_dom": 0.0022,
             "a_1114A_dom": 0.0000,
             "a_112A_dom": 0.0000,
-            "a_farm_proc_dom": 0.0030,
+            "a_1125_dom": 0.0000,
+            "a_farm_proc_dom": 0.0022,
             "m_farm_imp": 0.0200,
-            "a_311_intra": 0.2500,
+            "a_311_intra": 0.0780,
             "psi_pass_through": 0.40,
         },
     },
@@ -761,23 +832,30 @@ ABP_PROCESSOR_TABLE: Dict[str, Dict[str, Dict[str, Any]]] = {
         "name": "Breweries (NAICS 31212)",
         "join_code": "31212",
         "Canada": {
-            "int_share": 0.5450,
-            "a_111A_dom": 0.0280,
+            "int_share": 0.5580,
+            "a_111A_dom": 0.0245,  # 0.0070 direct barley/hops + 0.0175 domestic malt via 3112
             "a_1114A_dom": 0.0000,
             "a_112A_dom": 0.0000,
-            "a_farm_proc_dom": 0.0280,
-            "m_farm_imp": 0.0190,
-            "a_311_intra": 0.1150,
+            "a_1125_dom": 0.0000,
+            "a_farm_proc_dom": 0.0245,
+            "m_farm_imp": 0.0070,
+            "a_311_intra": 0.0697,
             "psi_pass_through": 0.45,
         },
         "Ontario": {
-            "int_share": 0.5400,
-            "a_111A_dom": 0.0120,
+            "int_share": 0.5510,
+            "a_111A_within": 0.0095,  # 0.0027 direct ON grain/hops + 0.0068 ON malt via ON 3112
+            "a_1114A_within": 0.0000,
+            "a_112A_within": 0.0000,
+            "a_1125_within": 0.0000,
+            "a_farm_proc_within": 0.0095,
+            "a_111A_dom": 0.0185,
             "a_1114A_dom": 0.0000,
             "a_112A_dom": 0.0000,
-            "a_farm_proc_dom": 0.0120,
-            "m_farm_imp": 0.0350,
-            "a_311_intra": 0.1200,
+            "a_1125_dom": 0.0000,
+            "a_farm_proc_dom": 0.0185,
+            "m_farm_imp": 0.0122,
+            "a_311_intra": 0.0417,
             "psi_pass_through": 0.45,
         },
     },
@@ -785,23 +863,30 @@ ABP_PROCESSOR_TABLE: Dict[str, Dict[str, Dict[str, Any]]] = {
         "name": "Wineries and distilleries (NAICS 3121A)",
         "join_code": "3121A",
         "Canada": {
-            "int_share": 0.6150,
-            "a_111A_dom": 0.1120,
-            "a_1114A_dom": 0.0020,
+            "int_share": 0.6670,
+            "a_111A_dom": 0.0680,  # Wine grapes & distilling corn/rye/barley (2022 SUT + excise-adjusted basic price)
+            "a_1114A_dom": 0.0010,
             "a_112A_dom": 0.0000,
-            "a_farm_proc_dom": 0.1140,
-            "m_farm_imp": 0.0880,
-            "a_311_intra": 0.0950,
+            "a_1125_dom": 0.0000,
+            "a_farm_proc_dom": 0.0690,
+            "m_farm_imp": 0.0297,
+            "a_311_intra": 0.0194,
             "psi_pass_through": 0.55,
         },
         "Ontario": {
-            "int_share": 0.6100,
-            "a_111A_dom": 0.1280,
-            "a_1114A_dom": 0.0030,
+            "int_share": 0.6650,
+            "a_111A_within": 0.0720,  # VQA Ontario wine grapes & Ontario distilling corn
+            "a_1114A_within": 0.0015,
+            "a_112A_within": 0.0000,
+            "a_1125_within": 0.0000,
+            "a_farm_proc_within": 0.0735,
+            "a_111A_dom": 0.0760,
+            "a_1114A_dom": 0.0015,
             "a_112A_dom": 0.0000,
-            "a_farm_proc_dom": 0.1310,
-            "m_farm_imp": 0.0920,
-            "a_311_intra": 0.0980,
+            "a_1125_dom": 0.0000,
+            "a_farm_proc_dom": 0.0775,
+            "m_farm_imp": 0.0310,
+            "a_311_intra": 0.0046,
             "psi_pass_through": 0.55,
         },
     },
@@ -1243,35 +1328,119 @@ HOTELLING_INPUT_SUPPLY_ELASTICITIES: Dict[str, Dict[str, Any]] = {
 
 
 # ==============================================================================
-# 7. INDUCED FARM-HOUSEHOLD CONSUMPTION MULTIPLIERS (MPC_NCI & CSNA I-O)
-#    Source: Langemeier & Patrick (1990) AJAE; Carriker, Langemeier & Schroeder
-#    (1993); Loyns & Ahmadi-Esfahani; Jette-Nantel et al. (2011); StatCan Table
-#    36-10-0594-01; Deep Research Output #5 (Block 4)
+# 7. INDUCED FARM-HOUSEHOLD CONSUMPTION MULTIPLIERS (MPC_NCI & CSNA HFCE BRIDGE)
+#    Sources:
+#      - StatCan Tables 36-10-0595-01 & 36-10-0478-01 (2022 SUT PEC* HFCE Bridge);
+#        StatCan Table 11-10-0222-01; CSNA User Guide Ch. 4 & Ch. 5
+#      - Langemeier & Patrick (1990) AJAE; Carriker, Langemeier & Schroeder (1993)
+#      - Loyns & Ahmadi-Esfahani (CJAE); Jetté-Nantel et al. (2011)
+#      - Williams et al. (2022) USDA ERS; Hughes & Brewer (2026) JAAE
 # ==============================================================================
 
 FARM_HOUSEHOLD_MPC_MULTIPLIERS: Dict[str, Any] = {
-    "mpc_nci_sr": 0.120,
-    "mpc_nci_sr_range": (0.080, 0.150),
-    "mpc_nci_sustained": 0.220,
-    "mpc_nci_sustained_range": (0.180, 0.280),
+    # Source- and solvency-regime-disaggregated short-run MPCs (Year 1):
+    "mpc_mkt_normal_sr": 0.030,       # Normal market NCI (DSCR >= 1.15; Langemeier & Patrick 1990: 0.010-0.040)
+    "mpc_mkt_distress_sr": 0.085,     # Liquidity-constrained market NCI loss (DSCR < 1.15 & market_nci_delta < 0)
+    "mpc_stat_brm_sr": 0.062,         # Rules-based statutory AgriStability / Agricorp RMP cash inflow
+    "mpc_adhoc_brm_sr": 0.220,        # Ad-hoc disaster / enhancement cash transfer (Williams et al. 2022: 0.21-0.27)
+    # Legacy / baseline keys retained for API compatibility:
+    "mpc_nci_sr": 0.030,
+    "mpc_nci_sr_range": (0.010, 0.085),
+    "mpc_nci_sustained": 0.280,       # Long-run permanent-income farm-household MPC (range 0.143-0.381)
+    "mpc_nci_sustained_range": (0.143, 0.381),
     "mpc_non_farm_wage_reference": 0.700,
     "Ontario": {
-        "gdp_basic_prices_mult": 0.720,
-        "fte_per_million_consumption": 8.10,
-        "eff_induced_gdp_per_dollar_nci_sr": 0.0864,         # 0.120 * 0.72
-        "eff_induced_gdp_per_dollar_nci_sustained": 0.1584,  # 0.220 * 0.72
-        "eff_induced_fte_per_million_nci_sr": 0.972,         # 0.120 * 8.1
-        "eff_induced_fte_per_million_nci_sustained": 1.782,  # 0.220 * 8.1
+        # Exact 2022 StatCan 36-10-0478-01 PEC* purchaser-to-basic-price bridge (Within-Ontario Open HFCE):
+        "tops_tax_share": 0.0863,
+        "direct_intl_import_share": 0.1205,
+        "direct_roc_import_share": 0.0429,
+        "gdp_basic_prices_mult": 0.6047,
+        "gdp_basic_prices_mult_all_provinces": 0.6746,
+        "jobs_per_million_consumption_2022": 5.423,
+        "jobs_per_million_consumption_2022_all_provinces": 5.981,
+        "fte_per_million_consumption": 5.423,
+        "eff_induced_gdp_per_dollar_nci_sr": 0.018141,         # 0.030 * 0.6047
+        "eff_induced_gdp_per_dollar_nci_sustained": 0.169316,  # 0.280 * 0.6047
+        "eff_induced_fte_per_million_nci_sr": 0.16269,         # 0.030 * 5.423
+        "eff_induced_fte_per_million_nci_sustained": 1.51844,  # 0.280 * 5.423
     },
     "Canada": {
-        "gdp_basic_prices_mult": 0.880,
-        "fte_per_million_consumption": 9.50,
-        "eff_induced_gdp_per_dollar_nci_sr": 0.1056,         # 0.120 * 0.88
-        "eff_induced_gdp_per_dollar_nci_sustained": 0.1936,  # 0.220 * 0.88
-        "eff_induced_fte_per_million_nci_sr": 1.140,         # 0.120 * 9.5
-        "eff_induced_fte_per_million_nci_sustained": 2.090,  # 0.220 * 9.5
+        # Exact 2022 StatCan 36-10-0478-01 PEC* purchaser-to-basic-price bridge (All-Provinces Open HFCE):
+        "tops_tax_share": 0.0834,
+        "direct_intl_import_share": 0.1304,
+        "gdp_basic_prices_mult": 0.6815,
+        "jobs_per_million_consumption_2022": 6.091,
+        "fte_per_million_consumption": 6.091,
+        "eff_induced_gdp_per_dollar_nci_sr": 0.020445,         # 0.030 * 0.6815
+        "eff_induced_gdp_per_dollar_nci_sustained": 0.19082,   # 0.280 * 0.6815
+        "eff_induced_fte_per_million_nci_sr": 0.18273,         # 0.030 * 6.091
+        "eff_induced_fte_per_million_nci_sustained": 1.70548,  # 0.280 * 6.091
     },
 }
+
+
+# ==============================================================================
+# 7B. CONSTANT-2022-DOLLAR PRICE DEFLATORS FOR EMPLOYMENT MULTIPLIERS (P_t / P_2022)
+#     Sources:
+#       - Primary Ag (all_ag, 111A, 1114A, 112A, 1125): StatCan Table 32-10-0098-01
+#         (Farm Product Price Index, annual average P_t / P_2022)
+#       - Downstream Food & Beverage Processing (311_312): StatCan Table 18-10-0004-01
+#         (CPI Food purchased from stores, annual average P_t / P_2022)
+#       - Household Final Consumption Expenditure (hfce): StatCan Table 18-10-0004-01
+#         (CPI All-items, annual average P_t / P_2022)
+#     Note: StatCan Table 36-10-0595-01 Jobs multipliers for IO reference year 2022
+#     are denominated in Jobs per $1M of 2022 constant basic-price output. Nominal
+#     2024-2026 shocks must be divided by (P_t / P_2022) before job multiplication.
+# ==============================================================================
+
+CONSTANT_2022_PRICE_DEFLATORS: Dict[int, Dict[str, Dict[str, float]]] = {
+    2024: {
+        "Canada": {"all_ag": 0.9177, "111A": 0.7724, "1114A": 1.0594, "112A": 1.1838, "1125": 1.1838, "311_312": 1.1025, "hfce": 1.0635},
+        "Ontario": {"all_ag": 0.9851, "111A": 0.8860, "1114A": 1.0529, "112A": 1.1049, "1125": 1.1049, "311_312": 1.0971, "hfce": 1.0626},
+        "Quebec": {"all_ag": 0.9999, "111A": 0.9121, "1114A": 1.0611, "112A": 1.0577, "1125": 1.0577, "311_312": 1.0989, "hfce": 1.0692},
+        "Alberta": {"all_ag": 0.9767, "111A": 0.7285, "1114A": 1.2046, "112A": 1.3415, "1125": 1.3415, "311_312": 1.1119, "hfce": 1.0628},
+        "Saskatchewan": {"all_ag": 0.7742, "111A": 0.6977, "1114A": 0.8310, "112A": 1.3781, "1125": 1.3781, "311_312": 1.1039, "hfce": 1.0541},
+        "Manitoba": {"all_ag": 0.8403, "111A": 0.7139, "1114A": 1.0538, "112A": 1.1456, "1125": 1.1456, "311_312": 1.1110, "hfce": 1.0465},
+        "British Columbia": {"all_ag": 1.0802, "111A": 1.0389, "1114A": 1.0307, "112A": 1.1154, "1125": 1.1154, "311_312": 1.1060, "hfce": 1.0666},
+        "Nova Scotia": {"all_ag": 1.0537, "111A": 0.9724, "1114A": 1.1139, "112A": 1.0889, "1125": 1.0889, "311_312": 1.1103, "hfce": 1.0644},
+        "New Brunswick": {"all_ag": 1.1227, "111A": 1.1428, "1114A": 1.2042, "112A": 1.1053, "1125": 1.1053, "311_312": 1.1161, "hfce": 1.0584},
+        "Prince Edward Island": {"all_ag": 1.1328, "111A": 1.1399, "1114A": 1.2601, "112A": 1.1252, "1125": 1.1252, "311_312": 1.1061, "hfce": 1.0481},
+        "Newfoundland and Labrador": {"all_ag": 1.0767, "111A": 1.0155, "1114A": 0.9681, "112A": 1.0847, "1125": 1.0847, "311_312": 1.1158, "hfce": 1.0516},
+    },
+    2025: {
+        "Canada": {"all_ag": 0.9575, "111A": 0.7495, "1114A": 1.0863, "112A": 1.3363, "1125": 1.3363, "311_312": 1.1410, "hfce": 1.0856},
+        "Ontario": {"all_ag": 1.0353, "111A": 0.8982, "1114A": 1.0827, "112A": 1.2031, "1125": 1.2031, "311_312": 1.1320, "hfce": 1.0827},
+        "Quebec": {"all_ag": 1.0447, "111A": 0.9295, "1114A": 1.0621, "112A": 1.1187, "1125": 1.1187, "311_312": 1.1350, "hfce": 1.0956},
+        "Alberta": {"all_ag": 1.0525, "111A": 0.6944, "1114A": 1.2342, "112A": 1.5724, "1125": 1.5724, "311_312": 1.1558, "hfce": 1.0835},
+        "Saskatchewan": {"all_ag": 0.7735, "111A": 0.6518, "1114A": 0.8819, "112A": 1.7071, "1125": 1.7071, "311_312": 1.1511, "hfce": 1.0763},
+        "Manitoba": {"all_ag": 0.8728, "111A": 0.6854, "1114A": 1.0643, "112A": 1.3287, "1125": 1.3287, "311_312": 1.1533, "hfce": 1.0745},
+        "British Columbia": {"all_ag": 1.1229, "111A": 1.0312, "1114A": 1.0594, "112A": 1.2073, "1125": 1.2073, "311_312": 1.1489, "hfce": 1.0892},
+        "Nova Scotia": {"all_ag": 1.1420, "111A": 1.1086, "1114A": 1.2253, "112A": 1.1443, "1125": 1.1443, "311_312": 1.1503, "hfce": 1.0862},
+        "New Brunswick": {"all_ag": 1.1930, "111A": 1.2099, "1114A": 1.3693, "112A": 1.1748, "1125": 1.1748, "311_312": 1.1585, "hfce": 1.0760},
+        "Prince Edward Island": {"all_ag": 1.1817, "111A": 1.1693, "1114A": 1.4155, "112A": 1.2146, "1125": 1.2146, "311_312": 1.1422, "hfce": 1.0625},
+        "Newfoundland and Labrador": {"all_ag": 1.0976, "111A": 1.0502, "1114A": 0.9770, "112A": 1.1063, "1125": 1.1063, "311_312": 1.1562, "hfce": 1.0667},
+    },
+}
+
+
+def get_constant_2022_price_deflator(
+    region: str = "Ontario",
+    sector_key: str = "all_ag",
+    nominal_year: int = 2025,
+) -> float:
+    """
+    Return the empirical price index ratio P_{nominal_year} / P_2022 used to deflate
+    current-dollar output or consumption shocks into constant 2022 dollars prior to
+    applying Statistics Canada 2022 Input-Output Jobs per $1M multipliers.
+    Returns 1.0 when `nominal_year <= 2022`.
+    """
+    if int(nominal_year) <= 2022:
+        return 1.0
+    yr_key = 2024 if int(nominal_year) <= 2024 else 2025
+    yr_tbl = CONSTANT_2022_PRICE_DEFLATORS.get(yr_key, CONSTANT_2022_PRICE_DEFLATORS[2025])
+    reg_tbl = yr_tbl.get(str(region), yr_tbl["Canada"])
+    key = str(sector_key) if str(sector_key) in reg_tbl else "all_ag"
+    return max(0.25, float(reg_tbl.get(key, 1.0)))
 
 
 def get_debt_repricing_schedule(region: str = "Ontario", farm_type: str = "All farm types") -> List[float]:

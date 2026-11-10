@@ -48,6 +48,7 @@ from scripts.calibrated_parameters import (
     PRIMARY_AG_DISPOSITION_MATRIX,
     PRIMARY_AG_TARIFF_CONFIG,
     PROVINCIAL_TFP_DECOMPOSITION,
+    get_constant_2022_price_deflator,
     get_debt_amortization_params,
     get_debt_repricing_schedule,
     get_economic_depreciation_rate,
@@ -544,10 +545,11 @@ with st.sidebar:
         index=0,
         key="rad_io_geo_scope",
         help=(
-            "Selects between Row 1 ('All-Provinces', capturing upstream/downstream supply-chain spillovers across Canada) "
-            "and Row 2 ('Within-Province', isolating strictly intra-provincial GDP, employment, wages & tax retention) "
-            "in Statistics Canada Table 36-10-0595-01. Farm-gate solvency (NCI, DSCR, Distress Prob, Statutory BRM) "
-            "remains invariant to regional IO accounting boundaries."
+            "Selects between 'All-Provinces' (capturing upstream backward supply-chain & induced consumer spillovers across Canada) "
+            "and 'Within-Province' (isolating strictly intra-provincial backward supply-chain GDP, employment, wages & tax retention) "
+            "in Statistics Canada Table 36-10-0595-01 (5th CODR dimension: Geographical coverage). Forward downstream NAICS 311/312 "
+            "food & beverage processing linkages are modeled separately via Analysis-by-Parts (ABP). Farm-gate solvency "
+            "(NCI, DSCR, Distress Prob, Statutory BRM) remains strictly invariant to regional IO accounting boundaries."
         ),
     )
     if region == "Canada":
@@ -796,15 +798,20 @@ base_output_dollars = float(
 primary_join_code = (
     "1114A"
     if "1114" in farm_type
-    else ("112A" if "112" in farm_type else ("111A" if "111" in farm_type else None))
+    else (
+        "1125"
+        if "1125" in farm_type
+        else ("112A" if "112" in farm_type else ("111A" if "111" in farm_type else None))
+    )
 )
 
-if primary_join_code in ("111A", "1114A", "112A"):
+if primary_join_code in ("111A", "1114A", "112A", "1125"):
     sub_mults = load_subsector_io_multipliers(io_df, region=region, year=target_io_year, geo_scope=io_geo_scope)
     fallback_mults = {
         "111A": {"output": 1.6420, "gdp": 0.7780, "jobs": 5.1380, "wages": 0.2530},
         "1114A": {"output": 1.5530, "gdp": 0.7700, "jobs": 10.0850, "wages": 0.4600},
         "112A": {"output": 2.2720, "gdp": 0.7760, "jobs": 7.3550, "wages": 0.3380},
+        "1125": {"output": 1.8000, "gdp": 0.4500, "jobs": 4.5000, "wages": 0.2200},
     }
     m_unit = sub_mults.get(primary_join_code, fallback_mults[primary_join_code])
     gdp_coeff = float(m_unit["gdp"])
@@ -834,6 +841,11 @@ else:
         on_farm_margin_coeff = gdp_coeff
 
 gdp_retention_pct = (gdp_coeff / max(on_farm_margin_coeff, 1e-9)) * 100.0
+nominal_shock_year = 2025
+primary_deflator_2022 = get_constant_2022_price_deflator(
+    region=region, sector_key=primary_join_code or "all_ag", nominal_year=nominal_shock_year
+)
+jobs_mult_eff_per_m = jobs_mult_per_m / primary_deflator_2022
 
 # Dynamic provincial GDP margin calibration (Fixes Gap #8A — replaces hardcoded 0.30)
 base_gdp_dollars = base_output_dollars * gdp_coeff
@@ -1054,7 +1066,7 @@ yr1_primary_delta_gdp = float(yr1_row["Direct_GDP"]) - float(base_yr1_row["Direc
 yr1_nci_delta = float(yr1_row["Net_Cash_Income"]) - float(base_yr1_row["Net_Cash_Income"])
 yr1_hh_induced_gdp_m = float(yr1_row["Induced_HH_GDP_Delta_M"]) - float(base_yr1_row["Induced_HH_GDP_Delta_M"])
 yr1_hh_induced_jobs = float(yr1_row["Induced_HH_Jobs_Delta"]) - float(base_yr1_row["Induced_HH_Jobs_Delta"])
-yr1_primary_delta_jobs = ((yr1_primary_delta_output / 1e6) * jobs_mult_per_m) + yr1_hh_induced_jobs
+yr1_primary_delta_jobs = ((yr1_primary_delta_output / 1e6) * jobs_mult_eff_per_m) + yr1_hh_induced_jobs
 yr1_primary_delta_wages = yr1_primary_delta_output * wages_coeff
 
 yr1_trend_primary_output_m = (float(base_yr1_row["Gross_Output"]) - base_output_dollars) / 1e6
@@ -1209,9 +1221,9 @@ if scen_a_cfg is not None:
     if scen_a_geo_scope == io_geo_scope:
         base_gdp_dollars_a = base_gdp_dollars
         df_base_dyn_a = df_base_dyn
-        jobs_mult_per_m_a = jobs_mult_per_m
+        jobs_mult_eff_per_m_a = jobs_mult_eff_per_m
     else:
-        if primary_join_code in ("111A", "1114A", "112A"):
+        if primary_join_code in ("111A", "1114A", "112A", "1125"):
             sub_mults_a = load_subsector_io_multipliers(io_df, region=region, year=target_io_year, geo_scope=scen_a_geo_scope)
             m_unit_a = sub_mults_a.get(primary_join_code, fallback_mults[primary_join_code])
             gdp_coeff_a = float(m_unit_a["gdp"])
@@ -1222,6 +1234,7 @@ if scen_a_cfg is not None:
             )
             gdp_coeff_a = float(unit_basket_a.get("gdp", 0.52))
             jobs_mult_per_m_a = float(unit_basket_a.get("jobs", 6.2e-6)) * 1e6
+        jobs_mult_eff_per_m_a = jobs_mult_per_m_a / primary_deflator_2022
         base_gdp_dollars_a = base_output_dollars * gdp_coeff_a
         df_base_dyn_a = run_dynamic_projection(
             horizon=horizon,
@@ -1394,21 +1407,49 @@ if scen_a_cfg is not None:
         abp_yrN_a=abp_yrN_a,
         abp_yr1_b=abp_res,
         abp_yrN_b=abp_res_yrN,
-        jobs_mult_per_m=jobs_mult_per_m,
+        jobs_mult_per_m=jobs_mult_eff_per_m,
         include_proc_a=bool(scen_a_cfg.get("include_proc", True)),
         include_proc_b=include_processing,
         brm_adhoc_m_a=float(scen_a_cfg.get("brm_m", 0.0)),
         brm_adhoc_m_b=brm_subsidy_m,
         df_base_dyn_a=df_base_dyn_a,
-        jobs_mult_per_m_a=jobs_mult_per_m_a,
+        jobs_mult_per_m_a=jobs_mult_eff_per_m_a,
     )
 
-# Factor-by-Factor Attribution using Deep Research Output #5 & #6 Duality, ABP & Repricing Equations
+# Factor-by-Factor Attribution using CSNA HFCE Bridge, Source/Regime MPCs, Duality, ABP & Repricing Equations
 hh_scoped = get_scoped_household_mpc_multipliers(
     io_df=io_df, region=region, year=target_io_year, geo_scope=io_geo_scope
 )
-eff_hh_gdp_sr = float(hh_scoped["eff_induced_gdp_per_dollar_nci_sr"])
-eff_hh_fte_sr = float(hh_scoped["eff_induced_fte_per_million_nci_sr"])
+yr1_auto_brm_cash_m = float(yr1_row.get("Auto_BRM_Cash_M", 0.0))
+yr1_auto_brm_ent_m = float(yr1_row.get("Auto_BRM_Entitlement_M", 0.0))
+yr1_auto_brm_lag_m = max(0.0, yr1_auto_brm_ent_m - yr1_auto_brm_cash_m)
+yr1_eff_beta_brm_pct = float(yr1_row.get("Effective_Beta_BRM_Pct", 0.0))
+yr1_brm_tier = str(yr1_row.get("BRM_Severity_Tier", "none"))
+total_yr1_brm_cash_m = brm_subsidy_m + yr1_auto_brm_cash_m
+
+yr1_mkt_nci_delta = yr1_nci_delta - (yr1_auto_brm_cash_m * 1e6) - brm_offset_dollars
+is_yr1_mkt_distress = (
+    float(yr1_row["DSCR"]) < float(debt_amort_cfg["dscr_distress_trigger"])
+    and yr1_mkt_nci_delta < 0.0
+)
+mpc_mkt_yr1 = float(
+    hh_scoped["mpc_mkt_distress_sr"] if is_yr1_mkt_distress else hh_scoped["mpc_mkt_normal_sr"]
+)
+mpc_stat_yr1 = float(hh_scoped["mpc_stat_brm_sr"])
+mpc_adhoc_yr1 = float(hh_scoped["mpc_adhoc_brm_sr"])
+hh_gdp_mult_yr1 = float(hh_scoped["gdp_basic_prices_mult"])
+hfce_deflator_2022 = get_constant_2022_price_deflator(
+    region=region, sector_key="hfce", nominal_year=nominal_shock_year
+)
+hh_jobs_mult_eff_yr1 = float(hh_scoped["jobs_per_million_consumption_2022"]) / hfce_deflator_2022
+
+eff_hh_gdp_mkt = mpc_mkt_yr1 * hh_gdp_mult_yr1
+eff_hh_jobs_mkt = mpc_mkt_yr1 * hh_jobs_mult_eff_yr1
+eff_hh_gdp_stat = mpc_stat_yr1 * hh_gdp_mult_yr1
+eff_hh_jobs_stat = mpc_stat_yr1 * hh_jobs_mult_eff_yr1
+eff_hh_gdp_adhoc = mpc_adhoc_yr1 * hh_gdp_mult_yr1
+eff_hh_jobs_adhoc = mpc_adhoc_yr1 * hh_jobs_mult_eff_yr1
+
 inp_elasts = hotelling_prof["inputs"]
 sector_yr1_margin_share = float(hotelling_prof["yr1_margin_share"])
 
@@ -1456,12 +1497,12 @@ def _build_input_factor_row(
     nci_delta_d = (phys_out_d * on_farm_margin_coeff) - margin_comp_d
     # For intermediate inputs, margin compression reduces Value-Added GDP directly;
     # for Hired Labour (CSNA Primary Income), wages reduce NCI but only affect VA GDP via physical output + induced HH
-    va_gdp_d = (phys_out_d * gdp_coeff) - (0.0 if is_labor else margin_comp_d) + (nci_delta_d * eff_hh_gdp_sr)
+    va_gdp_d = (phys_out_d * gdp_coeff) - (0.0 if is_labor else margin_comp_d) + (nci_delta_d * eff_hh_gdp_mkt)
     int_cost_for_abp_m = 0.0 if is_labor else (cost_dollars / 1e6)
     proc_out_m = ((phys_out_d / 1e6) * proc_out_per_m_supply) + (int_cost_for_abp_m * proc_out_per_m_cost)
     proc_gdp_m = ((phys_out_d / 1e6) * proc_gdp_per_m_supply) + (int_cost_for_abp_m * proc_gdp_per_m_cost)
     proc_jobs = ((phys_out_d / 1e6) * proc_jobs_per_m_supply) + (int_cost_for_abp_m * proc_jobs_per_m_cost)
-    jobs_d = ((phys_out_d / 1e6) * jobs_mult_per_m) + proc_jobs + ((nci_delta_d / 1e6) * eff_hh_fte_sr)
+    jobs_d = ((phys_out_d / 1e6) * jobs_mult_eff_per_m) + proc_jobs + ((nci_delta_d / 1e6) * eff_hh_jobs_mkt)
     return {
         "Shock Factor": label,
         "Slider Setting": setting,
@@ -1469,7 +1510,7 @@ def _build_input_factor_row(
         "Yr 1 Physical Ag Output ($M)": phys_out_d / 1e6,
         "Downstream Proc ABP Output ($M)": proc_out_m,
         "Yr 1 Value-Added GDP ($M)": (va_gdp_d / 1e6) + proc_gdp_m,
-        "Employment Impact (FTEs)": jobs_d,
+        "Employment Impact (Jobs)": jobs_d,
         "Economic Transmission Mechanism": (
             f"Hotelling ε_SR={eps_sr:.3f} ({m_share*100:.1f}% Yr-1 Margin Compression / {(1-m_share)*100:.1f}% Physical Output)"
         ),
@@ -1492,12 +1533,12 @@ if abs(shock_ir_bps) > 1e-4:
     eff_yr1_bps = shock_ir_bps * yr1_theta
     ir_phys_out_d = base_output_dollars * (-0.0015) * (eff_yr1_bps / 100.0)
     ir_nci_d = (ir_phys_out_d * on_farm_margin_coeff) - cost_shock_int_yr1
-    ir_hh_gdp_d = ir_nci_d * eff_hh_gdp_sr
+    ir_hh_gdp_d = ir_nci_d * eff_hh_gdp_mkt
     ir_va_gdp_d = (ir_phys_out_d * gdp_coeff) + ir_hh_gdp_d
     ir_proc_out_m = (ir_phys_out_d / 1e6) * proc_out_per_m_supply
     ir_proc_gdp_m = (ir_phys_out_d / 1e6) * proc_gdp_per_m_supply
     ir_proc_jobs = (ir_phys_out_d / 1e6) * proc_jobs_per_m_supply
-    ir_jobs_d = ((ir_phys_out_d / 1e6) * jobs_mult_per_m) + ir_proc_jobs + ((ir_nci_d / 1e6) * eff_hh_fte_sr)
+    ir_jobs_d = ((ir_phys_out_d / 1e6) * jobs_mult_eff_per_m) + ir_proc_jobs + ((ir_nci_d / 1e6) * eff_hh_jobs_mkt)
     factor_attribution_rows.append({
         "Shock Factor": "🏦 Farm Debt Carrying Cost (Interest Rate)",
         "Slider Setting": f"{shock_ir_bps:+.0f} bps (Yr 1 Eff: {eff_yr1_bps:+.1f} bps on θ_yr1={yr1_theta*100:.0f}%)",
@@ -1505,9 +1546,9 @@ if abs(shock_ir_bps) > 1e-4:
         "Yr 1 Physical Ag Output ($M)": ir_phys_out_d / 1e6,
         "Downstream Proc ABP Output ($M)": ir_proc_out_m,
         "Yr 1 Value-Added GDP ($M)": (ir_va_gdp_d / 1e6) + ir_proc_gdp_m,
-        "Employment Impact (FTEs)": ir_jobs_d,
+        "Employment Impact (Jobs)": ir_jobs_d,
         "Economic Transmission Mechanism": (
-            f"θ_yr1={yr1_theta*100:.0f}% Debt Repriced in Yr 1 ({-cost_shock_int_yr1/1e6:+,.1f}M vs. {-cost_shock_int_full/1e6:+,.1f}M Yr 5) + MPC_SR=0.12 + Yr 2–10 CapEx Crowd-Out"
+            f"θ_yr1={yr1_theta*100:.0f}% Debt Repriced in Yr 1 ({-cost_shock_int_yr1/1e6:+,.1f}M vs. {-cost_shock_int_full/1e6:+,.1f}M Yr 5) + MPC_SR={mpc_mkt_yr1:.3f} + Yr 2–10 CapEx Crowd-Out"
         ),
     })
 
@@ -1515,12 +1556,14 @@ if abs(shock_ir_bps) > 1e-4:
 # Note: Year-1 CapEx changes K_next (Year 2 capital stock); Year-1 TFP drift deviation scales Y_1
 yr1_tfp_dev_out_d = base_output_dollars * ((tfp_growth_pct - default_tfp) / 100.0) if abs(tfp_growth_pct - default_tfp) > 1e-4 else 0.0
 
-for f_lbl, f_set, f_out_d, f_extra_nci_d, f_mech in [
+for f_lbl, f_set, f_out_d, f_extra_nci_d, f_hh_gdp_mult_i, f_hh_jobs_mult_i, f_mech in [
     (
         f"🛡️ U.S. Section 338 Tariff ({tariff_commodity})",
         f"{tariff_pct:.1f}% tariff (-{price_shock_info['effective_price_drop_pct']:.2f}% eff. price)",
         yr1_tariff_shock_dollars,
         yr1_tariff_price_margin_dollars,
+        eff_hh_gdp_mkt,
+        eff_hh_jobs_mkt,
         f"Envelope Price Drop (-{price_shock_info['effective_price_drop_pct']:.2f}%) + Nerlove ε_SR={active_tariff_params['e_sr']:.2f} → ε_LR={active_tariff_params['e_lr']:.2f}",
     ),
     (
@@ -1528,6 +1571,8 @@ for f_lbl, f_set, f_out_d, f_extra_nci_d, f_mech in [
         f"{direct_rev_shock_pct:+.1f}%",
         direct_mkt_shock_dollars,
         0.0,
+        eff_hh_gdp_mkt,
+        eff_hh_jobs_mkt,
         "Direct farm-gate revenue & supply shock",
     ),
     (
@@ -1535,6 +1580,8 @@ for f_lbl, f_set, f_out_d, f_extra_nci_d, f_mech in [
         f"{tfp_growth_pct - default_tfp:+.2f}% vs. {default_tfp:.2f}% base",
         yr1_tfp_dev_out_d,
         0.0,
+        eff_hh_gdp_mkt,
+        eff_hh_jobs_mkt,
         "KLEMS Hicks-neutral productivity shift",
     ),
     (
@@ -1542,17 +1589,19 @@ for f_lbl, f_set, f_out_d, f_extra_nci_d, f_mech in [
         f"+${brm_subsidy_m:,.0f}M payment",
         0.0,
         brm_offset_dollars,
-        "CSNA Direct Cash Transfer to NCI (100% Margin Relief + MPC_SR=0.12 + Yr 2–10 CapEx Stabilization)",
+        eff_hh_gdp_adhoc,
+        eff_hh_jobs_adhoc,
+        "CSNA Direct Cash Transfer to NCI (100% Margin Relief + MPC_AdHoc_SR=0.220 + Yr 2–10 CapEx Stabilization)",
     ),
 ]:
     if abs(f_out_d) < 1e3 and abs(f_extra_nci_d) < 1e3:
         continue
     f_nci_d = (f_out_d * on_farm_margin_coeff) + f_extra_nci_d
-    f_va_gdp_d = (f_out_d * gdp_coeff) + (f_nci_d * eff_hh_gdp_sr)
+    f_va_gdp_d = (f_out_d * gdp_coeff) + (f_nci_d * f_hh_gdp_mult_i)
     f_proc_out_m = (f_out_d / 1e6) * proc_out_per_m_supply
     f_proc_gdp_m = (f_out_d / 1e6) * proc_gdp_per_m_supply
     f_proc_jobs = (f_out_d / 1e6) * proc_jobs_per_m_supply
-    f_jobs_d = ((f_out_d / 1e6) * jobs_mult_per_m) + f_proc_jobs + ((f_nci_d / 1e6) * eff_hh_fte_sr)
+    f_jobs_d = ((f_out_d / 1e6) * jobs_mult_eff_per_m) + f_proc_jobs + ((f_nci_d / 1e6) * f_hh_jobs_mult_i)
     factor_attribution_rows.append({
         "Shock Factor": f_lbl,
         "Slider Setting": f_set,
@@ -1560,23 +1609,16 @@ for f_lbl, f_set, f_out_d, f_extra_nci_d, f_mech in [
         "Yr 1 Physical Ag Output ($M)": f_out_d / 1e6,
         "Downstream Proc ABP Output ($M)": f_proc_out_m,
         "Yr 1 Value-Added GDP ($M)": (f_va_gdp_d / 1e6) + f_proc_gdp_m,
-        "Employment Impact (FTEs)": f_jobs_d,
+        "Employment Impact (Jobs)": f_jobs_d,
         "Economic Transmission Mechanism": f_mech,
     })
-
-yr1_auto_brm_cash_m = float(yr1_row.get("Auto_BRM_Cash_M", 0.0))
-yr1_auto_brm_ent_m = float(yr1_row.get("Auto_BRM_Entitlement_M", 0.0))
-yr1_auto_brm_lag_m = max(0.0, yr1_auto_brm_ent_m - yr1_auto_brm_cash_m)
-yr1_eff_beta_brm_pct = float(yr1_row.get("Effective_Beta_BRM_Pct", 0.0))
-yr1_brm_tier = str(yr1_row.get("BRM_Severity_Tier", "none"))
-total_yr1_brm_cash_m = brm_subsidy_m + yr1_auto_brm_cash_m
 
 if auto_brm_toggle:
     regime_short = "80% SCAP + RMP" if brm_regime == "statutory_scap_80pct" else "90% Enhanced + RMP"
     if yr1_auto_brm_cash_m > 1e-3:
         auto_brm_d = yr1_auto_brm_cash_m * 1e6
-        auto_brm_gdp_d = auto_brm_d * eff_hh_gdp_sr
-        auto_brm_jobs_d = yr1_auto_brm_cash_m * eff_hh_fte_sr
+        auto_brm_gdp_d = auto_brm_d * eff_hh_gdp_stat
+        auto_brm_jobs_d = yr1_auto_brm_cash_m * eff_hh_jobs_stat
         factor_attribution_rows.append({
             "Shock Factor": "🏛️ Statutory BRM Auto-Stabilizer (AgriStability + ON RMP)",
             "Slider Setting": f"{regime_short} (β_BRM={yr1_eff_beta_brm_pct:.1f}%)",
@@ -1584,10 +1626,10 @@ if auto_brm_toggle:
             "Yr 1 Physical Ag Output ($M)": 0.0,
             "Downstream Proc ABP Output ($M)": 0.0,
             "Yr 1 Value-Added GDP ($M)": auto_brm_gdp_d / 1e6,
-            "Employment Impact (FTEs)": auto_brm_jobs_d,
+            "Employment Impact (Jobs)": auto_brm_jobs_d,
             "Economic Transmission Mechanism": (
                 f"Yr 1 Entitlement +${yr1_auto_brm_ent_m:,.1f}M → +${yr1_auto_brm_cash_m:,.1f}M Yr 1 Cash + "
-                f"+${yr1_auto_brm_lag_m:,.1f}M Yr 2 Tax-Filing Settlement (λ_allow=0.78, λ_interest=0.0)"
+                f"+${yr1_auto_brm_lag_m:,.1f}M Yr 2 Tax-Filing Settlement (MPC_Stat_SR=0.062, λ_allow=0.78, λ_interest=0.0)"
             ),
         })
     elif abs(shock_ir_bps) > 1e-4:
@@ -1598,7 +1640,7 @@ if auto_brm_toggle:
             "Yr 1 Physical Ag Output ($M)": 0.0,
             "Downstream Proc ABP Output ($M)": 0.0,
             "Yr 1 Value-Added GDP ($M)": 0.0,
-            "Employment Impact (FTEs)": 0.0,
+            "Employment Impact (Jobs)": 0.0,
             "Economic Transmission Mechanism": (
                 "Statutory Rule: Debt interest expenses are 100% non-allowable under AgriStability (λ_interest = 0.0) → $0.00M payout"
             ),
@@ -1613,7 +1655,7 @@ if abs(shock_capex_pct) > 1e-4:
         "Yr 1 Physical Ag Output ($M)": 0.0,
         "Downstream Proc ABP Output ($M)": 0.0,
         "Yr 1 Value-Added GDP ($M)": 0.0,
-        "Employment Impact (FTEs)": 0.0,
+        "Employment Impact (Jobs)": 0.0,
         "Economic Transmission Mechanism": (
             f"Jorgenson Capital Gestation: Yr-1 CapEx shock ({capex_yr2_k_delta_m:+,.1f}M) enters K_2..K_10 (ICOR={icor_cfg['icor']})"
         ),
@@ -1683,9 +1725,9 @@ with k3:
         <div class="kpi-card">
             <div class="kpi-label">Year 1 Employment Shock</div>
             <div class="kpi-val" style="color: {'#64748b' if abs(combined_yr1_jobs_impact) < 0.5 else ('#16a34a' if combined_yr1_jobs_impact > 0 else '#dc2626')};">
-                {combined_yr1_jobs_impact:+,.0f} FTEs
+                {combined_yr1_jobs_impact:+,.0f} Jobs
             </div>
-            <div class="kpi-sub">Supply Chain + HH Induced ({yr1_hh_induced_jobs:+,.0f} FTEs)</div>
+            <div class="kpi-sub">Supply Chain + HH Induced ({yr1_hh_induced_jobs:+,.0f} Jobs, 2022$ deflated)</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -1797,7 +1839,7 @@ if factor_attribution_rows:
                 "Yr 1 Physical Ag Output ($M)": float(df_attr_chart["Yr 1 Physical Ag Output ($M)"].sum()),
                 "Downstream Proc ABP Output ($M)": float(df_attr_chart["Downstream Proc ABP Output ($M)"].sum()),
                 "Yr 1 Value-Added GDP ($M)": float(df_attr_chart["Yr 1 Value-Added GDP ($M)"].sum()),
-                "Employment Impact (FTEs)": float(df_attr_chart["Employment Impact (FTEs)"].sum()),
+                "Employment Impact (Jobs)": float(df_attr_chart["Employment Impact (Jobs)"].sum()),
                 "Economic Transmission Mechanism": (
                     f"Combined Primary + ABP Output = {float(df_attr_chart['Yr 1 Physical Ag Output ($M)'].sum() + df_attr_chart['Downstream Proc ABP Output ($M)'].sum()):+,.1f} $M"
                 ),
@@ -1812,7 +1854,7 @@ if factor_attribution_rows:
                     "Yr 1 Physical Ag Output ($M)": "{:+,.2f} $M",
                     "Downstream Proc ABP Output ($M)": "{:+,.2f} $M",
                     "Yr 1 Value-Added GDP ($M)": "{:+,.2f} $M",
-                    "Employment Impact (FTEs)": "{:+,.0f}",
+                    "Employment Impact (Jobs)": "{:+,.0f}",
                 }),
                 width="stretch",
                 hide_index=True,
@@ -1866,7 +1908,7 @@ with tab1:
     st.caption(
         f"🌐 **Active StatCan `36-10-0595-01` IO Geographical Scope:** **{hero_io_scope_lbl}** | "
         f"Primary Output Multiplier = **`{out_mult:.3f}`** | Value-Added GDP Multiplier = **`{gdp_coeff:.3f}`** | "
-        f"Employment = **`{jobs_mult_per_m:.2f}` FTEs / \\$1M** | "
+        f"Employment = **`{jobs_mult_per_m:.2f}` Jobs / \\$1M (`2022$`)** (`{jobs_mult_eff_per_m:.2f}` Jobs / \\$1M nominal) | "
         f"Own-Border GDP Retention = **`{gdp_retention_pct:.1f}%`** of All-Provinces footprint."
     )
 
@@ -1941,8 +1983,8 @@ with tab1:
             f"""
             **Analysis-by-Parts (ABP) Non-Double-Counting Summary ({'ACTIVE' if include_processing else 'INACTIVE'}):**
             - **Farm Output Sold to Domestic Processors ($s_{{\\text{{proc}}}} = {abp_res['s_proc']*100:.1f}\\%$):** `${abp_res['farm_to_proc_flow_m']:+,.1f}M`
-            - **ABP Netted Downstream GDP Impact (`NAICS 311/312`):** `${abp_res['proc_net_gdp_m']:+,.1f}M` (`{abp_res['proc_net_jobs']:+,.0f}` FTEs)
-            - **Double-Counted Upstream Farm GDP Removed via $a_{{\\text{{farm, proc}}}}^{{\\text{{dom}}}}$:** `${abp_res['double_counted_farm_gdp_removed_m']:+,.1f}M`
+            - **ABP Netted Downstream GDP Impact (`NAICS 311/312`):** `${abp_res['proc_net_gdp_m']:+,.1f}M` (`{abp_res['proc_net_jobs']:+,.0f}` Jobs)
+            - **Double-Counted Upstream Farm GDP Removed via $a_{{\\text{{farm, proc}}}}^{{\\text{{scoped}}}}$:** `${abp_res['double_counted_farm_gdp_removed_m']:+,.1f}M`
             """
         )
 
@@ -1961,7 +2003,7 @@ with tab1:
                 "Direct Processor Shock ($M)": "{:+,.2f}",
                 "ABP Net Output Impact ($M)": "{:+,.2f}",
                 "ABP Net GDP Impact ($M)": "{:+,.2f}",
-                "ABP Net Jobs (FTEs)": "{:+,.0f}",
+                "ABP Net Jobs": "{:+,.0f}",
                 "ABP Net Wages ($M)": "{:+,.2f}",
                 "Upstream Farm GDP Netted Out ($M)": "{:+,.2f}",
             }),

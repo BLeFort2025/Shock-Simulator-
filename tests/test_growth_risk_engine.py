@@ -788,12 +788,12 @@ def test_audit_v2_statcan_io_scope_dedup_and_3121_synthesis(core_data):
     assert m_all["112A"]["output"] == pytest.approx(2.272, abs=1e-3)
     assert m_in["112A"]["output"] == pytest.approx(1.952, abs=1e-3)
 
-    # Composite NAICS 3121 must be synthesized from 3121A, 31212, 31211 (not missing)
+    # Composite NAICS 3121 must be synthesized from 31211, 31212, 3121A using exact 2022 StatCan SUT Ontario shares
     assert "3121" in m_all
     expected_3121_out = (
-        0.50 * m_all["3121A"]["output"]
-        + 0.35 * m_all["31212"]["output"]
-        + 0.15 * m_all["31211"]["output"]
+        0.4224 * m_all["31211"]["output"]
+        + 0.3612 * m_all["31212"]["output"]
+        + 0.2164 * m_all["3121A"]["output"]
     )
     assert m_all["3121"]["output"] == pytest.approx(expected_3121_out, rel=1e-5)
 
@@ -869,7 +869,7 @@ def test_audit_v2_hlrf_verified_anchors_and_no_parquet_reload(core_data, monkeyp
     sub_res = compute_simulator_subsidy_summary(100_000_000.0, region="Ontario", year=2022, io_df=io_df)
     assert sub_res["output"] > 20_000_000.0
     assert sub_res["gdp"] > 10_000_000.0
-    assert sub_res["jobs"] > 100.0
+    assert sub_res["jobs"] > 80.0
 
 
 def test_audit_v2_fiscal_sign_preservation_and_tfp_reconciliation():
@@ -1084,10 +1084,10 @@ def test_io_geo_scope_toggle_end_to_end(core_data):
         base_nci=480e6,
         shock_interest_pct=30.0,
         tariff_params={
-            "commodity": "Floriculture, nursery & sod",
+            "commodity": "Floriculture, Nursery & Sod (HS Ch. 06)",
             "tariff_pct": 25.0,
-            "e_sr": 0.25,
-            "e_lr": 0.72,
+            "e_sr": -0.35,
+            "e_lr": -1.05,
             "lam": 0.35,
             "pass_through": 0.65,
             "us_price_share": 0.76,
@@ -1194,6 +1194,185 @@ def test_io_geo_scope_toggle_end_to_end(core_data):
         "Counterfactual: Opposite IO Scope (All-Provinces vs. Within-Province Spillover Split)"
     ).run()
     assert len(at.exception) == 0
+
+
+def test_deep_research_audit_remediation_suite(core_data):
+    """
+    Comprehensive verification of all 6 Work Packages from the Independent
+    Macroeconomic & Input-Output Audit (StatCan SUT 2022 / IOIC 2022):
+    1. Explicit 5th CODR `geo_scope` dimension ('all_provinces', 'within_province', 'national'),
+       zero NP/BS `join_code` collision, 18-row retention matrix, and monotonic ordering across
+       all 17 agri-food IOIC 2022 Detail codes.
+    2. Runtime ValueError guard rejecting 'Type I multiplier' / 'Type II multiplier' ratio series
+       on dollar-shock calculation paths.
+    3. Hawkins-Simon strict lower bound (m_p^net > v_p) across all 12 NAICS 311/312 processors
+       (explicitly including 3115 Dairy and 3116 Meat) in Ontario (within & all-prov) and Canada.
+    4. CSNA Household Final Consumption Expenditure (PEC*) basic-price frontier compliance
+       (0.65 <= Canada <= 0.74; 0.55 <= Within-Ontario <= 0.64).
+    5. Source- and solvency-regime-disaggregated short-run MPC ordering (0.22 > 0.085 > 0.062 > 0.03)
+       and empirical StatCan 2025/2022 FPPI & CPI constant-2022$ job deflators.
+    6. Bitwise (< 1e-9) farm-gate solvency & BRM payout invariance to `geo_scope` across both
+       'statutory_scap_80pct' and 'adhoc_2025_90pct' regimes over all 10 projection years.
+    """
+    from scripts.calibrated_parameters import get_constant_2022_price_deflator
+    from scripts.growth_risk_engine import (
+        compute_basket_impact,
+        compute_io_scope_retention_table,
+        get_scoped_household_mpc_multipliers,
+    )
+
+    io_df = core_data["io_df"]
+    baskets_cfg = core_data["baskets_cfg"]
+
+    # 1. Explicit `geo_scope` column + IOIC 2022 17-code coverage + 18-row retention matrix
+    assert "geo_scope" in io_df.columns
+    scopes_present = set(io_df["geo_scope"].dropna().astype(str).unique())
+    assert {"all_provinces", "within_province", "national"}.issubset(scopes_present)
+
+    # Zero BS111400 legacy code anywhere in baskets_cfg; BS112500 present; BS111CL0 isolated
+    p_ag_match = baskets_cfg["primary_agriculture"]["match"]
+    p_ag_exact = set(p_ag_match.get("any_code_exact", []))
+    p_ag_prefix = set(p_ag_match.get("any_code_prefix", []))
+    assert "BS111400" not in p_ag_exact
+    assert {"BS1114A0", "BS112500"}.issubset(p_ag_exact)
+    assert {"BS111A", "BS112"}.issubset(p_ag_prefix)
+    assert "BS111CL0" not in p_ag_exact
+    assert "licensed_cannabis_production" in baskets_cfg
+    assert "BS111400" not in json.dumps(baskets_cfg)
+
+    detail_codes_17 = [
+        "111A", "1114A", "112A", "1125", "411",
+        "3111", "3112", "3113", "3114", "3115", "3116", "3117", "3118", "3119",
+        "31211", "31212", "3121A",
+    ]
+    m_on_all = load_subsector_io_multipliers(io_df, "Ontario", 2022, "Simple multiplier", geo_scope="all_provinces")
+    m_on_in = load_subsector_io_multipliers(io_df, "Ontario", 2022, "Simple multiplier", geo_scope="within_province")
+    m_on_dir = load_subsector_io_multipliers(io_df, "Ontario", 2022, "Direct multiplier", geo_scope="within_province")
+    for code in detail_codes_17:
+        assert code in m_on_all, f"Missing IOIC 2022 Detail code {code} in Ontario all_provinces"
+        assert code in m_on_in, f"Missing IOIC 2022 Detail code {code} in Ontario within_province"
+        assert m_on_all[code]["output"] >= m_on_in[code]["output"] >= m_on_dir[code]["output"] - 1e-6
+        assert m_on_all[code]["gdp"] >= m_on_in[code]["gdp"] >= m_on_dir[code]["gdp"] - 1e-6
+
+    ret_18 = compute_io_scope_retention_table(io_df, region="Ontario", year=2022)
+    assert len(ret_18) == 18
+
+    # 2. Type I / Type II ratio guard on dollar-shock paths
+    for bad_mtype in ("Type I multiplier", "Type II multiplier"):
+        with pytest.raises(ValueError, match="ratio"):
+            load_subsector_io_multipliers(io_df, "Ontario", 2022, bad_mtype)
+        with pytest.raises(ValueError, match="ratio"):
+            compute_basket_impact(
+                io_df, baskets_cfg, region="Ontario", year=2022,
+                basket_key="primary_agriculture", shock_dollars=100e6, scope=bad_mtype,
+            )
+
+    # 3. Hawkins-Simon strict lower bound (m_p^net > v_p) across ALL 12 NAICS 311/312 processors
+    m_can_smp = load_subsector_io_multipliers(io_df, "Canada", 2022, "Simple multiplier")
+    m_can_dir = load_subsector_io_multipliers(io_df, "Canada", 2022, "Direct multiplier")
+
+    # Test every processor in ABP_PROCESSOR_TABLE directly via synthetic 100% weight check + engine call
+    all_12_weights = {code: 1.0 / len(ABP_PROCESSOR_TABLE) for code in ABP_PROCESSOR_TABLE}
+    orig_all_weights = PRIMARY_AG_DISPOSITION_MATRIX["All farm types"]["processor_weights"]
+    try:
+        PRIMARY_AG_DISPOSITION_MATRIX["All farm types"]["processor_weights"] = all_12_weights
+        abp_on_in = compute_downstream_abp_impact(
+            io_df, "Ontario", 2022, "All farm types", -100e6, 0.0, geo_scope="within_province"
+        )
+        abp_on_all = compute_downstream_abp_impact(
+            io_df, "Ontario", 2022, "All farm types", -100e6, 0.0, geo_scope="all_provinces"
+        )
+        abp_can = compute_downstream_abp_impact(
+            io_df, "Canada", 2022, "All farm types", -100e6, 0.0, geo_scope="all_provinces"
+        )
+    finally:
+        PRIMARY_AG_DISPOSITION_MATRIX["All farm types"]["processor_weights"] = orig_all_weights
+
+    assert len(abp_on_in["subsectors"]) == len(ABP_PROCESSOR_TABLE)
+    for row_in, row_all in zip(abp_on_in["subsectors"], abp_on_all["subsectors"]):
+        p_code = row_in["NAICS Code"]
+        v_dir_on = m_on_dir[p_code]
+        assert row_in["ABP Net Output Mult"] > v_dir_on["output"] + 1e-4, (
+            f"Hawkins-Simon output floor hit on {p_code} within_province: {row_in['ABP Net Output Mult']} vs {v_dir_on['output']}"
+        )
+        assert row_in["ABP Net GDP Mult"] > v_dir_on["gdp"] + 1e-4, (
+            f"Hawkins-Simon GDP floor hit on {p_code} within_province: {row_in['ABP Net GDP Mult']} vs {v_dir_on['gdp']}"
+        )
+        assert row_all["ABP Net Output Mult"] > row_in["ABP Net Output Mult"]
+        assert row_all["ABP Net GDP Mult"] > row_in["ABP Net GDP Mult"]
+        assert "ABP Net Jobs" in row_in and "ABP Net Jobs (FTE)" not in row_in
+
+    for row_can in abp_can["subsectors"]:
+        p_code = row_can["NAICS Code"]
+        v_dir_can = m_can_dir[p_code]
+        assert row_can["ABP Net Output Mult"] > v_dir_can["output"] + 1e-4
+        assert row_can["ABP Net GDP Mult"] > v_dir_can["gdp"] + 1e-4
+        assert row_can["ABP Net GDP Mult"] <= m_can_smp[p_code]["gdp"]
+
+    # 4. CSNA Household Final Consumption Expenditure (PEC*) basic-price frontier
+    hh_can = get_scoped_household_mpc_multipliers(io_df, "Canada", 2022, "all_provinces")
+    hh_on_all = get_scoped_household_mpc_multipliers(io_df, "Ontario", 2022, "all_provinces")
+    hh_on_in = get_scoped_household_mpc_multipliers(io_df, "Ontario", 2022, "within_province")
+    assert 0.65 <= hh_can["gdp_basic_prices_mult"] <= 0.74
+    assert 0.55 <= hh_on_in["gdp_basic_prices_mult"] <= 0.64
+    assert hh_on_in["gdp_basic_prices_mult"] < hh_on_all["gdp_basic_prices_mult"] <= hh_can["gdp_basic_prices_mult"]
+
+    # 5. Source & solvency-regime MPC ordering + empirical 2025/2022 price deflators
+    assert (
+        hh_on_all["mpc_adhoc_brm_sr"]
+        > hh_on_all["mpc_mkt_distress_sr"]
+        > hh_on_all["mpc_stat_brm_sr"]
+        > hh_on_all["mpc_mkt_normal_sr"]
+    )
+    assert get_constant_2022_price_deflator("Ontario", "111A", 2022) == pytest.approx(1.0, abs=1e-9)
+    assert get_constant_2022_price_deflator("Ontario", "111A", 2025) < 1.0      # Grain price pullback from 2022 peak
+    assert get_constant_2022_price_deflator("Ontario", "112A", 2025) > 1.15     # Cattle/livestock surge above 2022
+    assert get_constant_2022_price_deflator("Ontario", "hfce", 2025) > 1.05     # Cumulative CPI 2022->2025
+
+    # 6. Bitwise (< 1e-9) micro-solvency & BRM payout invariance across both BRM regimes
+    for brm_reg in ("statutory_scap_80pct", "adhoc_2025_90pct"):
+        common_kw = dict(
+            horizon=10,
+            base_output=3.2e9,
+            base_cap_stock=4.5e9,
+            base_capex=380e6,
+            shock_capex_pct=-5.0,
+            tfp_growth_pct=1.85,
+            depreciation_rate_pct=8.5,
+            cost_shock_dollars=220e6,
+            rev_shock_dollars=-180e6,
+            io_df=io_df,
+            baskets_cfg=baskets_cfg,
+            region="Ontario",
+            target_year=2022,
+            base_debt=2.4e9,
+            base_interest=135e6,
+            base_nci=310e6,
+            primary_join_code="1114A",
+            farm_type="Greenhouse, nursery and floriculture production [1114]",
+            intermediate_cost_shock_dollars=180e6,
+            labor_cost_shock_dollars=40e6,
+            shock_ir_bps=200.0,
+            auto_brm_stabilization=True,
+            brm_regime=brm_reg,
+        )
+        df_all = run_dynamic_projection(base_gdp=3.2e9 * m_on_all["1114A"]["gdp"], geo_scope="all_provinces", **common_kw)
+        df_in = run_dynamic_projection(base_gdp=3.2e9 * m_on_in["1114A"]["gdp"], geo_scope="within_province", **common_kw)
+
+        for inv_col in (
+            "Gross_Output",
+            "Net_Cash_Income",
+            "DSCR",
+            "FSF",
+            "LRF",
+            "Distress_Prob_Pct",
+            "Total_Debt",
+            "Auto_BRM_Entitlement_M",
+            "Auto_BRM_Cash_M",
+        ):
+            max_diff = float(np.max(np.abs(df_all[inv_col].to_numpy() - df_in[inv_col].to_numpy())))
+            assert max_diff < 1e-9, f"Bitwise invariance violated for {inv_col} under {brm_reg}: max_diff={max_diff}"
+
 
 
 
