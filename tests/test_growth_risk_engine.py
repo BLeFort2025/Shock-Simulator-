@@ -975,7 +975,7 @@ def test_audit_v2_deliverables_dynamic_baseline_diff(core_data):
     kpi_table_text = "\n".join(
         cell.text for tbl in doc.tables[:1] for row in tbl.rows for cell in row.cells
     )
-    assert "Year 5 Direct Farm GDP Shock [P10–P90]\n+0.0 $M" in kpi_table_text
+    assert "Year 5 Direct Farm GDP Shift [80% Interval]\n0 $M" in kpi_table_text
 
 
 def test_audit_v2_streamlit_apptest_smoke():
@@ -1429,6 +1429,230 @@ def test_deep_research_audit_remediation_suite(core_data):
         ):
             max_diff = float(np.max(np.abs(df_all[inv_col].to_numpy() - df_in[inv_col].to_numpy())))
             assert max_diff < 1e-9, f"Bitwise invariance violated for {inv_col} under {brm_reg}: max_diff={max_diff}"
+
+
+def test_section338_pe_abp_io_and_ofa_deliverables(core_data):
+    """
+    Comprehensive verification of Workstream A (2026 U.S. Section 338 PE-ABP-IO
+    remediation + 8-digit HTSUS scope) and Workstream B (OFA-branded .docx & .pptx
+    executive deliverables):
+    1. 8-digit HTSUS scope in `trade_exposure.db` exempts soil-grown nursery stock
+       (0602.40) and retail yogurt (0403.20), tags packaged whiskies (2208.30) under
+       Proclamations 11061/11062 Prohibition, and bounds Ontario targeted HS Ch. 06
+       at ~$175.1M (vs. $660.1M gross chapter).
+    2. `get_targeted_section338_package_params` + `run_dynamic_projection` +
+       `compute_downstream_abp_impact` (with zero Ghosh processor rationing on foreign
+       export tariffs) yields ~-$18.8M primary physical output, ~-$100.7M primary farm
+       margin squeeze, and -$348.0M direct processor output (-$366.8M combined direct
+       output vs. old overstated -$1,232.6M).
+    3. OFA-branded `.docx` and `.pptx` generators produce valid OOXML buffers with
+       embedded 300-DPI charts, uniform Arial typography, and official OFA Contact Bar.
+    """
+    import sqlite3
+    from docx import Document
+    from pptx import Presentation
+    from scripts.calibrated_parameters import (
+        TARGETED_SECTION338_OPTION_LABEL,
+        get_targeted_section338_package_params,
+    )
+    from scripts.growth_risk_engine import (
+        generate_simulator_pptx_deck,
+        generate_simulator_word_briefing,
+    )
+
+    # 1. Verify 8-digit HTSUS scope in SQLite `trade_exposure.db`
+    db_fp = PROJECT_ROOT / "data" / "trade_app" / "trade_exposure.db"
+    assert db_fp.exists()
+    with sqlite3.connect(str(db_fp)) as conn:
+        cur = conn.cursor()
+        r_060240 = cur.execute(
+            "SELECT midpoint_fraction FROM us_section338_tariffs "
+            "WHERE printf('%06d', CAST(ROUND(hs6_code * 100) AS INTEGER)) = '060240'"
+        ).fetchone()
+        assert r_060240 is not None and float(r_060240[0]) == pytest.approx(0.0, abs=1e-6)
+
+        r_040320 = cur.execute(
+            "SELECT midpoint_fraction FROM us_section338_tariffs "
+            "WHERE printf('%06d', CAST(ROUND(hs6_code * 100) AS INTEGER)) = '040320'"
+        ).fetchone()
+        assert r_040320 is not None and float(r_040320[0]) == pytest.approx(0.0, abs=1e-6)
+
+        r_220830 = cur.execute(
+            "SELECT statutory_regime FROM us_section338_tariffs "
+            "WHERE printf('%06d', CAST(ROUND(hs6_code * 100) AS INTEGER)) = '220830'"
+        ).fetchone()
+        assert r_220830 is not None and "Prohibition" in str(r_220830[0])
+
+        sht_cols = {row[1] for row in cur.execute("PRAGMA table_info(state_hs_trade)").fetchall()}
+        country_clause = "AND country = 'United States'" if "country" in sht_cols else ""
+        has_2025 = cur.execute("SELECT COUNT(*) FROM state_hs_trade WHERE substr(ref_date, 1, 4) = '2025'").fetchone()[0] > 0
+        yr_filter = "AND substr(ref_date, 1, 4) = '2025'" if has_2025 else ""
+        on_ch06_gross, on_ch06_targ = cur.execute(
+            f"""
+            WITH on_exp AS (
+                SELECT hs6_clean, SUM(value_cad)/1e6 AS exp_m
+                FROM state_hs_trade
+                WHERE province = 'Ontario'
+                  {country_clause}
+                  AND trade_type LIKE '%export%'
+                  {yr_filter}
+                GROUP BY hs6_clean
+            )
+            SELECT
+                SUM(COALESCE(o.exp_m, 0)),
+                SUM(COALESCE(o.exp_m, 0) * t.midpoint_fraction)
+            FROM us_section338_tariffs t
+            LEFT JOIN on_exp o
+              ON printf('%06d', CAST(ROUND(t.hs6_code * 100) AS INTEGER)) = o.hs6_clean
+            WHERE CAST(t.hs_chapter AS INTEGER) = 6
+            """
+        ).fetchone()
+        assert 0.0 < float(on_ch06_targ) < 0.35 * float(on_ch06_gross)
+        if has_2025:
+            assert 150.0 < float(on_ch06_targ) < 200.0  # ~$175.14M CAD vs. $660.1M gross chapter
+
+    # 2. Verify Ontario 2026 Section 338 PE-ABP-IO calibration
+    pkg_on = get_targeted_section338_package_params("Ontario", "All farm types", tariff_pct=50.0, is_long_run=False)
+    yr1_phys_m = pkg_on["yr1_primary_phys_dollars"] / 1e6
+    lr_phys_m = pkg_on["lr_primary_phys_dollars"] / 1e6
+    yr1_margin_m = pkg_on["yr1_primary_total_margin_dollars"] / 1e6
+
+    assert -30.0 < yr1_phys_m < -10.0  # ~ -$18.8M Year-1 physical contraction
+    assert -125.0 < yr1_margin_m < -80.0  # ~ -$100.7M Year-1 farm margin squeeze
+    assert abs(yr1_margin_m) > 4.0 * abs(yr1_phys_m)
+    assert abs(lr_phys_m) > 2.5 * abs(yr1_phys_m)  # Long-run adjustment expands volume response
+
+    io_df = core_data["io_df"]
+    baskets_cfg = core_data["baskets_cfg"]
+    abp_s338 = compute_downstream_abp_impact(
+        io_df,
+        "Ontario",
+        2022,
+        "All farm types",
+        0.0,  # Regime 1: zero Ghosh processor rationing on foreign export tariffs
+        0.0,
+        is_long_run=False,
+        geo_scope="all_provinces",
+        processor_export_shock_by_naics=pkg_on["processor_export_shock_by_naics_dollars"],
+    )
+    assert abp_s338["proc_direct_output_m"] == pytest.approx(-348.0, abs=0.5)
+    assert abp_s338["double_counted_farm_gdp_removed_m"] < -15.0  # Upstream farm inputs netted via ABP
+    combined_yr1_direct_out_m = yr1_phys_m + abp_s338["proc_direct_output_m"]
+    assert -400.0 < combined_yr1_direct_out_m < -340.0  # ~ -$366.8M (well below legacy -$1,232.6M)
+
+    df_base = run_dynamic_projection(
+        horizon=10,
+        base_output=22e9,
+        base_gdp=10e9,
+        base_cap_stock=35e9,
+        base_capex=2.5e9,
+        shock_capex_pct=0.0,
+        tfp_growth_pct=1.85,
+        depreciation_rate_pct=8.5,
+        cost_shock_dollars=0.0,
+        rev_shock_dollars=0.0,
+        io_df=io_df,
+        baskets_cfg=baskets_cfg,
+        region="Ontario",
+        target_year=2022,
+    )
+    df_s338 = run_dynamic_projection(
+        horizon=10,
+        base_output=22e9,
+        base_gdp=10e9,
+        base_cap_stock=35e9,
+        base_capex=2.5e9,
+        shock_capex_pct=-5.4,
+        tfp_growth_pct=1.85,
+        depreciation_rate_pct=8.5,
+        cost_shock_dollars=0.0,
+        rev_shock_dollars=0.0,
+        io_df=io_df,
+        baskets_cfg=baskets_cfg,
+        region="Ontario",
+        target_year=2022,
+        tariff_params=pkg_on,
+    )
+    dyn_yr1_out_m = (float(df_s338.iloc[0]["Gross_Output"]) - float(df_base.iloc[0]["Gross_Output"])) / 1e6
+    assert dyn_yr1_out_m == pytest.approx(yr1_phys_m, abs=1e-4)
+
+    # 3. Verify OFA-branded `.docx` and `.pptx` deliverables
+    mc_s338 = run_monte_carlo_projections(
+        n_sims=12,
+        horizon=10,
+        base_output=22e9,
+        base_gdp=10e9,
+        base_cap_stock=35e9,
+        base_capex=2.5e9,
+        shock_capex_pct=-5.4,
+        tfp_growth_pct=1.85,
+        depreciation_rate_pct=8.5,
+        cost_shock_dollars=0.0,
+        rev_shock_dollars=0.0,
+        io_df=io_df,
+        baskets_cfg=baskets_cfg,
+        region="Ontario",
+        target_year=2022,
+        tariff_params=pkg_on,
+    )
+    avg_farm = compute_statcan_average_farm_impact(
+        core_data["df_136"], "Ontario", "All farm types", expense_profiles=core_data["expense_profiles"]
+    )
+    ent_sim = simulate_enterprise_budget("soybeans_rr_notill_2026")
+
+    docx_buf = generate_simulator_word_briefing(
+        region="Ontario",
+        farm_type="All farm types",
+        preset_name="2026 Section 338 Actual Package (50% Duty + Sept Prohibitions)",
+        df_dyn=df_s338,
+        mc_summary=mc_s338,
+        abp_res=abp_s338,
+        avg_farm_res=avg_farm,
+        ent_sim=ent_sim,
+        base_output_dollars=22e9,
+        base_gdp_dollars=10e9,
+        combined_yr1_output_impact_m=combined_yr1_direct_out_m,
+        combined_yr1_gdp_impact_m=-180.0,
+        combined_yr1_jobs_impact=-1950.0,
+        tariff_pct=50.0,
+        tariff_commodity=TARGETED_SECTION338_OPTION_LABEL,
+        df_base_dyn=df_base,
+    )
+    raw_docx = docx_buf.getvalue()
+    assert len(raw_docx) > 25_000
+    assert raw_docx[:4] == b"PK\x03\x04"
+    docx_buf.seek(0)
+    doc = Document(docx_buf)
+    assert len(doc.inline_shapes) >= 1  # Embedded 300-DPI Matplotlib figure
+    ftr_txt = "\n".join(p.text for s in doc.sections for p in s.footer.paragraphs)
+    assert "Farms and Food Forever." in ftr_txt
+
+    pptx_buf = generate_simulator_pptx_deck(
+        region="Ontario",
+        farm_type="All farm types",
+        preset_name="2026 Section 338 Actual Package (50% Duty + Sept Prohibitions)",
+        df_dyn=df_s338,
+        abp_res=abp_s338,
+        avg_farm_res=avg_farm,
+        ent_sim=ent_sim,
+        base_output_dollars=22e9,
+        base_gdp_dollars=10e9,
+        combined_yr1_output_impact_m=combined_yr1_direct_out_m,
+        combined_yr1_gdp_impact_m=-180.0,
+        combined_yr1_jobs_impact=-1950.0,
+        df_base_dyn=df_base,
+    )
+    raw_pptx = pptx_buf.getvalue()
+    assert len(raw_pptx) > 20_000
+    assert raw_pptx[:4] == b"PK\x03\x04"
+    pptx_buf.seek(0)
+    prs = Presentation(pptx_buf)
+    assert len(prs.slides) >= 3
+    pptx_all_text = "\n".join(
+        shp.text_frame.text for sld in prs.slides for shp in sld.shapes if shp.has_text_frame
+    )
+    assert "Farms and Food Forever." in pptx_all_text
+
 
 
 

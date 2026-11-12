@@ -235,14 +235,15 @@ PRIMARY_AG_TARIFF_CONFIG: Dict[str, Dict[str, Any]] = {
             "Floriculture and nursery products, and sod",
             "Christmas trees [115142111]",
         ],
-        "e_sr": -0.35, "e_sr_p10_p90": (-0.50, -0.20),
+        "e_sr": -0.12, "e_sr_p10_p90": (-0.20, -0.06),
         "e_lr": -1.05, "e_lr_p10_p90": (-1.40, -0.75),
-        "lam": 0.333,  "lam_p10_p90": (0.22, 0.45),
-        "pass_through": 0.65, "pass_through_p10_p90": (0.48, 0.82),
+        "lam": 0.114,  "lam_p10_p90": (0.07, 0.18),
+        "pass_through": 0.72, "pass_through_p10_p90": (0.65, 0.87),
+        "pass_through_lr": 0.48,
         "us_price_share": 0.38, "us_price_share_p10_p90": (0.30, 0.45),
         "us_price_share_on": 0.42, "us_price_share_on_p10_p90": (0.34, 0.50),
-        "us_lop_spillover": 0.45, "us_lop_spillover_p10_p90": (0.30, 0.60),
-        "citations": "AAFC Ornamental Overview (2024); StatCan 32-10-0019/0246/0045; Landscape Ontario/CNLA; Nerlove (1958)",
+        "us_lop_spillover": 0.35, "us_lop_spillover_p10_p90": (0.20, 0.50),
+        "citations": "AAFC Ornamental Overview (2024); StatCan 32-10-0019/0246/0045; Landscape Ontario/CNLA; Nerlove (1958); Deep Research PE-ABP-IO Audit (2026)",
     },
     "Greenhouse Vegetables": {
         "category": "Horticulture & Greenhouse (Primary Ag)",
@@ -1891,5 +1892,441 @@ def compute_effective_brm_marginal_payout(
         "olympic_ref_ratio": ref_retention,
         "severity_tier": tier_label,
     }
+
+
+# ==============================================================================
+# 8. PE-ABP-IO REGIME ARCHITECTURE & TARGETED 2026 U.S. SECTION 338 CALIBRATION
+#    Sources:
+#      - Oosterhaven (1988, 2012) & Dietzenbacher (1997): Rejection of Ghosh
+#        supply-driven processor rationing under export demand shocks
+#      - Wohlgenant (1989, AJAE), Goodwin & Brester (1995),Holloway (1991):
+#        Elasticity of substitution sigma_FM between farm commodities & marketing inputs
+#      - U.S. Presidential Proclamations 11046, 11047, 11048 (Aug 22, 2026),
+#        11064 & 11065 (Sept 15, 2026 Cheese), 11061 & 11062 (Sept 29, 2026 Alcohol/Whey Ban)
+#      - Statistics Canada CIMT 2025 HS6/HTSUS8 Trade Exposure (`trade_exposure.db`)
+# ==============================================================================
+
+WOHLGENANT_SUBSTITUTION_AND_ABP_REGIMES: Dict[str, Any] = {
+    "regimes": {
+        "export_tariff_demand_shock": {
+            "ghosh_supply_rationing": 0.0,
+            "mechanism": (
+                "Regime 1 (Foreign Tariff / Export Demand Shock): Foreign tariffs depress domestic "
+                "farm-gate prices (Delta ln P_F <= 0) and divert raw supply onto domestic markets. "
+                "Downstream domestic processors are NEVER supply-rationed via Ghosh multipliers; "
+                "only co-targeted processor exports (Ch. 04, 17, 19, 22) contract directly via "
+                "supply-chain-netted Leontief multipliers (Protocol Step 3)."
+            ),
+        },
+        "physical_domestic_supply_shock": {
+            "ghosh_supply_rationing": 1.0,
+            "mechanism": (
+                "Regime 2 (Biological / Weather / Input-Cost Supply Contraction): Physical contraction "
+                "in non-importable raw farm output tightens processor utilization unless offset by "
+                "raw-material import substitution (USMCA duty-free grain/livestock arbitrage)."
+            ),
+        },
+    },
+    "sigma_fm_by_processor": {
+        "3115": {"sigma_fm": 0.96, "label": "Dairy Product Mfg [3115] (Wohlgenant 1989: 0.96)"},
+        "3116_beef": {"sigma_fm": 0.72, "label": "Beef Slaughtering & Processing [3116] (Wohlgenant 1989: 0.72)"},
+        "3114": {"sigma_fm": 0.54, "label": "Fruit & Vegetable Preserving [3114] (Wohlgenant 1989: 0.54)"},
+        "3116_pork": {"sigma_fm": 0.35, "label": "Pork Slaughtering & Processing [3116] (Wohlgenant 1989: 0.35)"},
+        "3112": {"sigma_fm": 0.25, "label": "Grain & Oilseed Milling [3112] (Goodwin & Brester 1995: 0.25)"},
+        "3118": {"sigma_fm": 0.25, "label": "Bakeries & Tortilla Mfg [3118] (Holloway 1991: 0.25)"},
+        "3116_poultry": {"sigma_fm": 0.05, "label": "Poultry Processing [3116] (Fixed-proportion evisceration: ~0.05)"},
+    },
+}
+
+TARGETED_SECTION338_OPTION_LABEL = "Targeted 2026 Section 338 Annexes (Actual Procl. 11046–11065)"
+
+TARGETED_SECTION338_2026_PACKAGE: Dict[str, Any] = {
+    "statutory_duty_pct": 50.0,
+    # Provincial share weights for non-Ontario/Canada jurisdictions where 8-digit CIMT is national
+    "provincial_floral_shares": {
+        "Ontario": 0.778, "British Columbia": 0.142, "Quebec": 0.049, "Alberta": 0.014,
+        "Manitoba": 0.005, "Nova Scotia": 0.005, "New Brunswick": 0.003,
+        "Prince Edward Island": 0.001, "Saskatchewan": 0.002, "Newfoundland and Labrador": 0.001,
+    },
+    "provincial_dairy_shares": {
+        "Ontario": 0.325, "Quebec": 0.368, "British Columbia": 0.092, "Alberta": 0.088,
+        "Manitoba": 0.048, "Saskatchewan": 0.031, "Nova Scotia": 0.021,
+        "New Brunswick": 0.015, "Prince Edward Island": 0.009, "Newfoundland and Labrador": 0.003,
+    },
+    "provincial_alcohol_shares": {
+        "Ontario": 0.652, "Quebec": 0.185, "Alberta": 0.082, "British Columbia": 0.048,
+        "Manitoba": 0.015, "Nova Scotia": 0.008, "New Brunswick": 0.005,
+        "Saskatchewan": 0.003, "Prince Edward Island": 0.001, "Newfoundland and Labrador": 0.001,
+    },
+    "provincial_honey_shares": {
+        "Ontario": 0.053, "Alberta": 0.380, "Manitoba": 0.225, "Saskatchewan": 0.215,
+        "Quebec": 0.065, "British Columbia": 0.042, "Nova Scotia": 0.008,
+        "New Brunswick": 0.006, "Prince Edward Island": 0.004, "Newfoundland and Labrador": 0.002,
+    },
+    # National & Ontario calibrated bases ($M CAD, 2025 StatCan CIMT + FCR 32-10-0045-01)
+    "channels": {
+        "floral_1114": {
+            "label": "Targeted Cut Flowers, Bulbs, Orchids & Cuttings (NAICS 1114 / HTSUS 9903.03.14)",
+            "naics": "Greenhouse, nursery and floriculture production [1114]",
+            "canada_export_base_m": 225.0,
+            "ontario_export_base_m": 175.14,
+            "canada_dom_auction_base_m": 70.0,
+            "ontario_dom_auction_base_m": 45.0,
+            "dom_spillover_ratio": 0.20,
+            "e_sr": 0.12,
+            "e_lr": 1.05,
+            "lam": 0.114,
+            "theta_farm_sr": 0.72,
+            "theta_farm_lr": 0.48,
+        },
+        "pooled_dairy_112120": {
+            "label": "Supply-Managed Bovine Dairy — Class 5 SNF/Whey & Cheese Blend Dilution (NAICS 112120)",
+            "naics": "Dairy cattle and milk production [112120]",
+            "canada_fcr_base_m": 8960.0,
+            "ontario_fcr_base_m": 2910.0,
+            "blend_price_drop_at_50pct": 0.0125,  # -1.25% P5/WMMP blend-price dilution; 0% Year-1 quota volume drop
+            "e_sr": 0.00,
+            "e_lr": 0.04,
+            "lam": 0.20,
+        },
+        "unpooled_goat_dairy_1124": {
+            "label": "Unpooled Goat Milk Exposed to Sept 15 U.S. Goat Cheese Duty (0406.90.99 / NAICS 1124)",
+            "naics": "Sheep and goat farming [1124]",
+            "canada_us_exposed_fcr_m": 68.5,
+            "ontario_us_exposed_fcr_m": 53.3,  # 72% of $74M ON goat milk FCR exported to U.S. as goat cheese
+            "vol_drop_sr_at_50pct": 0.18,      # -18% Year-1 processor intake curtailment
+            "vol_drop_lr_at_50pct": 0.28,      # -28% Long-Run herd contraction without pooling
+            "lam": 0.35,
+            "price_drop_on_remaining_at_50pct": 0.22,
+        },
+        "primary_honey_1129": {
+            "label": "Primary Natural Honey Exports (HS 0409.00 / Procl. 11048)",
+            "naics": "Other animal production [1129]",
+            "canada_export_base_m": 62.0,
+            "ontario_export_base_m": 3.28,
+            "e_sr": 0.18,
+            "e_lr": 0.65,
+            "lam": 0.28,
+            "theta_farm_sr": 0.55,
+            "theta_farm_lr": 0.42,
+        },
+        "distillery_corn_1111": {
+            "label": "Backward Distillery Corn Basis Softening (NAICS 1111 — 3.1% Crop Share, Toledo Arbitrage)",
+            "naics": "Oilseed and grain farming [1111]",
+            "canada_corn_fcr_m": 3580.0,
+            "ontario_corn_fcr_m": 2180.0,
+            "basis_drop_at_50pct": 0.0060,     # -0.60% regional elevator basis softening
+            "e_sr": 0.15,
+            "e_lr": 0.35,
+            "lam": 0.40,
+        },
+        "specialty_grapes_1113": {
+            "label": "Niagara/BC Icewine & Specialty Grapes (NAICS 1113 — VQA Table Wine Buffered by LCBO Ban)",
+            "naics": "Fruit and tree nut farming [1113]",
+            "canada_exposed_fcr_m": 16.0,
+            "ontario_exposed_fcr_m": 12.0,
+            "vol_drop_sr_at_50pct": 0.08,
+            "vol_drop_lr_at_50pct": 0.18,
+            "lam": 0.25,
+            "price_drop_on_remaining_at_50pct": 0.16,
+        },
+    },
+    # Direct Co-Targeted Processor Export Output Contractions ($M CAD at statutory 50% / Sept 29 Ban)
+    # Net of pre-ban U.S. inventory front-loading, bulk (>10L) rerouting, and LCBO/provincial domestic substitution
+    "processor_export_shocks_at_50pct_m": {
+        "Ontario": {
+            "3121A": {"sr": -268.0, "lr": -310.0, "gross_us_exp_m": 765.5, "label": "Distilleries & Wineries [3121A] (Sept 29 Packaged Ban, Net of LCBO Substitution)"},
+            "31212": {"sr": -14.0,  "lr": -18.0,  "gross_us_exp_m": 33.1,  "label": "Breweries & Cider [31212] (Sept 29 Packaged Ban)"},
+            "3115":  {"sr": -52.0,  "lr": -64.0,  "gross_us_exp_m": 144.9, "label": "Dairy Product Mfg [3115] (Sept 15 Cheese +50% & Sept 29 Whey Ban)"},
+            "3118":  {"sr": -14.0,  "lr": -17.0,  "gross_us_exp_m": 65.8,  "label": "Dairy-Solids Bakery Mixes & Lactose/Molasses [3118/3113]"},
+        },
+        "Canada": {
+            "3121A": {"sr": -395.0, "lr": -455.0, "gross_us_exp_m": 1169.4, "label": "Distilleries & Wineries [3121A] (Sept 29 Packaged Ban, Net of Domestic Substitution)"},
+            "31212": {"sr": -55.0,  "lr": -68.0,  "gross_us_exp_m": 135.5,  "label": "Breweries & Cider [31212] (Sept 29 Packaged Ban)"},
+            "3115":  {"sr": -122.0, "lr": -148.0, "gross_us_exp_m": 340.0,  "label": "Dairy Product Mfg [3115] (Sept 15 Cheese +50% & Sept 29 Whey Ban)"},
+            "3118":  {"sr": -32.0,  "lr": -39.0,  "gross_us_exp_m": 115.0,  "label": "Dairy-Solids Bakery Mixes & Lactose/Molasses [3118/3113]"},
+        },
+    },
+}
+
+
+def get_targeted_section338_package_params(
+    region: str = "Ontario",
+    farm_type: str = "All farm types",
+    tariff_pct: float = 50.0,
+    is_long_run: bool = False,
+) -> Dict[str, Any]:
+    """
+    Compute empirical Primary Ag (physical volume vs. pure price/blend margin) and
+    Co-Targeted Direct Processor export shocks for the actual 2026 U.S. Section 338
+    proclamations (Procl. 11046-11048, 11061-11062, 11064-11065), scaled smoothly
+    to `tariff_pct` (anchored at 50% statutory rate) and filtered to `region` & `farm_type`.
+    """
+    pkg = TARGETED_SECTION338_2026_PACKAGE
+    tau = max(0.0, float(tariff_pct) / 100.0)
+    if tau <= 1e-9:
+        return {
+            "mode": "targeted_section338_2026",
+            "tariff_pct": 0.0,
+            "yr1_primary_phys_dollars": 0.0,
+            "lr_primary_phys_dollars": 0.0,
+            "yr1_primary_pure_price_dollars": 0.0,
+            "lr_primary_pure_price_dollars": 0.0,
+            "yr1_primary_total_margin_dollars": 0.0,
+            "lr_primary_total_margin_dollars": 0.0,
+            "effective_lam": 0.18,
+            "channel_breakdown": [],
+            "processor_export_shock_by_naics_dollars": {},
+        }
+
+    # Log-tariff scaling relative to statutory 50% duty: ln(1 + tau) / ln(1.50)
+    wedge_scale = float(np.log(1.0 + tau) / np.log(1.50))
+    ln_1_plus_tau = float(np.log(1.0 + tau))
+
+    def _reg_val(ont_val: float, can_val: float, share_map: Dict[str, float]) -> float:
+        if region == "Ontario":
+            return ont_val
+        if region == "Canada":
+            return can_val
+        sh = float(share_map.get(region, 0.01))
+        return can_val * sh
+
+    ft = str(farm_type)
+    is_all = (ft == "All farm types")
+    ch_cfg = pkg["channels"]
+    breakdown: List[Dict[str, Any]] = []
+
+    yr1_phys_m = 0.0
+    lr_phys_m = 0.0
+    yr1_pure_price_m = 0.0
+    lr_pure_price_m = 0.0
+
+    # 1. Targeted Floriculture & Nursery (NAICS 1114 / HS Ch. 06 9903.03.14)
+    if is_all or "1114" in ft or "Greenhouse" in ft or "Floriculture" in ft:
+        c = ch_cfg["floral_1114"]
+        exp_m = _reg_val(c["ontario_export_base_m"], c["canada_export_base_m"], pkg["provincial_floral_shares"])
+        dom_m = _reg_val(c["ontario_dom_auction_base_m"], c["canada_dom_auction_base_m"], pkg["provincial_floral_shares"])
+        d_ln_p_sr = -c["theta_farm_sr"] * ln_1_plus_tau
+        d_ln_p_lr = -c["theta_farm_lr"] * ln_1_plus_tau
+        q_pct_sr = max(-0.85, c["e_sr"] * d_ln_p_sr)   # negative
+        q_pct_lr = max(-0.85, c["e_lr"] * d_ln_p_lr)   # negative
+        p_pct_sr = float(np.exp(d_ln_p_sr) - 1.0)      # negative
+        p_pct_lr = float(np.exp(d_ln_p_lr) - 1.0)
+
+        phys_sr = exp_m * q_pct_sr
+        phys_lr = exp_m * q_pct_lr
+        # Pure price drop on surviving export volume + domestic flower auction spillover
+        price_sr = (exp_m * (1.0 + q_pct_sr) * p_pct_sr) + (dom_m * p_pct_sr * c["dom_spillover_ratio"])
+        price_lr = (exp_m * (1.0 + q_pct_lr) * p_pct_lr * 0.65) + (dom_m * p_pct_lr * c["dom_spillover_ratio"] * 0.50)
+
+        yr1_phys_m += phys_sr
+        lr_phys_m += phys_lr
+        yr1_pure_price_m += price_sr
+        lr_pure_price_m += price_lr
+        breakdown.append({
+            "channel": c["label"],
+            "sector_type": "Primary Agriculture (NAICS 1114)",
+            "targeted_trade_base_m": exp_m,
+            "yr1_phys_output_m": phys_sr,
+            "lr_phys_output_m": phys_lr,
+            "yr1_pure_price_m": price_sr,
+            "yr1_total_margin_m": price_sr + phys_sr * 0.28,
+        })
+
+    # 2. Supply-Managed Bovine Dairy (NAICS 112120 — P5/WMMP Blend Dilution, Zero Year-1 Quota Cut)
+    if is_all or "11212" in ft or "Dairy" in ft:
+        c = ch_cfg["pooled_dairy_112120"]
+        fcr_m = _reg_val(c["ontario_fcr_base_m"], c["canada_fcr_base_m"], pkg["provincial_dairy_shares"])
+        blend_drop = -c["blend_price_drop_at_50pct"] * wedge_scale
+        phys_sr = 0.0
+        phys_lr = fcr_m * (c["e_lr"] * blend_drop)
+        price_sr = fcr_m * blend_drop
+        price_lr = fcr_m * (1.0 + c["e_lr"] * blend_drop) * blend_drop * 0.85
+
+        yr1_phys_m += phys_sr
+        lr_phys_m += phys_lr
+        yr1_pure_price_m += price_sr
+        lr_pure_price_m += price_lr
+        breakdown.append({
+            "channel": c["label"],
+            "sector_type": "Primary Agriculture (NAICS 112120)",
+            "targeted_trade_base_m": _reg_val(144.9, 340.0, pkg["provincial_dairy_shares"]),
+            "yr1_phys_output_m": phys_sr,
+            "lr_phys_output_m": phys_lr,
+            "yr1_pure_price_m": price_sr,
+            "yr1_total_margin_m": price_sr,
+        })
+
+    # 3. Unpooled Goat Dairy (0406.90.99 Goat Cheese) & Primary Honey (0409.00)
+    if is_all or "1124" in ft or "1129" in ft or "Sheep" in ft or "goat" in ft or "Other animal" in ft:
+        if is_all or "1124" in ft or "Sheep" in ft or "goat" in ft:
+            c = ch_cfg["unpooled_goat_dairy_1124"]
+            goat_shares = {"Ontario": 0.778, "Quebec": 0.145, "British Columbia": 0.035, "Alberta": 0.022}
+            exp_fcr_m = _reg_val(c["ontario_us_exposed_fcr_m"], c["canada_us_exposed_fcr_m"], goat_shares)
+            q_sr = -min(0.65, c["vol_drop_sr_at_50pct"] * wedge_scale)
+            q_lr = -min(0.75, c["vol_drop_lr_at_50pct"] * wedge_scale)
+            p_rem = -min(0.60, c["price_drop_on_remaining_at_50pct"] * wedge_scale)
+            phys_sr = exp_fcr_m * q_sr
+            phys_lr = exp_fcr_m * q_lr
+            price_sr = exp_fcr_m * (1.0 + q_sr) * p_rem
+            price_lr = exp_fcr_m * (1.0 + q_lr) * (p_rem * 0.75)
+
+            yr1_phys_m += phys_sr
+            lr_phys_m += phys_lr
+            yr1_pure_price_m += price_sr
+            lr_pure_price_m += price_lr
+            breakdown.append({
+                "channel": c["label"],
+                "sector_type": "Primary Agriculture (Unpooled Goat 1124)",
+                "targeted_trade_base_m": exp_fcr_m,
+                "yr1_phys_output_m": phys_sr,
+                "lr_phys_output_m": phys_lr,
+                "yr1_pure_price_m": price_sr,
+                "yr1_total_margin_m": price_sr + phys_sr * 0.25,
+            })
+
+        if is_all or "1129" in ft or "Other animal" in ft:
+            c = ch_cfg["primary_honey_1129"]
+            exp_m = _reg_val(c["ontario_export_base_m"], c["canada_export_base_m"], pkg["provincial_honey_shares"])
+            d_ln_p_sr = -c["theta_farm_sr"] * ln_1_plus_tau
+            d_ln_p_lr = -c["theta_farm_lr"] * ln_1_plus_tau
+            q_sr = max(-0.75, c["e_sr"] * d_ln_p_sr)
+            q_lr = max(-0.80, c["e_lr"] * d_ln_p_lr)
+            p_sr = float(np.exp(d_ln_p_sr) - 1.0)
+            p_lr = float(np.exp(d_ln_p_lr) - 1.0)
+            phys_sr = exp_m * q_sr
+            phys_lr = exp_m * q_lr
+            price_sr = exp_m * (1.0 + q_sr) * p_sr
+            price_lr = exp_m * (1.0 + q_lr) * p_lr
+
+            yr1_phys_m += phys_sr
+            lr_phys_m += phys_lr
+            yr1_pure_price_m += price_sr
+            lr_pure_price_m += price_lr
+            breakdown.append({
+                "channel": c["label"],
+                "sector_type": "Primary Agriculture (Apiculture 1129)",
+                "targeted_trade_base_m": exp_m,
+                "yr1_phys_output_m": phys_sr,
+                "lr_phys_output_m": phys_lr,
+                "yr1_pure_price_m": price_sr,
+                "yr1_total_margin_m": price_sr + phys_sr * 0.30,
+            })
+
+    # 4. Backward Distillery Corn Basis (NAICS 1111) & Specialty Icewine Grapes (NAICS 1113)
+    if is_all or "1111" in ft or "Oilseed and grain" in ft:
+        c = ch_cfg["distillery_corn_1111"]
+        corn_shares = {"Ontario": 0.609, "Quebec": 0.245, "Manitoba": 0.105, "Alberta": 0.025}
+        fcr_m = _reg_val(c["ontario_corn_fcr_m"], c["canada_corn_fcr_m"], corn_shares)
+        b_drop = -c["basis_drop_at_50pct"] * wedge_scale
+        phys_sr = fcr_m * (c["e_sr"] * b_drop)
+        phys_lr = fcr_m * (c["e_lr"] * b_drop)
+        price_sr = fcr_m * (1.0 + c["e_sr"] * b_drop) * b_drop
+        price_lr = fcr_m * (1.0 + c["e_lr"] * b_drop) * b_drop * 0.80
+
+        yr1_phys_m += phys_sr
+        lr_phys_m += phys_lr
+        yr1_pure_price_m += price_sr
+        lr_pure_price_m += price_lr
+        breakdown.append({
+            "channel": c["label"],
+            "sector_type": "Primary Agriculture (NAICS 1111)",
+            "targeted_trade_base_m": fcr_m * 0.031,
+            "yr1_phys_output_m": phys_sr,
+            "lr_phys_output_m": phys_lr,
+            "yr1_pure_price_m": price_sr,
+            "yr1_total_margin_m": price_sr + phys_sr * 0.28,
+        })
+
+    if is_all or "1113" in ft or "Fruit" in ft:
+        c = ch_cfg["specialty_grapes_1113"]
+        grape_shares = {"Ontario": 0.750, "British Columbia": 0.210, "Quebec": 0.025, "Nova Scotia": 0.015}
+        exp_fcr_m = _reg_val(c["ontario_exposed_fcr_m"], c["canada_exposed_fcr_m"], grape_shares)
+        q_sr = -min(0.50, c["vol_drop_sr_at_50pct"] * wedge_scale)
+        q_lr = -min(0.65, c["vol_drop_lr_at_50pct"] * wedge_scale)
+        p_sr = -min(0.50, c["price_drop_on_remaining_at_50pct"] * wedge_scale)
+        phys_sr = exp_fcr_m * q_sr
+        phys_lr = exp_fcr_m * q_lr
+        price_sr = exp_fcr_m * (1.0 + q_sr) * p_sr
+        price_lr = exp_fcr_m * (1.0 + q_lr) * (p_sr * 0.75)
+
+        yr1_phys_m += phys_sr
+        lr_phys_m += phys_lr
+        yr1_pure_price_m += price_sr
+        lr_pure_price_m += price_lr
+        breakdown.append({
+            "channel": c["label"],
+            "sector_type": "Primary Agriculture (NAICS 1113)",
+            "targeted_trade_base_m": exp_fcr_m,
+            "yr1_phys_output_m": phys_sr,
+            "lr_phys_output_m": phys_lr,
+            "yr1_pure_price_m": price_sr,
+            "yr1_total_margin_m": price_sr + phys_sr * 0.30,
+        })
+
+    # 5. Co-Targeted Direct Processor Export Shocks (Protocol Step 3 — Supply-Chain Netted)
+    proc_shocks_dollars: Dict[str, float] = {}
+    horizon_key = "lr" if is_long_run else "sr"
+    base_proc_map = pkg["processor_export_shocks_at_50pct_m"]
+    for p_code, p_info in base_proc_map["Canada"].items():
+        # Filter processor channels when user isolates a specific Primary Ag sector
+        if not is_all:
+            if p_code == "3115" and not ("11212" in ft or "Dairy" in ft or "1124" in ft or "goat" in ft):
+                continue
+            if p_code in ("3121A", "31212") and not ("1111" in ft or "1113" in ft or "Oilseed" in ft or "Fruit" in ft):
+                continue
+            if p_code == "3118" and not ("1111" in ft or "11212" in ft or "Dairy" in ft or "Oilseed" in ft):
+                continue
+
+        ont_s = float(base_proc_map["Ontario"][p_code][horizon_key])
+        can_s = float(p_info[horizon_key])
+        sh_table = pkg["provincial_dairy_shares"] if p_code in ("3115", "3118") else pkg["provincial_alcohol_shares"]
+        reg_s_m = _reg_val(ont_s, can_s, sh_table) * wedge_scale
+        proc_shocks_dollars[p_code] = reg_s_m * 1e6
+
+        if horizon_key == "sr":
+            ont_lr = float(base_proc_map["Ontario"][p_code]["lr"])
+            can_lr = float(p_info["lr"])
+            reg_lr_m = _reg_val(ont_lr, can_lr, sh_table) * wedge_scale
+            reg_sr_m = reg_s_m
+        else:
+            ont_sr = float(base_proc_map["Ontario"][p_code]["sr"])
+            can_sr = float(p_info["sr"])
+            reg_sr_m = _reg_val(ont_sr, can_sr, sh_table) * wedge_scale
+            reg_lr_m = reg_s_m
+
+        gross_m = _reg_val(
+            float(base_proc_map["Ontario"][p_code]["gross_us_exp_m"]),
+            float(p_info["gross_us_exp_m"]),
+            sh_table,
+        )
+        breakdown.append({
+            "channel": p_info["label"],
+            "sector_type": f"Co-Targeted Processor ({p_code})",
+            "targeted_trade_base_m": gross_m,
+            "yr1_phys_output_m": reg_sr_m,
+            "lr_phys_output_m": reg_lr_m,
+            "yr1_pure_price_m": 0.0,
+            "yr1_total_margin_m": reg_sr_m * 0.24,
+        })
+
+    # Margin impact = pure price compression + lost operating margin (~28% value-added margin) on physical drop
+    yr1_tot_margin_m = yr1_pure_price_m + (yr1_phys_m * 0.28)
+    lr_tot_margin_m = lr_pure_price_m + (lr_phys_m * 0.28)
+
+    return {
+        "mode": "targeted_section338_2026",
+        "tariff_pct": float(tariff_pct),
+        "yr1_primary_phys_dollars": yr1_phys_m * 1e6,
+        "lr_primary_phys_dollars": lr_phys_m * 1e6,
+        "yr1_primary_pure_price_dollars": yr1_pure_price_m * 1e6,
+        "lr_primary_pure_price_dollars": lr_pure_price_m * 1e6,
+        "yr1_primary_total_margin_dollars": yr1_tot_margin_m * 1e6,
+        "lr_primary_total_margin_dollars": lr_tot_margin_m * 1e6,
+        "effective_lam": 0.16,
+        "channel_breakdown": breakdown,
+        "processor_export_shock_by_naics_dollars": proc_shocks_dollars,
+    }
+
 
 

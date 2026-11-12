@@ -41,7 +41,10 @@ from scripts.calibrated_parameters import (
     PRIMARY_AG_TARIFF_CONFIG,
     PROCESSOR_FORWARD_COST_PASS_THROUGH,
     PROVINCIAL_TFP_DECOMPOSITION,
+    TARGETED_SECTION338_2026_PACKAGE,
+    TARGETED_SECTION338_OPTION_LABEL,
     TFP_AND_MC_REGIMES,
+    WOHLGENANT_SUBSTITUTION_AND_ABP_REGIMES,
     compute_effective_brm_marginal_payout,
     get_constant_2022_price_deflator,
     get_debt_amortization_params,
@@ -49,6 +52,7 @@ from scripts.calibrated_parameters import (
     get_hotelling_sector_profile,
     get_mc_covariance_params,
     get_processor_cost_pass_through,
+    get_targeted_section338_package_params,
 )
 from scripts.io_multipliers_engine import (
     compute_derived_fiscal_impact,
@@ -981,21 +985,22 @@ def compute_downstream_abp_impact(
     is_long_run: bool = False,
     geo_scope: str = "all_provinces",
     nominal_year: int = 2025,
+    processor_export_shock_by_naics: Optional[Dict[str, float]] = None,
 ) -> Dict[str, Any]:
     """
     Compute netted Analysis-by-Parts (ABP) downstream Food & Beverage processing
     (NAICS 311/312) economic impacts without double-counting upstream Primary Ag,
     supporting both `all_provinces` and `within_province` IO scopes.
 
-    Implements exact scope-matched Leontief first-round column decomposition using
-    2022 StatCan SUT (36-10-0478-01) basic-price technical coefficients:
-      - `region == 'Canada'` (pan-Canadian co-shock): nets `a_{f,p}^{dom}`
-      - `region == 'Ontario'` (single-province shock): nets `a_{f,p}^{within}`
-        (since Rest-of-Canada primary farms are unshocked in a provincial run)
-      - Other provinces: scales `a_{f,p}^{dom}` by the province's indirect
-        supply-chain retention ratio `(m_p^{within} - 1) / (m_p^{all} - 1)`
-    By Hawkins-Simon non-negativity, `m_p^{net} > v_p` holds strictly across all
-    12 NAICS 311/312 processors without artificial floor binding.
+    PE-ABP-IO Regime Architecture (Oosterhaven 1988, 2012; Wohlgenant 1989):
+      - Regime 1 (Foreign Tariff / Export Demand Shock): Foreign tariffs on primary
+        farm goods depress domestic farm prices rather than rationing processor supply,
+        so `primary_supply_shock_dollars` excludes export-tariff farm output drops;
+        meanwhile, co-targeted processor export shocks (`processor_export_shock_by_naics`,
+        e.g., HS Ch. 04, 17, 19, 22) enter directly and are multiplied by upstream-farm-netted
+        Leontief multipliers (`m_net_*`) so local farm impacts are never double-counted.
+      - Regime 2 (Physical Domestic Non-Tariff Supply Contraction): Input-cost, weather,
+        or biological contractions enter via `primary_supply_shock_dollars`.
     """
     reg_key = "Ontario" if region == "Ontario" else "Canada"
     mults = load_subsector_io_multipliers(
@@ -1029,20 +1034,28 @@ def compute_downstream_abp_impact(
     disp_shares = disp_cfg.get(reg_key, disp_cfg["Canada"])
     s_proc = float(disp_shares["s_proc"])
     proc_weights = disp_cfg["processor_weights"]
+    exp_shock_map = processor_export_shock_by_naics or {}
 
     farm_to_proc_flow_dollars = primary_supply_shock_dollars * s_proc
 
     subsector_rows: List[Dict[str, Any]] = []
     tot_proc_direct_output = 0.0
+    tot_proc_export_shock = 0.0
     tot_proc_net_output = 0.0
     tot_proc_net_gdp = 0.0
     tot_proc_net_jobs = 0.0
     tot_proc_net_wages = 0.0
     tot_double_count_removed_gdp = 0.0
 
-    for p_code, w_share in proc_weights.items():
+    ordered_p_codes = list(proc_weights.keys()) + [
+        k for k in exp_shock_map.keys() if k not in proc_weights
+    ]
+
+    for p_code in ordered_p_codes:
         if p_code not in ABP_PROCESSOR_TABLE:
             continue
+        w_share = float(proc_weights.get(p_code, 0.0))
+        direct_export_shock = float(exp_shock_map.get(p_code, 0.0))
         p_info = ABP_PROCESSOR_TABLE[p_code]
         p_coeffs = p_info.get(reg_key, p_info["Canada"])
         p_mult_gross = mults.get(p_code, {"output": 1.85, "gdp": 0.58, "jobs": 4.20, "wages": 0.30})
@@ -1094,7 +1107,7 @@ def compute_downstream_abp_impact(
 
         eff_dc_gdp = max(0.0, p_mult_gross["gdp"] - m_net_gdp)
 
-        # Processor output change from physical farm supply channel + COP regime forward pass-through
+        # Processor output change from physical non-tariff farm supply + COP cost pass-through + co-targeted export shock
         alloc_farm_flow = farm_to_proc_flow_dollars * w_share
         leverage = min(2.2, 1.0 / max(a_farm_dom, 0.20)) * (1.0 - float(p_coeffs["m_farm_imp"]))
         proc_supply_shock = alloc_farm_flow * leverage
@@ -1107,7 +1120,7 @@ def compute_downstream_abp_impact(
             if abs(primary_cost_shock_dollars) > 1e-6
             else 0.0
         )
-        proc_direct_delta = proc_supply_shock + proc_cost_squeeze
+        proc_direct_delta = proc_supply_shock + proc_cost_squeeze + direct_export_shock
 
         net_out_val = proc_direct_delta * m_net_out
         net_gdp_val = proc_direct_delta * m_net_gdp
@@ -1116,6 +1129,7 @@ def compute_downstream_abp_impact(
         dc_removed_gdp_val = proc_direct_delta * eff_dc_gdp
 
         tot_proc_direct_output += proc_direct_delta
+        tot_proc_export_shock += direct_export_shock
         tot_proc_net_output += net_out_val
         tot_proc_net_gdp += net_gdp_val
         tot_proc_net_jobs += net_jobs_val
@@ -1134,6 +1148,7 @@ def compute_downstream_abp_impact(
             "ABP Net GDP Mult": m_net_gdp,
             "ABP Net Jobs (/ $1M)": m_net_jobs,
             "Direct Processor Shock ($M)": proc_direct_delta / 1e6,
+            "Co-Targeted Export Shock ($M)": direct_export_shock / 1e6,
             "ABP Net Output Impact ($M)": net_out_val / 1e6,
             "ABP Net GDP Impact ($M)": net_gdp_val / 1e6,
             "ABP Net Jobs": net_jobs_val,
@@ -1149,6 +1164,7 @@ def compute_downstream_abp_impact(
         "s_proc": s_proc,
         "farm_to_proc_flow_m": farm_to_proc_flow_dollars / 1e6,
         "proc_direct_output_m": tot_proc_direct_output / 1e6,
+        "proc_export_shock_m": tot_proc_export_shock / 1e6,
         "proc_net_output_m": tot_proc_net_output / 1e6,
         "proc_net_gdp_m": tot_proc_net_gdp / 1e6,
         "proc_net_jobs": tot_proc_net_jobs,
@@ -1467,32 +1483,49 @@ def run_dynamic_projection(
         e_t_val = 0.0
         omega_t_val = 0.0
         if tariff_params and tariff_params.get("tariff_pct", 0.0) > 0:
-            t_pct = float(tariff_params["tariff_pct"])
-            e_sr = float(tariff_params["e_sr"])
-            e_lr = float(tariff_params["e_lr"])
-            lam = max(float(tariff_params["lam"]), 0.01)
-            pt = float(tariff_params["pass_through"])
-            us_share = float(tariff_params.get("us_price_share", 1.0))
-            lop_spill = float(tariff_params.get("us_lop_spillover", 0.0))
-            weight = float(tariff_params.get("weight", 1.0))
+            if tariff_params.get("mode") == "targeted_section338_2026":
+                lam = max(float(tariff_params.get("effective_lam", 0.16)), 0.01)
+                decay_t = (1.0 - lam) ** (t - 1)
+                omega_t_val = 1.0 - ((1.0 - lam) ** t)
+                yr1_phys = float(tariff_params.get("yr1_primary_phys_dollars", 0.0))
+                lr_phys = float(tariff_params.get("lr_primary_phys_dollars", yr1_phys))
+                yr1_price = float(tariff_params.get("yr1_primary_pure_price_dollars", 0.0))
+                lr_price = float(tariff_params.get("lr_primary_pure_price_dollars", yr1_price))
 
-            omega_t_val = 1.0 - ((1.0 - lam) ** t)
-            e_t_val = e_lr + (e_sr - e_lr) * ((1.0 - lam) ** (t - 1))
+                tariff_phys_t = lr_phys + (yr1_phys - lr_phys) * decay_t
+                dynamic_rev_shock = tariff_phys_t + rev_shock_dollars + stoch_rev_adj
+                tariff_price_margin_delta_t = lr_price + (yr1_price - lr_price) * decay_t
+                e_t_val = -(abs(tariff_phys_t) / max(base_output, 1.0))
+            else:
+                t_pct = float(tariff_params["tariff_pct"])
+                e_sr = float(tariff_params["e_sr"])
+                e_lr = float(tariff_params["e_lr"])
+                lam = max(float(tariff_params["lam"]), 0.01)
+                pt = float(tariff_params["pass_through"])
+                pt_lr = float(tariff_params.get("pass_through_lr", pt))
+                us_share = float(tariff_params.get("us_price_share", 1.0))
+                lop_spill = float(tariff_params.get("us_lop_spillover", 0.0))
+                weight = float(tariff_params.get("weight", 1.0))
 
-            ps = compute_effective_tariff_price_shock(
-                tariff_pct=t_pct,
-                pass_through=pt,
-                us_price_share=us_share,
-                us_lop_spillover=lop_spill,
-            )
-            eff_price_drop_frac = ps["effective_price_drop_pct"] / 100.0
-            pct_output_change = e_t_val * eff_price_drop_frac
-            dynamic_rev_shock = (base_output * weight * pct_output_change) + rev_shock_dollars + stoch_rev_adj
-            # Hotelling / Envelope Theorem Price-Margin Compression on sold output:
-            # Even when Year-1 physical output only contracts by e_SR * eff_price_drop_frac,
-            # the remaining (1 + pct_output_change) of output sold receives a lower farm-gate price
-            # (-eff_price_drop_frac), directly compressing Net Cash Income (NCI_t).
-            tariff_price_margin_delta_t = -base_output * weight * max(0.0, 1.0 + pct_output_change) * eff_price_drop_frac
+                decay_t = (1.0 - lam) ** (t - 1)
+                omega_t_val = 1.0 - ((1.0 - lam) ** t)
+                e_t_val = e_lr + (e_sr - e_lr) * decay_t
+                pt_t = pt_lr + (pt - pt_lr) * decay_t
+
+                ps = compute_effective_tariff_price_shock(
+                    tariff_pct=t_pct,
+                    pass_through=pt_t,
+                    us_price_share=us_share,
+                    us_lop_spillover=lop_spill,
+                )
+                eff_price_drop_frac = ps["effective_price_drop_pct"] / 100.0
+                pct_output_change = e_t_val * eff_price_drop_frac
+                dynamic_rev_shock = (base_output * weight * pct_output_change) + rev_shock_dollars + stoch_rev_adj
+                # Hotelling / Envelope Theorem Price-Margin Compression on sold output:
+                # Even when Year-1 physical output only contracts by e_SR * eff_price_drop_frac,
+                # the remaining (1 + pct_output_change) of output sold receives a lower farm-gate price
+                # (-eff_price_drop_frac), directly compressing Net Cash Income (NCI_t).
+                tariff_price_margin_delta_t = -base_output * weight * max(0.0, 1.0 + pct_output_change) * eff_price_drop_frac
 
         # Physical Gross Output (Y_t): driven by endogenous capital/TFP growth + tariff/revenue shock
         # + Hotelling input-price supply response + operating-credit working-capital effect
@@ -1879,33 +1912,52 @@ def run_monte_carlo_projections(
 
         mc_tariff_params = None
         if tariff_params and tariff_params.get("tariff_pct", 0.0) > 0:
-            e_lr_pt = float(tariff_params["e_lr"])
-            lam_pt = float(tariff_params["lam"])
-            pt_pt = float(tariff_params["pass_through"])
+            if tariff_params.get("mode") == "targeted_section338_2026":
+                lam_pt = float(tariff_params.get("effective_lam", 0.16))
+                draw_lam = float(np.clip(lam_pt + nerlove_z[i, 1] * 0.045, 0.06, 0.45))
+                phys_mult = float(np.clip(1.0 + nerlove_z[i, 0] * 0.18, 0.55, 1.55))
+                price_mult = float(np.clip(1.0 + rng.normal(0.0, 0.12), 0.65, 1.40))
+                mc_tariff_params = {
+                    "mode": "targeted_section338_2026",
+                    "tariff_pct": tariff_params["tariff_pct"],
+                    "yr1_primary_phys_dollars": float(tariff_params.get("yr1_primary_phys_dollars", 0.0)) * phys_mult,
+                    "lr_primary_phys_dollars": float(tariff_params.get("lr_primary_phys_dollars", 0.0)) * phys_mult,
+                    "yr1_primary_pure_price_dollars": float(tariff_params.get("yr1_primary_pure_price_dollars", 0.0)) * price_mult,
+                    "lr_primary_pure_price_dollars": float(tariff_params.get("lr_primary_pure_price_dollars", 0.0)) * price_mult,
+                    "effective_lam": draw_lam,
+                }
+            else:
+                e_lr_pt = float(tariff_params["e_lr"])
+                lam_pt = float(tariff_params["lam"])
+                pt_pt = float(tariff_params["pass_through"])
+                pt_lr_pt = float(tariff_params.get("pass_through_lr", pt_pt))
 
-            e_lr_bounds = tariff_params.get("e_lr_p10_p90", (e_lr_pt * 1.25, e_lr_pt * 0.75))
-            lam_bounds = tariff_params.get("lam_p10_p90", (lam_pt * 0.75, lam_pt * 1.25))
-            pt_bounds = tariff_params.get("pass_through_p10_p90", (pt_pt * 0.80, min(1.0, pt_pt * 1.20)))
+                e_lr_bounds = tariff_params.get("e_lr_p10_p90", (e_lr_pt * 1.25, e_lr_pt * 0.75))
+                lam_bounds = tariff_params.get("lam_p10_p90", (lam_pt * 0.75, lam_pt * 1.25))
+                pt_bounds = tariff_params.get("pass_through_p10_p90", (pt_pt * 0.80, min(1.0, pt_pt * 1.20)))
 
-            sigma_elr = abs(e_lr_bounds[1] - e_lr_bounds[0]) / (2.0 * 1.2816)
-            sigma_lam = abs(lam_bounds[1] - lam_bounds[0]) / (2.0 * 1.2816)
-            sigma_pt = abs(pt_bounds[1] - pt_bounds[0]) / (2.0 * 1.2816)
+                sigma_elr = abs(e_lr_bounds[1] - e_lr_bounds[0]) / (2.0 * 1.2816)
+                sigma_lam = abs(lam_bounds[1] - lam_bounds[0]) / (2.0 * 1.2816)
+                sigma_pt = abs(pt_bounds[1] - pt_bounds[0]) / (2.0 * 1.2816)
 
-            draw_elr = min(-0.01, e_lr_pt + nerlove_z[i, 0] * sigma_elr)
-            draw_lam = float(np.clip(lam_pt + nerlove_z[i, 1] * sigma_lam, 0.05, 0.95))
-            draw_esr = draw_lam * draw_elr
-            draw_pt = float(np.clip(pt_pt + rng.normal(0.0, sigma_pt), 0.01, 1.0))
+                draw_elr = min(-0.01, e_lr_pt + nerlove_z[i, 0] * sigma_elr)
+                draw_lam = float(np.clip(lam_pt + nerlove_z[i, 1] * sigma_lam, 0.05, 0.95))
+                draw_esr = draw_lam * draw_elr
+                pt_shock = rng.normal(0.0, sigma_pt)
+                draw_pt = float(np.clip(pt_pt + pt_shock, 0.01, 1.0))
+                draw_pt_lr = float(np.clip(pt_lr_pt + pt_shock * 0.75, 0.01, 1.0))
 
-            mc_tariff_params = {
-                "tariff_pct": tariff_params["tariff_pct"],
-                "e_sr": draw_esr,
-                "e_lr": draw_elr,
-                "lam": draw_lam,
-                "pass_through": draw_pt,
-                "us_price_share": tariff_params.get("us_price_share", 1.0),
-                "us_lop_spillover": tariff_params.get("us_lop_spillover", 0.0),
-                "weight": tariff_params.get("weight", 1.0),
-            }
+                mc_tariff_params = {
+                    "tariff_pct": tariff_params["tariff_pct"],
+                    "e_sr": draw_esr,
+                    "e_lr": draw_elr,
+                    "lam": draw_lam,
+                    "pass_through": draw_pt,
+                    "pass_through_lr": draw_pt_lr,
+                    "us_price_share": tariff_params.get("us_price_share", 1.0),
+                    "us_lop_spillover": tariff_params.get("us_lop_spillover", 0.0),
+                    "weight": tariff_params.get("weight", 1.0),
+                }
 
         sim_records = run_dynamic_projection(
             horizon=horizon,
@@ -2228,9 +2280,13 @@ def load_section338_and_counter_tariff_data(region: str = "Ontario") -> Dict[str
     if db_path.exists():
         try:
             conn = sqlite3.connect(str(db_path))
-            out["section338_df"] = pd.read_sql_query(
+            s338_df = pd.read_sql_query(
                 "SELECT * FROM us_section338_tariffs ORDER BY hs_chapter, htsus_8digit", conn
             )
+            for str_col in ("proclamation", "htsus_8digit", "hs6_code", "hs_chapter", "effective_date", "statutory_regime"):
+                if str_col in s338_df.columns:
+                    s338_df[str_col] = s338_df[str_col].astype(str)
+            out["section338_df"] = s338_df
             prov_filter = "AND province = 'Ontario'" if region == "Ontario" else ""
             chap_q = f"""
                 SELECT
@@ -2346,6 +2402,16 @@ def run_short_term_nci_bridge(
         return {}
 
 
+def _fmt_ofa_num(val: float, decimals: int = 1, signed: bool = False) -> str:
+    """Format numbers cleanly while dropping trailing .0 / .00 on exact integers."""
+    fmt = f"{val:+,.{decimals}f}" if signed else f"{val:,.{decimals}f}"
+    if "." in fmt:
+        fmt = fmt.rstrip("0").rstrip(".")
+    if fmt in ("-0", "+0"):
+        fmt = "0"
+    return fmt
+
+
 def generate_simulator_word_briefing(
     region: str,
     farm_type: str,
@@ -2366,61 +2432,117 @@ def generate_simulator_word_briefing(
     geo_scope: str = "all_provinces",
 ) -> Optional[Any]:
     """
-    Generate a consulting-grade Word (.docx) Executive Briefing BytesIO buffer
-    summarizing the macro, ABP value-chain, 10-year Monte Carlo trajectory, and
-    farm-gate results. Compares multi-year impacts against `df_base_dyn` (when
-    supplied) so unshocked TFP drift is never misreported as a policy/shock impact,
-    and explicitly documents the StatCan IO geographical scope (`all_provinces`
-    vs. `within_province`).
+    Generate an official OFA-branded, publication-grade Word (.docx) Executive Briefing
+    adhering to the OFA Brand Identity Guidelines (2025-26) and external publication standards:
+      - Uniform Arial typography across all prose, numbers, headings, and tables
+      - Official OFA palette: Pickled Bluewood (#334B58), Crimson (#D7182A), Valencia (#DC4949),
+        Tulip Tree (#ECA842), and Champagne (#EDE6DE)
+      - Embedded 300-DPI multi-year GDP & solvency chart
+      - Official OFA Contact Bar footer on every page
     """
     import io
     from datetime import datetime
     try:
         from docx import Document
-        from docx.shared import Pt, Cm, RGBColor
+        from docx.shared import Pt, Cm, Inches, RGBColor
         from docx.enum.table import WD_TABLE_ALIGNMENT
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
     except ImportError:
         return None
 
+    OFA_CRIMSON = RGBColor(0xD7, 0x18, 0x2A)
+    OFA_BLUEWOOD = RGBColor(0x33, 0x4B, 0x58)
+    OFA_MUTED = RGBColor(0x47, 0x55, 0x69)
+    OFA_TEXT = RGBColor(0x1E, 0x29, 0x3B)
+
+    def _shade_cell(cell: Any, hex_fill: str) -> None:
+        tcPr = cell._tc.get_or_add_tcPr()
+        shd = OxmlElement("w:shd")
+        shd.set(qn("w:val"), "clear")
+        shd.set(qn("w:color"), "auto")
+        shd.set(qn("w:fill"), hex_fill)
+        tcPr.append(shd)
+
+    def _style_cell_text(cell: Any, text: str, bold: bool = False, color: RGBColor = OFA_TEXT, size_pt: float = 9.5) -> None:
+        cell.text = ""
+        p = cell.paragraphs[0]
+        p.paragraph_format.space_before = Pt(3)
+        p.paragraph_format.space_after = Pt(3)
+        run = p.add_run(text)
+        run.font.name = "Arial"
+        run.font.size = Pt(size_pt)
+        run.font.bold = bold
+        run.font.color.rgb = color
+
     scope_label = (
-        "National Supply Chain (StatCan 36-10-0595-01)"
+        "National Canadian Supply Chain (Statistics Canada Input-Output Multipliers)"
         if region == "Canada"
         else (
-            f"Within-Province Retention Only ({region} Own-Border SUT)"
+            f"Within-Province Retention Only ({region} Own-Border Supply Chain)"
             if str(geo_scope).lower() == "within_province"
-            else f"All-Provinces Canadian Footprint ({region} + Inter-Provincial Supply Chains)"
+            else f"All-Provinces Canadian Footprint ({region} Plus Inter-Provincial Linkages)"
         )
     )
 
     doc = Document()
-    style = doc.styles["Normal"]
-    style.font.name = "Calibri"
-    style.font.size = Pt(10.5)
+    normal_style = doc.styles["Normal"]
+    normal_style.font.name = "Arial"
+    normal_style.font.size = Pt(10.5)
+    normal_style.font.color.rgb = OFA_TEXT
 
-    for level in range(1, 4):
-        h_style = doc.styles[f"Heading {level}"]
-        h_style.font.name = "Calibri"
-        h_style.font.color.rgb = RGBColor(0x1B, 0x3A, 0x5F)
+    for level, (sz, col) in enumerate([(18, OFA_CRIMSON), (13.5, OFA_BLUEWOOD), (11.5, OFA_BLUEWOOD)], start=1):
+        if f"Heading {level}" in doc.styles:
+            hs = doc.styles[f"Heading {level}"]
+            hs.font.name = "Arial"
+            hs.font.size = Pt(sz)
+            hs.font.bold = True
+            hs.font.color.rgb = col
 
     for section in doc.sections:
         section.top_margin = Cm(2.0)
-        section.bottom_margin = Cm(2.0)
-        section.left_margin = Cm(2.2)
-        section.right_margin = Cm(2.2)
+        section.bottom_margin = Cm(2.1)
+        section.left_margin = Cm(2.1)
+        section.right_margin = Cm(2.1)
+        ftr = section.footer
+        fp = ftr.paragraphs[0]
+        fp.text = ""
+        fr1 = fp.add_run("Ontario Federation of Agriculture  |  ofa.on.ca  //  Tel: 519-821-8883 / 1-800-668-3276  |  ")
+        fr1.font.name = "Arial"
+        fr1.font.size = Pt(8.5)
+        fr1.font.color.rgb = OFA_BLUEWOOD
+        fr2 = fp.add_run("Farms and Food Forever.")
+        fr2.font.name = "Arial"
+        fr2.font.size = Pt(8.5)
+        fr2.font.bold = True
+        fr2.font.color.rgb = OFA_CRIMSON
 
-    doc.add_heading(f"OFA Growth & Risk Simulator — Executive Briefing ({region})", level=0)
-    p_sub = doc.add_paragraph(
-        f"Prepared: {datetime.now().strftime('%B %d, %Y')} | Sector: {farm_type} | Scenario: {preset_name} | IO Scope: {scope_label}"
-    )
-    p_sub.runs[0].font.color.rgb = RGBColor(0x55, 0x55, 0x55)
+    # Title Block
+    p_kicker = doc.add_paragraph()
+    p_kicker.paragraph_format.space_after = Pt(2)
+    r_kick = p_kicker.add_run("ONTARIO FEDERATION OF AGRICULTURE  |  ECONOMIC POLICY & RISK BRIEFING")
+    r_kick.font.name = "Arial"
+    r_kick.font.size = Pt(9)
+    r_kick.font.bold = True
+    r_kick.font.color.rgb = OFA_CRIMSON
 
-    doc.add_heading("1. Executive Summary & Headline KPIs", level=1)
-    doc.add_paragraph(
-        f"This briefing quantifies the macroeconomic, downstream value-chain (Analysis-by-Parts), "
-        f"multi-year stock-flow trajectory, and farm-gate profitability impacts for {farm_type} in {region} "
-        f"under the {scope_label} accounting boundary. Nursery, Floriculture, Sod, and Greenhouse operators "
-        f"(NAICS 1114 / HS Ch. 06 & 07) are modeled strictly within Primary Agriculture."
+    p_title = doc.add_paragraph()
+    p_title.paragraph_format.space_after = Pt(4)
+    r_title = p_title.add_run(f"Primary Agriculture & Agri-Food Shock Assessment: {region}")
+    r_title.font.name = "Arial"
+    r_title.font.size = Pt(19)
+    r_title.font.bold = True
+    r_title.font.color.rgb = OFA_BLUEWOOD
+
+    p_sub = doc.add_paragraph()
+    p_sub.paragraph_format.space_after = Pt(12)
+    r_sub = p_sub.add_run(
+        f"Published {datetime.now().strftime('%B %d, %Y')}  |  Sector Scope: {farm_type}  |  "
+        f"Scenario: {preset_name}  |  Accounting Boundary: {scope_label}"
     )
+    r_sub.font.name = "Arial"
+    r_sub.font.size = Pt(9.5)
+    r_sub.font.color.rgb = OFA_MUTED
 
     yr1 = df_dyn.iloc[0]
     yrN = df_dyn.iloc[-1]
@@ -2429,47 +2551,157 @@ def generate_simulator_word_briefing(
 
     if df_base_dyn is not None and len(df_base_dyn) >= horizon:
         base_gdp_yrN = float(df_base_dyn.iloc[horizon - 1]["Direct_GDP"])
+        base_nci_yr1 = float(df_base_dyn.iloc[0]["Net_Cash_Income"])
     else:
         base_gdp_yrN = base_gdp_dollars
+        base_nci_yr1 = float(yr1["Net_Cash_Income"])
 
+    yr1_nci_shock_m = (float(yr1["Net_Cash_Income"]) - base_nci_yr1) / 1e6
     yrN_gdp_shock_m = (float(yrN["Direct_GDP"]) - base_gdp_yrN) / 1e6
     mc_p10_shock_m = (float(mc_N["Direct_GDP_p10"]) - base_gdp_yrN) / 1e6
     mc_p90_shock_m = (float(mc_N["Direct_GDP_p90"]) - base_gdp_yrN) / 1e6
 
-    kpis = [
-        ("Jurisdiction & Primary Ag Sector", f"{region} — {farm_type}"),
-        ("IO Geographical Multiplier Scope", scope_label),
-        ("Baseline Sector Output / Value-Added GDP", f"${base_output_dollars/1e9:,.2f}B / ${base_gdp_dollars/1e9:,.2f}B"),
-        ("Year 1 Total Output Impact (Incl. ABP)", f"{combined_yr1_output_impact_m:+,.1f} $M"),
-        ("Year 1 Value-Added GDP Impact (Incl. ABP)", f"{combined_yr1_gdp_impact_m:+,.1f} $M"),
-        ("Year 1 Supply Chain Employment Impact", f"{combined_yr1_jobs_impact:+,.0f} Jobs"),
-        (
-            f"Year {horizon} Direct Farm GDP Shock [P10–P90]",
-            f"{yrN_gdp_shock_m:+,.1f} $M [{mc_p10_shock_m:+,.0f}M to {mc_p90_shock_m:+,.0f}M]",
-        ),
-        (f"Debt Service Coverage Ratio (Yr 1 → Yr {horizon})", f"{yr1['DSCR']:.2f}x → {yrN['DSCR']:.2f}x"),
-        ("U.S. Section 338 Tariff Setting", f"{tariff_pct:g}% on {tariff_commodity}"),
-    ]
-    tbl_kpi = doc.add_table(rows=len(kpis), cols=2)
-    tbl_kpi.alignment = WD_TABLE_ALIGNMENT.CENTER
-    for idx, (k, v) in enumerate(kpis):
-        tbl_kpi.rows[idx].cells[0].text = k
-        tbl_kpi.rows[idx].cells[1].text = v
+    # Section 1: Consulting Pyramid Executive Summary
+    h1 = doc.add_heading("1. Executive Summary: Farm Margin Squeeze Outpaces Physical Output Contraction", level=1)
+    h1.runs[0].font.name = "Arial"
 
-    doc.add_heading("2. Downstream Food & Beverage Processing (Analysis-by-Parts)", level=1)
-    doc.add_paragraph(
-        f"Using Statistics Canada Supply and Use Table (36-10-0478-01) basic-price domestic farm input "
-        f"coefficients (a_farm,proc^dom), upstream primary farm output is netted out of NAICS 311/312 "
-        f"processor multipliers to eliminate double-counting. Downstream processor net GDP impact: "
-        f"{abp_res.get('proc_net_gdp_m', 0.0):+,.1f} $M ({abp_res.get('proc_net_jobs', 0.0):+,.0f} Jobs); "
-        f"double-counted upstream farm GDP removed: {abp_res.get('double_counted_farm_gdp_removed_m', 0.0):+,.1f} $M."
+    p_exec = doc.add_paragraph()
+    r_exec = p_exec.add_run(
+        f"Under the {preset_name} scenario, {region} agri-food operations record a Year-1 combined direct output shift "
+        f"of {_fmt_ofa_num(combined_yr1_output_impact_m, 1, signed=True)} $M alongside a combined value-added GDP change "
+        f"of {_fmt_ofa_num(combined_yr1_gdp_impact_m, 1, signed=True)} $M ({_fmt_ofa_num(combined_yr1_jobs_impact, 0, signed=True)} jobs). "
+        f"Because biological production cycles and fixed land commitments hold Year-1 farm supply largely inelastic, "
+        f"producers absorb the initial shock primarily through farm-gate price and operating margin compression "
+        f"({_fmt_ofa_num(yr1_nci_shock_m, 1, signed=True)} $M in Year-1 Net Cash Income) before capital investment "
+        f"and breeding/planting adjustments compound to {_fmt_ofa_num(yrN_gdp_shock_m, 1, signed=True)} $M in direct farm GDP by Year {horizon}. "
+        f"Across all accounts, Nursery, Floriculture, Sod, and Greenhouse producers (NAICS 1114 / HS Chapters 06 and 07) "
+        f"are classified strictly within Primary Agriculture."
     )
+    r_exec.font.name = "Arial"
+    r_exec.font.size = Pt(10.5)
 
-    doc.add_heading(f"3. {horizon}-Year Dynamic Stock-Flow Trajectory", level=1)
-    headers = ["Year", "Output ($B)", "GDP ($B)", "GDP Shock ($M)", "Cap Stock ($B)", "DSCR", "FSF (%)", "LRF"]
+    kpis = [
+        ("Jurisdiction & Primary Agriculture Sector", f"{region} — {farm_type}"),
+        ("Supply-Chain Multiplier Boundary", scope_label),
+        ("Baseline Primary Output / Value-Added GDP", f"${_fmt_ofa_num(base_output_dollars/1e9, 2)}B / ${_fmt_ofa_num(base_gdp_dollars/1e9, 2)}B"),
+        ("Year 1 Combined Direct Output Change", f"{_fmt_ofa_num(combined_yr1_output_impact_m, 1, signed=True)} $M"),
+        ("Year 1 Combined Value-Added GDP Change", f"{_fmt_ofa_num(combined_yr1_gdp_impact_m, 1, signed=True)} $M"),
+        ("Year 1 Farm Net Cash Income Margin Shift", f"{_fmt_ofa_num(yr1_nci_shock_m, 1, signed=True)} $M"),
+        ("Year 1 Supply-Chain & Rural Household Employment", f"{_fmt_ofa_num(combined_yr1_jobs_impact, 0, signed=True)} Jobs"),
+        (
+            f"Year {horizon} Direct Farm GDP Shift [80% Interval]",
+            f"{_fmt_ofa_num(yrN_gdp_shock_m, 1, signed=True)} $M [{_fmt_ofa_num(mc_p10_shock_m, 0, signed=True)}M to {_fmt_ofa_num(mc_p90_shock_m, 0, signed=True)}M]",
+        ),
+        (f"Debt Service Coverage Ratio (Year 1 to Year {horizon})", f"{yr1['DSCR']:.2f}x to {yrN['DSCR']:.2f}x (1.15x Covenant)"),
+        ("Modeled U.S. Border Tariff Scope", f"{_fmt_ofa_num(tariff_pct, 1)}% on {tariff_commodity}"),
+    ]
+    tbl_kpi = doc.add_table(rows=len(kpis) + 1, cols=2)
+    tbl_kpi.alignment = WD_TABLE_ALIGNMENT.CENTER
+    _shade_cell(tbl_kpi.rows[0].cells[0], "334B58")
+    _shade_cell(tbl_kpi.rows[0].cells[1], "334B58")
+    _style_cell_text(tbl_kpi.rows[0].cells[0], "Executive Performance Indicator", bold=True, color=RGBColor(0xFF, 0xFF, 0xFF))
+    _style_cell_text(tbl_kpi.rows[0].cells[1], "Modeled Estimate", bold=True, color=RGBColor(0xFF, 0xFF, 0xFF))
+    for idx, (k, v) in enumerate(kpis, start=1):
+        fill = "EDE6DE" if idx % 2 == 1 else "FFFFFF"
+        _shade_cell(tbl_kpi.rows[idx].cells[0], fill)
+        _shade_cell(tbl_kpi.rows[idx].cells[1], fill)
+        _style_cell_text(tbl_kpi.rows[idx].cells[0], k, bold=True, color=OFA_BLUEWOOD)
+        _style_cell_text(tbl_kpi.rows[idx].cells[1], v, bold=False, color=OFA_TEXT)
+
+    # Embed 300-DPI 2-Panel Publication Chart via Matplotlib
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        plt.rcParams["font.family"] = "sans-serif"
+        plt.rcParams["font.sans-serif"] = ["Arial", "DejaVu Sans"]
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9.4, 3.7), dpi=300)
+        fig.patch.set_facecolor("#FFFFFF")
+        yrs_num = [int(r["t"]) for _, r in df_dyn.iterrows()]
+        shock_gdp_b = [float(r["Direct_GDP"]) / 1e9 for _, r in df_dyn.iterrows()]
+        if df_base_dyn is not None and len(df_base_dyn) == len(df_dyn):
+            base_gdp_b = [float(r["Direct_GDP"]) / 1e9 for _, r in df_base_dyn.iterrows()]
+        else:
+            base_gdp_b = [base_gdp_dollars / 1e9] * len(df_dyn)
+        p10_b = [float(mc_summary[t]["Direct_GDP_p10"]) / 1e9 for t in yrs_num]
+        p90_b = [float(mc_summary[t]["Direct_GDP_p90"]) / 1e9 for t in yrs_num]
+
+        ax1.fill_between(yrs_num, p10_b, p90_b, color="#EDE6DE", alpha=0.85, label="80% Confidence Band")
+        ax1.plot(yrs_num, base_gdp_b, linestyle="--", color="#334B58", linewidth=1.8, label="Unshocked Baseline")
+        ax1.plot(yrs_num, shock_gdp_b, marker="o", markersize=4, color="#D7182A", linewidth=2.3, label="Shocked Trajectory")
+        ax1.set_title("Primary Farm Value-Added GDP ($B)", fontsize=10.5, fontweight="bold", color="#334B58", loc="left")
+        ax1.set_xlabel("Projection Year", fontsize=9, color="#334B58")
+        ax1.set_ylabel("Value-Added GDP ($B)", fontsize=9, color="#334B58")
+        ax1.set_xticks(yrs_num)
+        ax1.grid(axis="y", color="#E2E8F0", linewidth=0.7)
+        ax1.spines["top"].set_visible(False)
+        ax1.spines["right"].set_visible(False)
+        ax1.legend(frameon=False, fontsize=8, loc="best")
+
+        dscr_vals = [float(r["DSCR"]) for _, r in df_dyn.iterrows()]
+        ax2.plot(yrs_num, dscr_vals, marker="s", markersize=4, color="#334B58", linewidth=2.3, label="Modeled Sector DSCR")
+        ax2.axhline(1.15, linestyle=":", color="#D7182A", linewidth=1.6, label="1.15x Credit Covenant")
+        ax2.set_title("Debt Service Coverage Ratio (DSCR)", fontsize=10.5, fontweight="bold", color="#334B58", loc="left")
+        ax2.set_xlabel("Projection Year", fontsize=9, color="#334B58")
+        ax2.set_ylabel("Coverage Ratio (x)", fontsize=9, color="#334B58")
+        ax2.set_xticks(yrs_num)
+        ax2.grid(axis="y", color="#E2E8F0", linewidth=0.7)
+        ax2.spines["top"].set_visible(False)
+        ax2.spines["right"].set_visible(False)
+        ax2.legend(frameon=False, fontsize=8, loc="best")
+
+        plt.tight_layout()
+        img_buf = io.BytesIO()
+        fig.savefig(img_buf, format="png", dpi=300, bbox_inches="tight")
+        plt.close(fig)
+        img_buf.seek(0)
+
+        p_fig = doc.add_paragraph()
+        p_fig.paragraph_format.space_before = Pt(10)
+        p_fig.paragraph_format.space_after = Pt(2)
+        p_fig.add_run().add_picture(img_buf, width=Inches(6.4))
+
+        p_cap = doc.add_paragraph()
+        p_cap.paragraph_format.space_after = Pt(8)
+        rc = p_cap.add_run(
+            f"Figure 1: {horizon}-year primary value-added GDP path and credit coverage trajectory ({region}, {farm_type}). "
+            f"Source: Statistics Canada Input-Output & Farm Financial Accounts; OFA Modeling."
+        )
+        rc.font.name = "Arial"
+        rc.font.size = Pt(8.5)
+        rc.font.italic = True
+        rc.font.color.rgb = OFA_MUTED
+    except Exception:
+        pass
+
+    # Section 2: Downstream Food & Beverage Processing
+    h2 = doc.add_heading("2. Downstream Food & Beverage Processing Value Chain", level=1)
+    h2.runs[0].font.name = "Arial"
+    p_abp = doc.add_paragraph()
+    r_abp = p_abp.add_run(
+        f"To prevent double-counting between farms and post-farm manufacturers, upstream domestic farm inputs are "
+        f"stripped out of NAICS 311 and 312 food and beverage processing multipliers using Statistics Canada Supply "
+        f"and Use Table basic-price linkages. Foreign export tariffs on primary farm goods do not ration domestic "
+        f"processor supply; instead, downstream contractions reflect co-targeted processed food and beverage exports "
+        f"plus verified cost-of-production forward pricing. Net downstream processor GDP shifts by "
+        f"{_fmt_ofa_num(abp_res.get('proc_net_gdp_m', 0.0), 1, signed=True)} $M "
+        f"({_fmt_ofa_num(abp_res.get('proc_net_jobs', 0.0), 0, signed=True)} jobs), after removing "
+        f"{_fmt_ofa_num(abp_res.get('double_counted_farm_gdp_removed_m', 0.0), 1, signed=True)} $M in overlapping upstream farm value-added."
+    )
+    r_abp.font.name = "Arial"
+    r_abp.font.size = Pt(10.5)
+
+    # Section 3: Multi-Year Trajectory Table
+    h3 = doc.add_heading(f"3. {horizon}-Year Dynamic Stock-Flow & Credit Solvency Schedule", level=1)
+    h3.runs[0].font.name = "Arial"
+    headers = ["Year", "Output ($B)", "GDP ($B)", "GDP Shift ($M)", "Capital ($B)", "DSCR (x)", "Interest Share (%)", "Liquidity Index"]
     tbl_dyn = doc.add_table(rows=len(df_dyn) + 1, cols=len(headers))
+    tbl_dyn.alignment = WD_TABLE_ALIGNMENT.CENTER
     for j, h in enumerate(headers):
-        tbl_dyn.rows[0].cells[j].text = h
+        _shade_cell(tbl_dyn.rows[0].cells[j], "334B58")
+        _style_cell_text(tbl_dyn.rows[0].cells[j], h, bold=True, color=RGBColor(0xFF, 0xFF, 0xFF), size_pt=9.0)
     for i, (_, r) in enumerate(df_dyn.iterrows()):
         if df_base_dyn is not None and i < len(df_base_dyn):
             gdp_shock_row_m = (float(r["Direct_GDP"]) - float(df_base_dyn.iloc[i]["Direct_GDP"])) / 1e6
@@ -2477,33 +2709,59 @@ def generate_simulator_word_briefing(
             gdp_shock_row_m = float(r["Total_GDP_Impact"]) / 1e6
         vals = [
             str(r["Year"]),
-            f"${r['Gross_Output']/1e9:.2f}B",
-            f"${r['Direct_GDP']/1e9:.2f}B",
-            f"{gdp_shock_row_m:+,.1f}M",
-            f"${r['Capital_Stock']/1e9:.2f}B",
+            f"${_fmt_ofa_num(r['Gross_Output']/1e9, 2)}B",
+            f"${_fmt_ofa_num(r['Direct_GDP']/1e9, 2)}B",
+            f"{_fmt_ofa_num(gdp_shock_row_m, 1, signed=True)}M",
+            f"${_fmt_ofa_num(r['Capital_Stock']/1e9, 2)}B",
             f"{r['DSCR']:.2f}x",
-            f"{r['FSF']:.2f}%",
+            f"{_fmt_ofa_num(r['FSF'], 2)}%",
             f"{r['LRF']:.2f}",
         ]
+        row_fill = "EDE6DE" if i % 2 == 1 else "FFFFFF"
         for j, val in enumerate(vals):
-            tbl_dyn.rows[i + 1].cells[j].text = val
+            _shade_cell(tbl_dyn.rows[i + 1].cells[j], row_fill)
+            _style_cell_text(tbl_dyn.rows[i + 1].cells[j], val, bold=(j == 0), color=OFA_TEXT, size_pt=9.0)
 
-    doc.add_heading("4. Farm-Gate Impact Translator", level=1)
+    # Section 4: Farm-Gate Impact Translator
+    h4 = doc.add_heading("4. Farm-Gate Operating Margin & Enterprise Benchmark", level=1)
+    h4.runs[0].font.name = "Arial"
     if avg_farm_res:
-        doc.add_paragraph(
-            f"StatCan Table 32-10-0136-01 ('Average per farm', {avg_farm_res.get('year', 2024)}, "
-            f"{avg_farm_res.get('farms_reporting', 0):,} farms reporting): "
-            f"Net Operating Income per farm shifts from ${avg_farm_res.get('base_noi_per_farm', 0):,.0f} "
+        p_fg = doc.add_paragraph()
+        r_fg = p_fg.add_run(
+            f"Translated to the individual farm level via Statistics Canada Farm Financial Survey benchmarks "
+            f"({avg_farm_res.get('year', 2024)}, {avg_farm_res.get('farms_reporting', 0):,} operations reporting), "
+            f"average Net Operating Income per farm moves from ${avg_farm_res.get('base_noi_per_farm', 0):,.0f} "
             f"to ${avg_farm_res.get('new_noi_per_farm', 0):,.0f} "
-            f"({avg_farm_res.get('delta_noi_per_farm', 0):+,.0f} $/farm)."
+            f"({_fmt_ofa_num(avg_farm_res.get('delta_noi_per_farm', 0), 0, signed=True)} $/farm)."
         )
+        r_fg.font.name = "Arial"
+        r_fg.font.size = Pt(10.5)
     if ent_sim:
-        doc.add_paragraph(
-            f"Enterprise Benchmark ({ent_sim.get('label', '')}): "
-            f"Operating cost shifts from ${ent_sim.get('base_op_ac', 0):,.2f}/ac to "
-            f"${ent_sim.get('new_op_ac', 0):,.2f}/ac ({ent_sim.get('delta_op_ac', 0):+,.2f}/ac), "
-            f"producing a whole-enterprise net margin change of ${ent_sim.get('farm_delta_net_margin', 0):+,.0f}."
+        p_ent = doc.add_paragraph()
+        r_ent = p_ent.add_run(
+            f"Representative Enterprise Budget ({ent_sim.get('label', '')}): "
+            f"Operating expense shifts from ${_fmt_ofa_num(ent_sim.get('base_op_ac', 0), 2)}/acre to "
+            f"${_fmt_ofa_num(ent_sim.get('new_op_ac', 0), 2)}/acre ({_fmt_ofa_num(ent_sim.get('delta_op_ac', 0), 2, signed=True)} $/acre), "
+            f"corresponding to a whole-farm net margin change of ${_fmt_ofa_num(ent_sim.get('farm_delta_net_margin', 0), 0, signed=True)}."
         )
+        r_ent.font.name = "Arial"
+        r_ent.font.size = Pt(10.5)
+
+    # Section 5: Methodology Note
+    h5 = doc.add_heading("5. Institutional Methodology & Data Sources", level=1)
+    h5.runs[0].font.name = "Arial"
+    p_meth = doc.add_paragraph()
+    r_meth = p_meth.add_run(
+        "Estimates combine Statistics Canada Detail Input-Output Multipliers (2022 reference year, Tables 36-10-0594-01 "
+        "and 36-10-0595-01), Farm Cash Receipts (2025, Table 32-10-0045-01), Farm Operating Expenses and Balance Sheets "
+        "(2024, Tables 32-10-0049-01, 32-10-0052-01, and 32-10-0136-01), and 2025 Canadian International Merchandise Trade "
+        "records reconciled to 8-digit U.S. Harmonized Tariff Schedule scope. Employment impacts are deflated to constant "
+        "2022 producer and consumer dollars using finalized annual Farm Product Price Index (Table 32-10-0099-01) and "
+        "Consumer Price Index (Table 18-10-0005-01) series."
+    )
+    r_meth.font.name = "Arial"
+    r_meth.font.size = Pt(9.5)
+    r_meth.font.color.rgb = OFA_MUTED
 
     buf = io.BytesIO()
     doc.save(buf)
@@ -2528,21 +2786,32 @@ def generate_simulator_pptx_deck(
     geo_scope: str = "all_provinces",
 ) -> Optional[Any]:
     """
-    Generate a board-ready PowerPoint (.pptx) presentation deck BytesIO buffer
-    with native editable charts and summary tables. Plots dynamic unshocked
-    `df_base_dyn['Direct_GDP']` when supplied so baseline TFP growth is visible.
+    Generate a widescreen 16:9 OFA-branded PowerPoint (.pptx) executive briefing deck
+    adhering to the OFA Brand Identity Guidelines (2025-26):
+      - Pickled Bluewood (#334B58), Crimson (#D7182A), Tulip Tree (#ECA842), Champagne (#EDE6DE)
+      - Uniform Arial typography and official OFA Contact Bar on every slide
+      - Native editable charts and KPI summary cards
     """
     import io
     try:
         from pptx import Presentation
         from pptx.util import Inches, Pt
+        from pptx.dml.color import RGBColor
+        from pptx.enum.shapes import MSO_SHAPE
         from pptx.chart.data import CategoryChartData
-        from pptx.enum.chart import XL_CHART_TYPE
+        from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION
     except ImportError:
         return None
 
+    C_CRIMSON = RGBColor(0xD7, 0x18, 0x2A)
+    C_VALENCIA = RGBColor(0xDC, 0x49, 0x49)
+    C_BLUEWOOD = RGBColor(0x33, 0x4B, 0x58)
+    C_CHAMPAGNE = RGBColor(0xED, 0xE6, 0xDE)
+    C_WHITE = RGBColor(0xFF, 0xFF, 0xFF)
+    C_TEXT = RGBColor(0x1E, 0x29, 0x3B)
+
     scope_short = (
-        "National SUT"
+        "National Supply Chain"
         if region == "Canada"
         else ("Within-Province Retention" if str(geo_scope).lower() == "within_province" else "All-Provinces Footprint")
     )
@@ -2550,60 +2819,206 @@ def generate_simulator_pptx_deck(
     prs = Presentation()
     prs.slide_width = Inches(13.333)
     prs.slide_height = Inches(7.5)
+    blank_layout = prs.slide_layouts[6]
 
-    # Slide 1: Title Slide
-    s1 = prs.slides.add_slide(prs.slide_layouts[0])
-    if s1.shapes.title:
-        s1.shapes.title.text = f"OFA Growth & Risk Simulator — {region}"
-    if len(s1.placeholders) > 1:
-        s1.placeholders[1].text = f"Primary Ag Sector: {farm_type}\nScenario: {preset_name} | IO Scope: {scope_short}"
+    def _add_ofa_chrome(slide: Any, title_text: str, subtitle_text: str) -> None:
+        # Top Pickled Bluewood header bar + Crimson accent rule
+        hdr = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(13.333), Inches(1.12))
+        hdr.fill.solid()
+        hdr.fill.fore_color.rgb = C_BLUEWOOD
+        hdr.line.fill.background()
 
-    # Slide 2: Executive KPIs & ABP Value Chain
-    s2 = prs.slides.add_slide(prs.slide_layouts[5])
-    if s2.shapes.title:
-        s2.shapes.title.text = f"Executive Impact Summary & Value-Chain ABP ({scope_short})"
-    tb2 = s2.shapes.add_textbox(Inches(0.7), Inches(1.5), Inches(11.8), Inches(5.2))
+        rule = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(1.12), Inches(13.333), Inches(0.06))
+        rule.fill.solid()
+        rule.fill.fore_color.rgb = C_CRIMSON
+        rule.line.fill.background()
+
+        tb = slide.shapes.add_textbox(Inches(0.55), Inches(0.14), Inches(12.2), Inches(0.90))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        p1 = tf.paragraphs[0]
+        p1.text = title_text
+        p1.font.name = "Arial"
+        p1.font.size = Pt(22)
+        p1.font.bold = True
+        p1.font.color.rgb = C_WHITE
+        p2 = tf.add_paragraph()
+        p2.text = subtitle_text
+        p2.font.name = "Arial"
+        p2.font.size = Pt(11)
+        p2.font.color.rgb = C_CHAMPAGNE
+
+        # Bottom OFA Contact Bar (split red/slate keyline + contact text)
+        kl_left = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.55), Inches(6.96), Inches(8.1), Inches(0.02))
+        kl_left.fill.solid()
+        kl_left.fill.fore_color.rgb = C_CRIMSON
+        kl_left.line.fill.background()
+
+        kl_right = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(8.65), Inches(6.96), Inches(4.13), Inches(0.02))
+        kl_right.fill.solid()
+        kl_right.fill.fore_color.rgb = C_BLUEWOOD
+        kl_right.line.fill.background()
+
+        fb = slide.shapes.add_textbox(Inches(0.55), Inches(7.02), Inches(12.23), Inches(0.36))
+        ftf = fb.text_frame
+        fp = ftf.paragraphs[0]
+        fp.text = "Ontario Federation of Agriculture  |  ofa.on.ca  //  Tel: 519-821-8883 / 1-800-668-3276  |  Farms and Food Forever."
+        fp.font.name = "Arial"
+        fp.font.size = Pt(9.5)
+        fp.font.bold = True
+        fp.font.color.rgb = C_BLUEWOOD
+
+    # Slide 1: Branded Cover Slide
+    s1 = prs.slides.add_slide(blank_layout)
+    bg1 = s1.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(13.333), Inches(7.5))
+    bg1.fill.solid()
+    bg1.fill.fore_color.rgb = C_BLUEWOOD
+    bg1.line.fill.background()
+
+    accent1 = s1.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(0.32), Inches(7.5))
+    accent1.fill.solid()
+    accent1.fill.fore_color.rgb = C_CRIMSON
+    accent1.line.fill.background()
+
+    tb1 = s1.shapes.add_textbox(Inches(0.95), Inches(1.45), Inches(11.4), Inches(4.4))
+    tf1 = tb1.text_frame
+    tf1.word_wrap = True
+    p_org = tf1.paragraphs[0]
+    p_org.text = "ONTARIO FEDERATION OF AGRICULTURE"
+    p_org.font.name = "Arial"
+    p_org.font.size = Pt(13)
+    p_org.font.bold = True
+    p_org.font.color.rgb = C_VALENCIA
+
+    p_main = tf1.add_paragraph()
+    p_main.space_before = Pt(14)
+    p_main.text = f"Primary Agriculture & Agri-Food Growth & Risk Assessment: {region}"
+    p_main.font.name = "Arial"
+    p_main.font.size = Pt(32)
+    p_main.font.bold = True
+    p_main.font.color.rgb = C_WHITE
+
+    p_meta = tf1.add_paragraph()
+    p_meta.space_before = Pt(18)
+    p_meta.text = f"Sector: {farm_type}  |  Scenario: {preset_name}  |  Boundary: {scope_short}"
+    p_meta.font.name = "Arial"
+    p_meta.font.size = Pt(15)
+    p_meta.font.color.rgb = C_CHAMPAGNE
+
+    p_tag = tf1.add_paragraph()
+    p_tag.space_before = Pt(36)
+    p_tag.text = "Farms and Food Forever.   //   ofa.on.ca"
+    p_tag.font.name = "Arial"
+    p_tag.font.size = Pt(13)
+    p_tag.font.bold = True
+    p_tag.font.color.rgb = C_WHITE
+
+    # Slide 2: Executive KPI Cards & Value-Chain Synthesis
+    s2 = prs.slides.add_slide(blank_layout)
+    _add_ofa_chrome(
+        s2,
+        f"Executive Impact Summary & Value-Chain Assessment ({region})",
+        f"{preset_name}  |  {farm_type}  |  {scope_short}",
+    )
+
+    yr1_row = df_dyn.iloc[0]
+    card_specs = [
+        ("YEAR 1 DIRECT OUTPUT", f"{_fmt_ofa_num(combined_yr1_output_impact_m, 1, signed=True)} $M", f"Baseline: ${_fmt_ofa_num(base_output_dollars/1e9, 2)}B"),
+        ("YEAR 1 VALUE-ADDED GDP", f"{_fmt_ofa_num(combined_yr1_gdp_impact_m, 1, signed=True)} $M", f"Baseline GDP: ${_fmt_ofa_num(base_gdp_dollars/1e9, 2)}B"),
+        ("YEAR 1 EMPLOYMENT", f"{_fmt_ofa_num(combined_yr1_jobs_impact, 0, signed=True)} Jobs", "Constant 2022$ Deflated"),
+        ("YEAR 1 CREDIT COVERAGE", f"{float(yr1_row['DSCR']):.2f}x DSCR", f"Distress Risk: {_fmt_ofa_num(float(yr1_row.get('Distress_Prob_Pct', 8.3)), 1)}%"),
+    ]
+    for idx, (ctitle, cval, csub) in enumerate(card_specs):
+        left = Inches(0.55 + idx * 3.12)
+        card = s2.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left, Inches(1.45), Inches(2.92), Inches(1.65))
+        card.fill.solid()
+        card.fill.fore_color.rgb = C_CHAMPAGNE
+        card.line.color.rgb = C_BLUEWOOD
+        card.line.width = Pt(0.75)
+
+        ctb = s2.shapes.add_textbox(left + Inches(0.14), Inches(1.55), Inches(2.64), Inches(1.45))
+        ctf = ctb.text_frame
+        ctf.word_wrap = True
+        cp1 = ctf.paragraphs[0]
+        cp1.text = ctitle
+        cp1.font.name = "Arial"
+        cp1.font.size = Pt(9.5)
+        cp1.font.bold = True
+        cp1.font.color.rgb = C_BLUEWOOD
+
+        cp2 = ctf.add_paragraph()
+        cp2.space_before = Pt(6)
+        cp2.text = cval
+        cp2.font.name = "Arial"
+        cp2.font.size = Pt(21)
+        cp2.font.bold = True
+        cp2.font.color.rgb = C_CRIMSON
+
+        cp3 = ctf.add_paragraph()
+        cp3.space_before = Pt(4)
+        cp3.text = csub
+        cp3.font.name = "Arial"
+        cp3.font.size = Pt(9.5)
+        cp3.font.color.rgb = C_TEXT
+
+    tb2 = s2.shapes.add_textbox(Inches(0.55), Inches(3.38), Inches(12.2), Inches(3.35))
     tf2 = tb2.text_frame
     tf2.word_wrap = True
     bullets = [
-        f"Baseline Sector Output: ${base_output_dollars/1e9:,.2f}B | Baseline Value-Added GDP ({scope_short}): ${base_gdp_dollars/1e9:,.2f}B",
-        f"Year 1 Combined Output Impact: {combined_yr1_output_impact_m:+,.1f} $M",
-        f"Year 1 Combined Value-Added GDP Impact: {combined_yr1_gdp_impact_m:+,.1f} $M ({combined_yr1_jobs_impact:+,.0f} Jobs)",
-        f"Downstream NAICS 311/312 Processor ABP Net GDP: {abp_res.get('proc_net_gdp_m', 0.0):+,.1f} $M (Upstream Farm GDP Removed: {abp_res.get('double_counted_farm_gdp_removed_m', 0.0):+,.1f} $M)",
+        f"Primary Agriculture Scope: Nursery, Floriculture, Sod, and Greenhouse producers (NAICS 1114 / HS Chapters 06 & 07) are included directly in Primary Agriculture.",
+        f"Downstream Food & Beverage Processing (NAICS 311/312): Net processor GDP shifts by {_fmt_ofa_num(abp_res.get('proc_net_gdp_m', 0.0), 1, signed=True)} $M after stripping {_fmt_ofa_num(abp_res.get('double_counted_farm_gdp_removed_m', 0.0), 1, signed=True)} $M in overlapping upstream farm value-added.",
     ]
     if avg_farm_res:
         bullets.append(
-            f"StatCan 32-10-0136-01 Average Per Farm NOI Change: ${avg_farm_res.get('delta_noi_per_farm', 0):+,.0f}/farm across {avg_farm_res.get('farms_reporting', 0):,} farms"
+            f"Average Farm Financial Impact: Net Operating Income shifts by {_fmt_ofa_num(avg_farm_res.get('delta_noi_per_farm', 0), 0, signed=True)} $/farm across {avg_farm_res.get('farms_reporting', 0):,} reporting operations (Statistics Canada Table 32-10-0136-01)."
         )
     if ent_sim:
         bullets.append(
-            f"Enterprise Budget ({ent_sim.get('label', '')}): {ent_sim.get('delta_op_ac', 0):+,.2f} $/ac operating cost shift ({ent_sim.get('farm_delta_net_margin', 0):+,.0f} whole-farm margin)"
+            f"Representative Enterprise Benchmark ({ent_sim.get('label', '')}): Operating cost shifts by {_fmt_ofa_num(ent_sim.get('delta_op_ac', 0), 2, signed=True)} $/acre ({_fmt_ofa_num(ent_sim.get('farm_delta_net_margin', 0), 0, signed=True)} $/farm net margin)."
         )
     for idx, b in enumerate(bullets):
         p = tf2.paragraphs[0] if idx == 0 else tf2.add_paragraph()
-        p.text = f"• {b}"
-        p.font.size = Pt(18)
-        p.space_after = Pt(12)
+        p.text = f"•  {b}"
+        p.font.name = "Arial"
+        p.font.size = Pt(14.5)
+        p.font.color.rgb = C_TEXT
+        p.space_after = Pt(11)
 
-    # Slide 3: Native Editable Chart of Multi-Year GDP Trajectory
-    s3 = prs.slides.add_slide(prs.slide_layouts[5])
-    if s3.shapes.title:
-        s3.shapes.title.text = f"{len(df_dyn)}-Year Direct Value-Added GDP Trajectory ($B)"
+    # Slide 3: Native Editable Multi-Year Value-Added GDP Chart
+    s3 = prs.slides.add_slide(blank_layout)
+    _add_ofa_chrome(
+        s3,
+        f"{len(df_dyn)}-Year Direct Primary Farm Value-Added GDP Trajectory ($B)",
+        f"Comparing Shocked Path Against Unshocked Balanced-Growth Baseline ({region}, {scope_short})",
+    )
     c_data = CategoryChartData()
     c_data.categories = df_dyn["Year"].tolist()
-    c_data.add_series("Shocked Direct Farm GDP ($B)", [round(v / 1e9, 3) for v in df_dyn["Direct_GDP"]])
+    c_data.add_series("Shocked Primary Farm GDP ($B)", [round(v / 1e9, 3) for v in df_dyn["Direct_GDP"]])
     if df_base_dyn is not None and len(df_base_dyn) == len(df_dyn):
         c_data.add_series("Unshocked Baseline GDP ($B)", [round(v / 1e9, 3) for v in df_base_dyn["Direct_GDP"]])
     else:
-        c_data.add_series("Baseline GDP ($B)", [round(base_gdp_dollars / 1e9, 3)] * len(df_dyn))
-    s3.shapes.add_chart(
+        c_data.add_series("Unshocked Baseline GDP ($B)", [round(base_gdp_dollars / 1e9, 3)] * len(df_dyn))
+    chart_frame = s3.shapes.add_chart(
         XL_CHART_TYPE.LINE_MARKERS,
-        Inches(0.8),
-        Inches(1.5),
-        Inches(11.6),
-        Inches(5.3),
+        Inches(0.65),
+        Inches(1.42),
+        Inches(12.0),
+        Inches(5.30),
         c_data,
     )
+    chart = chart_frame.chart
+    chart.has_legend = True
+    chart.legend.position = XL_LEGEND_POSITION.TOP
+    chart.legend.include_in_layout = False
+    try:
+        s_shock = chart.plots[0].series[0]
+        s_shock.format.line.color.rgb = C_CRIMSON
+        s_shock.format.line.width = Pt(2.75)
+        s_base = chart.plots[0].series[1]
+        s_base.format.line.color.rgb = C_BLUEWOOD
+        s_base.format.line.width = Pt(2.25)
+    except Exception:
+        pass
 
     buf = io.BytesIO()
     prs.save(buf)
@@ -2661,7 +3076,7 @@ def compute_scenario_comparison_summary(
         hh_jobs_1 = float(r1["Induced_HH_Jobs_Delta"]) - float(b1["Induced_HH_Jobs_Delta"])
         prim_jobs_1 = (prim_out_1_m * j_mult) + hh_jobs_1
 
-        proc_out_1_m = float(abp1.get("proc_net_output_m", 0.0)) if inc_proc else 0.0
+        proc_out_1_m = float(abp1.get("proc_direct_output_m", abp1.get("proc_net_output_m", 0.0))) if inc_proc else 0.0
         proc_gdp_1_m = float(abp1.get("proc_net_gdp_m", 0.0)) if inc_proc else 0.0
         proc_jobs_1 = float(abp1.get("proc_net_jobs", 0.0)) if inc_proc else 0.0
 
@@ -2703,38 +3118,38 @@ def compute_scenario_comparison_summary(
 
     rows = [
         {
-            "Metric": "Year 1 Combined Output Shock ($M)",
-            f"Scenario A: {label_a}": f"{m_a['yr1_output_m']:+,.1f} $M",
-            f"Scenario B: {label_b}": f"{m_b['yr1_output_m']:+,.1f} $M",
-            "Net Delta (B − A)": f"{deltas['yr1_output_m']:+,.1f} $M",
-            "Economic / Policy Interpretation": "Primary Ag + Downstream NAICS 311/312 ABP Output difference",
+            "Metric": "Year 1 Direct Output Shock ($M)",
+            f"Scenario A: {label_a}": f"{_fmt_ofa_num(m_a['yr1_output_m'], 1, signed=True)} $M",
+            f"Scenario B: {label_b}": f"{_fmt_ofa_num(m_b['yr1_output_m'], 1, signed=True)} $M",
+            "Net Delta (B − A)": f"{_fmt_ofa_num(deltas['yr1_output_m'], 1, signed=True)} $M",
+            "Economic / Policy Interpretation": "Direct Primary Ag + Direct Co-Targeted Processor Output shift",
         },
         {
             "Metric": "Year 1 Combined Value-Added GDP Shock ($M)",
-            f"Scenario A: {label_a}": f"{m_a['yr1_gdp_m']:+,.1f} $M",
-            f"Scenario B: {label_b}": f"{m_b['yr1_gdp_m']:+,.1f} $M",
-            "Net Delta (B − A)": f"{deltas['yr1_gdp_m']:+,.1f} $M",
-            "Economic / Policy Interpretation": "Includes Primary VA, Intermediate Margin Squeeze, Induced HH & ABP GDP",
+            f"Scenario A: {label_a}": f"{_fmt_ofa_num(m_a['yr1_gdp_m'], 1, signed=True)} $M",
+            f"Scenario B: {label_b}": f"{_fmt_ofa_num(m_b['yr1_gdp_m'], 1, signed=True)} $M",
+            "Net Delta (B − A)": f"{_fmt_ofa_num(deltas['yr1_gdp_m'], 1, signed=True)} $M",
+            "Economic / Policy Interpretation": "Includes Primary VA, Intermediate Margin Squeeze, Induced HH & Netted Processor GDP",
         },
         {
-            "Metric": "Year 1 Farm Net Cash Income (NCI) Margin ($M)",
-            f"Scenario A: {label_a}": f"{m_a['yr1_nci_m']:+,.1f} $M",
-            f"Scenario B: {label_b}": f"{m_b['yr1_nci_m']:+,.1f} $M",
-            "Net Delta (B − A)": f"{deltas['yr1_nci_m']:+,.1f} $M",
+            "Metric": "Year 1 Farm Net Cash Income Margin ($M)",
+            f"Scenario A: {label_a}": f"{_fmt_ofa_num(m_a['yr1_nci_m'], 1, signed=True)} $M",
+            f"Scenario B: {label_b}": f"{_fmt_ofa_num(m_b['yr1_nci_m'], 1, signed=True)} $M",
+            "Net Delta (B − A)": f"{_fmt_ofa_num(deltas['yr1_nci_m'], 1, signed=True)} $M",
             "Economic / Policy Interpretation": "Direct farm-gate cash margin after repriced debt interest & BRM inflows",
         },
         {
             "Metric": "Year 1 Employment Impact (Jobs)",
-            f"Scenario A: {label_a}": f"{m_a['yr1_jobs']:+,.0f} Jobs",
-            f"Scenario B: {label_b}": f"{m_b['yr1_jobs']:+,.0f} Jobs",
-            "Net Delta (B − A)": f"{deltas['yr1_jobs']:+,.0f} Jobs",
-            "Economic / Policy Interpretation": "Direct, supply-chain, processor ABP & rural household induced jobs (2022$ deflated)",
+            f"Scenario A: {label_a}": f"{_fmt_ofa_num(m_a['yr1_jobs'], 0, signed=True)} Jobs",
+            f"Scenario B: {label_b}": f"{_fmt_ofa_num(m_b['yr1_jobs'], 0, signed=True)} Jobs",
+            "Net Delta (B − A)": f"{_fmt_ofa_num(deltas['yr1_jobs'], 0, signed=True)} Jobs",
+            "Economic / Policy Interpretation": "Direct, supply-chain, processor & rural household induced jobs (2022$ deflated)",
         },
         {
             "Metric": f"BRM Stabilization Cash Inflow (Yr 1 / {horizon}-Yr Cum)",
-            f"Scenario A: {label_a}": f"+${m_a['yr1_brm_cash_m']:,.1f}M (Cum: +${m_a['cum_brm_cash_m']:,.0f}M)",
-            f"Scenario B: {label_b}": f"+${m_b['yr1_brm_cash_m']:,.1f}M (Cum: +${m_b['cum_brm_cash_m']:,.0f}M)",
-            "Net Delta (B − A)": f"{deltas['yr1_brm_cash_m']:+,.1f} $M Yr 1 ({deltas['cum_brm_cash_m']:+,.0f} $M Cum)",
+            f"Scenario A: {label_a}": f"+${_fmt_ofa_num(m_a['yr1_brm_cash_m'], 1)}M (Cum: +${_fmt_ofa_num(m_a['cum_brm_cash_m'], 0)}M)",
+            f"Scenario B: {label_b}": f"+${_fmt_ofa_num(m_b['yr1_brm_cash_m'], 1)}M (Cum: +${_fmt_ofa_num(m_b['cum_brm_cash_m'], 0)}M)",
+            "Net Delta (B − A)": f"{_fmt_ofa_num(deltas['yr1_brm_cash_m'], 1, signed=True)} $M Yr 1 ({_fmt_ofa_num(deltas['cum_brm_cash_m'], 0, signed=True)} $M Cum)",
             "Economic / Policy Interpretation": "Statutory AgriStability + Agricorp RMP/SDRM + Ad-Hoc BRM cash transfers",
         },
         {
@@ -2745,31 +3160,31 @@ def compute_scenario_comparison_summary(
             "Economic / Policy Interpretation": "FFSC solvency ratio (EBITDA / Total Scheduled Interest + Principal)",
         },
         {
-            "Metric": "Year 1 Solvency Distress Probability (P_1)",
-            f"Scenario A: {label_a}": f"{m_a['yr1_distress_pct']:.1f}% (LRF={m_a['yr1_lrf']:.2f})",
-            f"Scenario B: {label_b}": f"{m_b['yr1_distress_pct']:.1f}% (LRF={m_b['yr1_lrf']:.2f})",
-            "Net Delta (B − A)": f"{deltas['yr1_distress_pct']:+.2f} pp (ΔLRF {deltas['yr1_lrf']:+.2f})",
-            "Economic / Policy Interpretation": "FCC/FFSC credit-scoring logit probability of farm debt arrears",
+            "Metric": "Year 1 Solvency Distress Probability",
+            f"Scenario A: {label_a}": f"{_fmt_ofa_num(m_a['yr1_distress_pct'], 1)}% (LRF={m_a['yr1_lrf']:.2f})",
+            f"Scenario B: {label_b}": f"{_fmt_ofa_num(m_b['yr1_distress_pct'], 1)}% (LRF={m_b['yr1_lrf']:.2f})",
+            "Net Delta (B − A)": f"{_fmt_ofa_num(deltas['yr1_distress_pct'], 2, signed=True)} pp (ΔLRF {deltas['yr1_lrf']:+.2f})",
+            "Economic / Policy Interpretation": "FCC/FFSC credit-scoring probability of farm debt arrears",
         },
         {
             "Metric": "Year 2 Endogenous CapEx Crowd-Out (%)",
-            f"Scenario A: {label_a}": f"{m_a['yr2_capex_crowdout_pct']:+.2f}%",
-            f"Scenario B: {label_b}": f"{m_b['yr2_capex_crowdout_pct']:+.2f}%",
-            "Net Delta (B − A)": f"{deltas['yr2_capex_crowdout_pct']:+.2f} pp",
+            f"Scenario A: {label_a}": f"{_fmt_ofa_num(m_a['yr2_capex_crowdout_pct'], 2, signed=True)}%",
+            f"Scenario B: {label_b}": f"{_fmt_ofa_num(m_b['yr2_capex_crowdout_pct'], 2, signed=True)}%",
+            "Net Delta (B − A)": f"{_fmt_ofa_num(deltas['yr2_capex_crowdout_pct'], 2, signed=True)} pp",
             "Economic / Policy Interpretation": "Jorgenson user-cost + Pecking-Order internal cash-flow investment shift",
         },
         {
             "Metric": f"Year {horizon} Multi-Year GDP Shock ($M)",
-            f"Scenario A: {label_a}": f"{m_a['yrN_gdp_m']:+,.1f} $M",
-            f"Scenario B: {label_b}": f"{m_b['yrN_gdp_m']:+,.1f} $M",
-            "Net Delta (B − A)": f"{deltas['yrN_gdp_m']:+,.1f} $M",
+            f"Scenario A: {label_a}": f"{_fmt_ofa_num(m_a['yrN_gdp_m'], 1, signed=True)} $M",
+            f"Scenario B: {label_b}": f"{_fmt_ofa_num(m_b['yrN_gdp_m'], 1, signed=True)} $M",
+            "Net Delta (B − A)": f"{_fmt_ofa_num(deltas['yrN_gdp_m'], 1, signed=True)} $M",
             "Economic / Policy Interpretation": f"Long-run Year-{horizon} GDP impact after Nerlove & CapEx stock adjustment",
         },
         {
             "Metric": f"Cumulative {horizon}-Year Primary Ag GDP Impact ($M)",
-            f"Scenario A: {label_a}": f"{m_a['cum_10yr_gdp_m']:+,.0f} $M",
-            f"Scenario B: {label_b}": f"{m_b['cum_10yr_gdp_m']:+,.0f} $M",
-            "Net Delta (B − A)": f"{deltas['cum_10yr_gdp_m']:+,.0f} $M",
+            f"Scenario A: {label_a}": f"{_fmt_ofa_num(m_a['cum_10yr_gdp_m'], 0, signed=True)} $M",
+            f"Scenario B: {label_b}": f"{_fmt_ofa_num(m_b['cum_10yr_gdp_m'], 0, signed=True)} $M",
+            "Net Delta (B − A)": f"{_fmt_ofa_num(deltas['cum_10yr_gdp_m'], 0, signed=True)} $M",
             "Economic / Policy Interpretation": f"Cumulative {horizon}-year farm value-added GDP preserved/lost (B − A)",
         },
     ]
