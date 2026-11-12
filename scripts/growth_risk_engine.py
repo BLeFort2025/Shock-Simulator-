@@ -839,6 +839,7 @@ def get_scoped_household_mpc_multipliers(
     mpc_mkt_distress_sr = float(FARM_HOUSEHOLD_MPC_MULTIPLIERS["mpc_mkt_distress_sr"])
     mpc_stat_brm_sr = float(FARM_HOUSEHOLD_MPC_MULTIPLIERS["mpc_stat_brm_sr"])
     mpc_adhoc_brm_sr = float(FARM_HOUSEHOLD_MPC_MULTIPLIERS["mpc_adhoc_brm_sr"])
+    mpc_adhoc_brm_yr2 = float(FARM_HOUSEHOLD_MPC_MULTIPLIERS.get("mpc_adhoc_brm_yr2_anticipated", mpc_stat_brm_sr))
     mpc_sr = mpc_mkt_normal_sr
     mpc_sust = float(FARM_HOUSEHOLD_MPC_MULTIPLIERS["mpc_nci_sustained"])
     can_cfg = FARM_HOUSEHOLD_MPC_MULTIPLIERS["Canada"]
@@ -881,6 +882,7 @@ def get_scoped_household_mpc_multipliers(
         "mpc_mkt_distress_sr": mpc_mkt_distress_sr,
         "mpc_stat_brm_sr": mpc_stat_brm_sr,
         "mpc_adhoc_brm_sr": mpc_adhoc_brm_sr,
+        "mpc_adhoc_brm_yr2_anticipated": mpc_adhoc_brm_yr2,
         "mpc_sust": mpc_sust,
         "gdp_basic_prices_mult": gdp_m,
         "jobs_per_million_consumption_2022": jobs_m,
@@ -1272,7 +1274,8 @@ def run_dynamic_projection(
     mpc_mkt_normal_sr = float(hh_scoped["mpc_mkt_normal_sr"])                 # 0.030
     mpc_mkt_distress_sr = float(hh_scoped["mpc_mkt_distress_sr"])             # 0.085
     mpc_stat_brm_sr = float(hh_scoped["mpc_stat_brm_sr"])                     # 0.062
-    mpc_adhoc_brm_sr = float(hh_scoped["mpc_adhoc_brm_sr"])                   # 0.220
+    mpc_adhoc_brm_sr = float(hh_scoped["mpc_adhoc_brm_sr"])                   # 0.220 (Yr 1 unanticipated)
+    mpc_adhoc_yr2 = float(hh_scoped.get("mpc_adhoc_brm_yr2_anticipated", mpc_stat_brm_sr))  # 0.062 (Yr 2+ anticipated)
     mpc_sust = float(hh_scoped["mpc_sust"])                                   # 0.280
     hh_gdp_mult = float(hh_scoped["gdp_basic_prices_mult"])                   # 0.6815 CAN / 0.6047 ON within
     hh_jobs_mult_2022 = float(hh_scoped["jobs_per_million_consumption_2022"]) # 6.091 CAN / 5.423 ON within
@@ -1603,7 +1606,13 @@ def run_dynamic_projection(
         )
         mpc_mkt_t = mpc_mkt_sr_active + w_lr * (mpc_sust - mpc_mkt_sr_active)
         mpc_stat_t = mpc_stat_brm_sr + w_lr * (mpc_sust - mpc_stat_brm_sr)
-        mpc_adhoc_t = mpc_adhoc_brm_sr + w_lr * (mpc_sust - mpc_adhoc_brm_sr)
+        # Williams, Brewer & Todd (2022, AEPP): 0.220 applies to unanticipated Year-1 cash relief;
+        # anticipated Year-2+ continuation tranches decay sharply to statutory/program smoothing (0.062 -> 0.280 LR).
+        if t == 1:
+            mpc_adhoc_t = mpc_adhoc_brm_sr
+        else:
+            w_lr_yr2 = 1.0 - (lam_cap ** (t - 2))
+            mpc_adhoc_t = mpc_adhoc_yr2 + w_lr_yr2 * (mpc_sust - mpc_adhoc_yr2)
 
         hh_consumption_delta_t = (
             mpc_mkt_t * market_nci_delta_t

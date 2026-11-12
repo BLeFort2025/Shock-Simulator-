@@ -2616,6 +2616,18 @@ with tab5:
         """
         Every parameter in this simulator is grounded in official Statistics Canada tables, OMAFA Publication 60
         worksheets, and peer-reviewed agricultural economics literature—with **zero contrived heuristics**.
+
+        - **Active IOIC 2022 / NAICS 2022 Multiplier Vintage Lock:** Statistics Canada Tables `36-10-0594-01` (Canada) &
+          `36-10-0595-01` (Provincial/Territorial, 5th CODR dimension `Geographical coverage`: *All provinces* vs. *Within province*),
+          released **November 19, 2025** (reference year **2022**; next release **2023** scheduled **November 20, 2026**), paired
+          with Detail Supply and Use Table `36-10-0478-01` (**2022**) and Symmetric IO Table `36-10-0001-01`.
+        - **Employment Unit & Constant-2022$ Deflation:** All `36-10-0594-01`, `36-10-0595-01`, and `PEC*` HFCE employment metrics
+          report **total headcount jobs** (paid full-time, part-time, temporary, and self-employed from Table `36-10-0480-01`,
+          not FTEs; only Sister Engine 5's OAG HLRF orchard model reports `Jobs (FTEs)`), deflated to constant `2022$` via official
+          seasonal-marketing-weighted annual FPPI (`32-10-0099-01`, rel. June 5, 2026) and annual average CPI (`18-10-0005-01`, rel. Jan 19, 2026).
+        - **First-Round Leontief Column Netting (`NAICS 311/312`):** `M_p^gross - sum_f a_{f,p} M_f^gross > v_p` eliminates 100% of direct
+          processor purchases from primary farms (`BS111A00`, `BS1114A0` Greenhouse/Nursery/Floriculture, `BS112A00`, `BS112500` Aquaculture)
+          and their upstream inputs, while leaving minor (`~0.01–0.02` GDP/$1) second-tier farm inputs embedded inside non-farm manufactured intermediates.
         """
     )
 

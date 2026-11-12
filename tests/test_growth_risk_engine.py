@@ -1317,7 +1317,7 @@ def test_deep_research_audit_remediation_suite(core_data):
     assert 0.55 <= hh_on_in["gdp_basic_prices_mult"] <= 0.64
     assert hh_on_in["gdp_basic_prices_mult"] < hh_on_all["gdp_basic_prices_mult"] <= hh_can["gdp_basic_prices_mult"]
 
-    # 5. Source & solvency-regime MPC ordering + empirical 2025/2022 price deflators
+    # 5. Source & solvency-regime MPC ordering + finalized annual 32-10-0099-01 / 18-10-0005-01 deflators
     assert (
         hh_on_all["mpc_adhoc_brm_sr"]
         > hh_on_all["mpc_mkt_distress_sr"]
@@ -1325,9 +1325,66 @@ def test_deep_research_audit_remediation_suite(core_data):
         > hh_on_all["mpc_mkt_normal_sr"]
     )
     assert get_constant_2022_price_deflator("Ontario", "111A", 2022) == pytest.approx(1.0, abs=1e-9)
-    assert get_constant_2022_price_deflator("Ontario", "111A", 2025) < 1.0      # Grain price pullback from 2022 peak
-    assert get_constant_2022_price_deflator("Ontario", "112A", 2025) > 1.15     # Cattle/livestock surge above 2022
-    assert get_constant_2022_price_deflator("Ontario", "hfce", 2025) > 1.05     # Cumulative CPI 2022->2025
+    assert get_constant_2022_price_deflator("Ontario", "111A", 2025) == pytest.approx(0.8940, abs=1e-4)
+    assert get_constant_2022_price_deflator("Ontario", "1114A", 2025) == pytest.approx(1.0813, abs=1e-4)
+    assert get_constant_2022_price_deflator("Ontario", "112A", 2025) == pytest.approx(1.2028, abs=1e-4)
+    assert get_constant_2022_price_deflator("Ontario", "hfce", 2025) == pytest.approx(1.0831, abs=1e-4)
+    assert get_constant_2022_price_deflator("Canada", "111A", 2025) == pytest.approx(0.7620, abs=1e-4)
+    assert get_constant_2022_price_deflator("Canada", "112A", 2025) == pytest.approx(1.3359, abs=1e-4)
+    assert get_constant_2022_price_deflator("Canada", "hfce", 2025) == pytest.approx(1.0860, abs=1e-4)
+
+    # Verify Year-2 ad-hoc relief anticipation decay (Williams, Brewer & Todd 2022) & DSCR < 1.15 downside asymmetry
+    df_adhoc = run_dynamic_projection(
+        horizon=5,
+        base_output=3.2e9,
+        base_gdp=3.2e9 * m_on_all["1114A"]["gdp"],
+        base_cap_stock=4.5e9,
+        base_capex=380e6,
+        shock_capex_pct=0.0,
+        tfp_growth_pct=1.85,
+        depreciation_rate_pct=8.5,
+        cost_shock_dollars=0.0,
+        rev_shock_dollars=0.0,
+        io_df=io_df,
+        baskets_cfg=baskets_cfg,
+        region="Ontario",
+        target_year=2022,
+        base_debt=1.8e9,
+        base_interest=90e6,
+        base_nci=480e6,
+        primary_join_code="1114A",
+        farm_type="Greenhouse, nursery and floriculture production [1114]",
+        brm_subsidy_dollars=100e6,
+    )
+    yr1_hh_adhoc = float(df_adhoc.iloc[0]["Induced_HH_GDP_Delta_M"])
+    yr2_hh_adhoc = float(df_adhoc.iloc[1]["Induced_HH_GDP_Delta_M"])
+    assert yr1_hh_adhoc == pytest.approx(100.0 * 0.220 * hh_on_all["gdp_basic_prices_mult"], rel=1e-4)
+    assert 0.0 < yr2_hh_adhoc < 0.35 * yr1_hh_adhoc  # Decays sharply from 0.220 to ~0.062 in Year 2
+
+    df_pos_low_dscr = run_dynamic_projection(
+        horizon=2,
+        base_output=3.2e9,
+        base_gdp=3.2e9 * m_on_all["1114A"]["gdp"],
+        base_cap_stock=4.5e9,
+        base_capex=380e6,
+        shock_capex_pct=0.0,
+        tfp_growth_pct=1.85,
+        depreciation_rate_pct=8.5,
+        cost_shock_dollars=0.0,
+        rev_shock_dollars=50e6,
+        io_df=io_df,
+        baskets_cfg=baskets_cfg,
+        region="Ontario",
+        target_year=2022,
+        base_debt=3.5e9,
+        base_interest=175e6,
+        base_nci=120e6,  # Baseline + Yr 1 DSCR (~0.94) < 1.15 even after +$50M rev gain
+        primary_join_code="1114A",
+        farm_type="Greenhouse, nursery and floriculture production [1114]",
+    )
+    assert float(df_pos_low_dscr.iloc[0]["DSCR"]) < 1.15
+    expected_pos_hh = (50.0 * m_on_all["1114A"]["gdp"]) * 0.030 * hh_on_all["gdp_basic_prices_mult"]
+    assert float(df_pos_low_dscr.iloc[0]["Induced_HH_GDP_Delta_M"]) == pytest.approx(expected_pos_hh, rel=1e-4)
 
     # 6. Bitwise (< 1e-9) micro-solvency & BRM payout invariance across both BRM regimes
     for brm_reg in ("statutory_scap_80pct", "adhoc_2025_90pct"):

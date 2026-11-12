@@ -1342,7 +1342,8 @@ FARM_HOUSEHOLD_MPC_MULTIPLIERS: Dict[str, Any] = {
     "mpc_mkt_normal_sr": 0.030,       # Normal market NCI (DSCR >= 1.15; Langemeier & Patrick 1990: 0.010-0.040)
     "mpc_mkt_distress_sr": 0.085,     # Liquidity-constrained market NCI loss (DSCR < 1.15 & market_nci_delta < 0)
     "mpc_stat_brm_sr": 0.062,         # Rules-based statutory AgriStability / Agricorp RMP cash inflow
-    "mpc_adhoc_brm_sr": 0.220,        # Ad-hoc disaster / enhancement cash transfer (Williams et al. 2022: 0.21-0.27)
+    "mpc_adhoc_brm_sr": 0.220,        # Unanticipated Year-1 ad-hoc disaster / trade cash relief (Williams et al. 2022: 0.20-0.27)
+    "mpc_adhoc_brm_yr2_anticipated": 0.062,  # Anticipated Year-2+ continuation tranches decay to statutory smoothing (Williams et al. 2022)
     # Legacy / baseline keys retained for API compatibility:
     "mpc_nci_sr": 0.030,
     "mpc_nci_sr_range": (0.010, 0.085),
@@ -1382,15 +1383,19 @@ FARM_HOUSEHOLD_MPC_MULTIPLIERS: Dict[str, Any] = {
 # ==============================================================================
 # 7B. CONSTANT-2022-DOLLAR PRICE DEFLATORS FOR EMPLOYMENT MULTIPLIERS (P_t / P_2022)
 #     Sources:
-#       - Primary Ag (all_ag, 111A, 1114A, 112A, 1125): StatCan Table 32-10-0098-01
-#         (Farm Product Price Index, annual average P_t / P_2022)
-#       - Downstream Food & Beverage Processing (311_312): StatCan Table 18-10-0004-01
+#       - Primary Ag (all_ag, 111A, 1114A, 112A, 1125): StatCan Table 32-10-0099-01
+#         (Farm Product Price Index, official seasonal-marketing-weighted annual, rel. Jun 5, 2026:
+#          ON Total Crops 170.3/190.5 = 0.8940; ON Fresh Veg/Horticulture 194.2/179.6 = 1.0813;
+#          ON Total Livestock 188.6/156.8 = 1.2028; CAN Crops 158.8/208.4 = 0.7620;
+#          CAN Livestock 229.1/171.5 = 1.3359) & Table 32-10-0098-01 provincial sub-series
+#       - Downstream Food & Beverage Processing (311_312): StatCan Tables 18-10-0005-01 / 18-10-0004-01
 #         (CPI Food purchased from stores, annual average P_t / P_2022)
-#       - Household Final Consumption Expenditure (hfce): StatCan Table 18-10-0004-01
-#         (CPI All-items, annual average P_t / P_2022)
+#       - Household Final Consumption Expenditure (hfce): StatCan Table 18-10-0005-01
+#         (CPI All-items, official annual average, rel. Jan 19, 2026: ON 165.6/152.9 = 1.0831;
+#          CAN 164.2/151.2 = 1.0860)
 #     Note: StatCan Table 36-10-0595-01 Jobs multipliers for IO reference year 2022
-#     are denominated in Jobs per $1M of 2022 constant basic-price output. Nominal
-#     2024-2026 shocks must be divided by (P_t / P_2022) before job multiplication.
+#     are denominated in headcount Jobs per $1M of 2022 constant basic-price output.
+#     Nominal 2024-2026 shocks must be divided by (P_t / P_2022) before job multiplication.
 # ==============================================================================
 
 CONSTANT_2022_PRICE_DEFLATORS: Dict[int, Dict[str, Dict[str, float]]] = {
@@ -1408,8 +1413,8 @@ CONSTANT_2022_PRICE_DEFLATORS: Dict[int, Dict[str, Dict[str, float]]] = {
         "Newfoundland and Labrador": {"all_ag": 1.0767, "111A": 1.0155, "1114A": 0.9681, "112A": 1.0847, "1125": 1.0847, "311_312": 1.1158, "hfce": 1.0516},
     },
     2025: {
-        "Canada": {"all_ag": 0.9575, "111A": 0.7495, "1114A": 1.0863, "112A": 1.3363, "1125": 1.3363, "311_312": 1.1410, "hfce": 1.0856},
-        "Ontario": {"all_ag": 1.0353, "111A": 0.8982, "1114A": 1.0827, "112A": 1.2031, "1125": 1.2031, "311_312": 1.1320, "hfce": 1.0827},
+        "Canada": {"all_ag": 0.9648, "111A": 0.7620, "1114A": 1.0863, "112A": 1.3359, "1125": 1.3359, "311_312": 1.1410, "hfce": 1.0860},
+        "Ontario": {"all_ag": 1.0332, "111A": 0.8940, "1114A": 1.0813, "112A": 1.2028, "1125": 1.2028, "311_312": 1.1320, "hfce": 1.0831},
         "Quebec": {"all_ag": 1.0447, "111A": 0.9295, "1114A": 1.0621, "112A": 1.1187, "1125": 1.1187, "311_312": 1.1350, "hfce": 1.0956},
         "Alberta": {"all_ag": 1.0525, "111A": 0.6944, "1114A": 1.2342, "112A": 1.5724, "1125": 1.5724, "311_312": 1.1558, "hfce": 1.0835},
         "Saskatchewan": {"all_ag": 0.7735, "111A": 0.6518, "1114A": 0.8819, "112A": 1.7071, "1125": 1.7071, "311_312": 1.1511, "hfce": 1.0763},
