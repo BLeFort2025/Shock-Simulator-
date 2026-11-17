@@ -37,6 +37,11 @@ from scripts.calibrated_parameters import (
     ABP_PROCESSOR_TABLE,
     ARMA_MONTE_CARLO_PERSISTENCE,
     BRM_EFFECTIVE_PAYOUT_PARAMETERS,
+    CHINA_2026_TARIFF_SCHEDULE_ROWS,
+    CHINA_FULL_2026_OPTION_LABEL,
+    CHINA_INCREMENTAL_2027_OPTION_LABEL,
+    CHINA_WAVE2_SHENZHEN_OPTION_LABEL,
+    COMBINED_US_CHINA_2026_OPTION_LABEL,
     DEBT_AMORTIZATION_AND_DISTRESS_PARAMS,
     DEBT_REPRICING_SCHEDULE,
     EMPIRICAL_ICOR_PROFILES,
@@ -50,6 +55,8 @@ from scripts.calibrated_parameters import (
     PROVINCIAL_TFP_DECOMPOSITION,
     TARGETED_SECTION338_2026_PACKAGE,
     TARGETED_SECTION338_OPTION_LABEL,
+    combine_trade_shock_packages,
+    get_china_2026_rollback_params,
     get_constant_2022_price_deflator,
     get_debt_amortization_params,
     get_debt_repricing_schedule,
@@ -66,6 +73,7 @@ from scripts.growth_risk_engine import (
     compute_downstream_abp_impact,
     compute_effective_tariff_price_shock,
     compute_io_scope_retention_table,
+    compute_marine_seafood_abp_impact,
     compute_provincial_fcr_weights,
     compute_scenario_comparison_summary,
     compute_simulator_fiscal_summary,
@@ -654,7 +662,50 @@ SCENARIO_PRESETS: Dict[str, Dict[str, Any]] = {
         ),
         "fuel": 0.0, "fert": 0.0, "chem": 0.0, "seed": 0.0, "feed": 0.0, "wages": 0.0, "ir_bps": 0.0,
         "tariff_comm": TARGETED_SECTION338_OPTION_LABEL, "tariff_pct": 50.0, "include_proc": True,
-        "capex_pct": -5.4, "tfp_pct": None, "brm_m": 0.0,
+        "capex_pct": -5.4, "tfp_pct": None, "brm_m": 0.0, "china_horizon": "maintained", "inc_marine": True,
+    },
+    "2027–2028 China Incremental Forward Gain (Nov 17 Shenzhen Wave 2 + Wave 1 Headroom)": {
+        "desc": (
+            "Prospective 2027–2028 forward gains from China's Nov 17, 2026 Shenzhen Pre-APEC arrangement (C$116M frozen "
+            "pork cuts 37%→12% MFN [HS 0206 swine offal unrelieved at 37%] + C$284.3M Greenland halibut, shrimp/spot prawns, "
+            "geoduck/molluscs & sea cucumber effective Jan 1, 2027) plus residual unrealized Wave 1 canola seed & lobster/crab "
+            "headroom—avoiding double-counting March–October 2026 export rebounds already realized."
+        ),
+        "fuel": 0.0, "fert": 0.0, "chem": 0.0, "seed": 0.0, "feed": 0.0, "wages": 0.0, "ir_bps": 0.0,
+        "tariff_comm": CHINA_INCREMENTAL_2027_OPTION_LABEL, "tariff_pct": -25.0, "include_proc": True,
+        "capex_pct": 0.0, "tfp_pct": None, "brm_m": 0.0, "china_horizon": "maintained", "inc_marine": True,
+    },
+    "Nov 17, 2026 Shenzhen Deal Only (C$400M Frozen Pork & Wild Seafood Relief)": {
+        "desc": (
+            "Isolates the Nov 17, 2026 Carney–Xi Shenzhen announcement (effective Jan 1, 2027 – Dec 31, 2028): suspending "
+            "China's 25% surcharge on C$116M of frozen pork cuts (0203.21–.29; +$33.5M/yr national packer cutout lift, 20% Yr-1 "
+            "producer pass-through under Ontario Pork's CME 201 formula rising to 48% in Yrs 2–3) and C$284.3M of wild seafood "
+            "(BS114000 / BS311700), with 0% Jorgenson CapEx shock from industrial metal remissions (SOR/2025-12)."
+        ),
+        "fuel": 0.0, "fert": 0.0, "chem": 0.0, "seed": 0.0, "feed": 0.0, "wages": 0.0, "ir_bps": 0.0,
+        "tariff_comm": CHINA_WAVE2_SHENZHEN_OPTION_LABEL, "tariff_pct": -25.0, "include_proc": True,
+        "capex_pct": 0.0, "tfp_pct": None, "brm_m": 0.0, "china_horizon": "maintained", "inc_marine": True,
+    },
+    "2026 China Tariff Rollback — Full Bilateral Pivot (Wave 1 + Wave 2 vs. 2025 Trough)": {
+        "desc": (
+            "Full bilateral counterfactual anchored to 2025 retaliation-depressed actuals across Wave 1 (canola seed 84.8%→14.9% "
+            "through Feb 2031; canola meal 100%→0% [+$435M net BS311200 crush after -$30M pea-starch AD drag, while canola oil "
+            "HS 1514 stays blocked at 109%]; dry peas 105%→5%; lobster/crab; 20 beef plants inside 172k MT TRQ) plus Wave 2 "
+            "(Nov 17 Shenzhen pork & seafood), including the avoided Jan 1, 2027 cliff-edge snapback."
+        ),
+        "fuel": 0.0, "fert": 0.0, "chem": 0.0, "seed": 0.0, "feed": 0.0, "wages": 0.0, "ir_bps": 0.0,
+        "tariff_comm": CHINA_FULL_2026_OPTION_LABEL, "tariff_pct": -25.0, "include_proc": True,
+        "capex_pct": 0.0, "tfp_pct": None, "brm_m": 0.0, "china_horizon": "maintained", "inc_marine": True,
+    },
+    "2026 Net Trade Realignment (U.S. Section 338 Tariffs + China Rollback Offset)": {
+        "desc": (
+            "Simultaneously evaluates the 2026 U.S. Section 338 tariff & Sept 29 alcohol/whey prohibition package (-5.4% "
+            "counter-tariff CapEx) alongside China's full 2026 bilateral agricultural & seafood tariff rollbacks—highlighting "
+            "regional divergence as Prairie oilseed/pulse & Atlantic/B.C. seafood gains contrast with Ontario/Quebec net losses."
+        ),
+        "fuel": 0.0, "fert": 0.0, "chem": 0.0, "seed": 0.0, "feed": 0.0, "wages": 0.0, "ir_bps": 0.0,
+        "tariff_comm": COMBINED_US_CHINA_2026_OPTION_LABEL, "tariff_pct": 50.0, "include_proc": True,
+        "capex_pct": -5.4, "tfp_pct": None, "brm_m": 0.0, "china_horizon": "maintained", "inc_marine": True,
     },
     "Hypothetical Broad 25% U.S. Blanket Tariff (All Ag Commodities — CUSMA Stress Test)": {
         "desc": (
@@ -718,7 +769,11 @@ with st.sidebar:
     st.markdown("### 🔮 Simulator Control Deck")
     st.caption("Zero-Heuristic Empirical Calibration (StatCan IO 2022, FCR 2025, Expense Profiles 2024)")
 
-    all_regions = ["Ontario", "Canada", "Alberta", "Saskatchewan", "Manitoba", "Quebec", "British Columbia", "Nova Scotia", "New Brunswick", "Prince Edward Island"]
+    all_regions = [
+        "Ontario", "Canada", "Alberta", "Saskatchewan", "Manitoba", "Quebec",
+        "British Columbia", "Nova Scotia", "New Brunswick", "Prince Edward Island",
+        "Newfoundland and Labrador",
+    ]
     region = st.selectbox("Step 1: Jurisdiction / Province", all_regions, index=0)
 
     latest_exp_yr = 2024
@@ -799,11 +854,82 @@ with st.sidebar:
             help="+100 bps = +1 percentage point added to the effective interest rate on farm debt.",
         )
 
-    with st.expander("🛡️ 2. Section 338 Tariff & Downstream ABP", expanded=True):
-        comm_options = [TARGETED_SECTION338_OPTION_LABEL, "All Commodities (Provincial FCR Weighted)"] + list(PRIMARY_AG_TARIFF_CONFIG.keys())
+    with st.expander("🌐 2. Trade Shocks: U.S. Section 338 & China Rollbacks", expanded=True):
+        china_pkg_labels = (
+            CHINA_INCREMENTAL_2027_OPTION_LABEL,
+            CHINA_WAVE2_SHENZHEN_OPTION_LABEL,
+            CHINA_FULL_2026_OPTION_LABEL,
+        )
+        comm_options = [
+            TARGETED_SECTION338_OPTION_LABEL,
+            CHINA_INCREMENTAL_2027_OPTION_LABEL,
+            CHINA_WAVE2_SHENZHEN_OPTION_LABEL,
+            CHINA_FULL_2026_OPTION_LABEL,
+            COMBINED_US_CHINA_2026_OPTION_LABEL,
+            "All Commodities (Provincial FCR Weighted)",
+        ] + list(PRIMARY_AG_TARIFF_CONFIG.keys())
         default_comm_idx = comm_options.index(preset["tariff_comm"]) if preset["tariff_comm"] in comm_options else 0
-        tariff_commodity = st.selectbox("Target Primary Ag Commodity / Statutory Scope", comm_options, index=default_comm_idx, key=f"sel_comm_{preset_name}")
-        tariff_pct = st.slider("U.S. Section 338 Border Tariff (%)", 0.0, 50.0, float(preset["tariff_pct"]), 1.0, key=f"sl_tariff_{preset_name}")
+        tariff_commodity = st.selectbox(
+            "Target Statutory Package / Commodity Scope",
+            comm_options,
+            index=default_comm_idx,
+            key=f"sel_comm_{preset_name}",
+        )
+
+        is_china_only_pkg = tariff_commodity in china_pkg_labels
+        is_combined_us_china = tariff_commodity == COMBINED_US_CHINA_2026_OPTION_LABEL
+
+        if is_china_only_pkg:
+            tariff_pct = -25.0  # Statutory China rollback schedule active
+            st.caption("🇨🇳 **Statutory China Tariff Rollback Schedule Active** (`SCTC 2026 No. 2`, `MOFCOM 14.9% AD`, & `Nov 17 Shenzhen`).")
+        elif tariff_commodity == TARGETED_SECTION338_OPTION_LABEL or is_combined_us_china:
+            default_us_t = float(preset["tariff_pct"]) if float(preset["tariff_pct"]) >= 0.0 else 50.0
+            tariff_pct = st.slider(
+                "U.S. Section 338 Border Tariff (%)",
+                0.0,
+                50.0,
+                default_us_t,
+                1.0,
+                key=f"sl_tariff_us_{preset_name}_{tariff_commodity[:12]}",
+            )
+        else:
+            default_bidir_t = float(preset["tariff_pct"])
+            tariff_pct = st.slider(
+                "Border Tariff Change (%: − Rollback / + Hike)",
+                -50.0,
+                50.0,
+                default_bidir_t,
+                1.0,
+                key=f"sl_tariff_bi_{preset_name}_{tariff_commodity[:12]}",
+                help="Negative values simulate a foreign tariff rollback/cut (lifting farm-gate basis & output); positive values simulate a border tariff hike.",
+            )
+
+        if is_china_only_pkg or is_combined_us_china:
+            china_horizon_mode = st.radio(
+                "China Rollback Multi-Year Sunset Rule",
+                options=["maintained", "dec_2028_sunset"],
+                format_func=lambda x: (
+                    "Renewed / Maintained Access (2027–2036, Rotation/TAC Bounded)"
+                    if x == "maintained"
+                    else "Statutory Dec 31, 2028 Sunset (5-Yr Canola Seed to Feb 2031)"
+                ),
+                index=0 if preset.get("china_horizon", "maintained") == "maintained" else 1,
+                key=f"rad_ch_hor_{preset_name}",
+            )
+            include_marine_seafood = st.checkbox(
+                "Include Wild-Capture Fisheries & Seafood (BS114000 / BS311700)",
+                value=bool(preset.get("inc_marine", True)),
+                key=f"chk_marine_{preset_name}",
+                help=(
+                    "Adds wild commercial fishery landings (BS114000) and upstream-netted seafood processing (BS311700) "
+                    "to Economy-Wide Macro Output, GDP, Jobs & Fiscal KPIs when 'All farm types' is selected, while keeping "
+                    "Farm Net Cash Income (NCI), DSCR, LRF, and Tab 4 strictly firewalled to Primary Agriculture (NAICS 111/112)."
+                ),
+            )
+        else:
+            china_horizon_mode = "maintained"
+            include_marine_seafood = False
+
         direct_rev_shock_pct = st.slider("Additional Non-Tariff Market Revenue Shock (%)", -30.0, 30.0, 0.0, 0.5, key=f"sl_rev_{preset_name}")
         include_processing = st.checkbox(
             "Include Downstream / Co-Targeted Processing (NAICS 311/312 ABP)",
@@ -1109,142 +1235,261 @@ input_price_shocks_dict = {
     "labor": shock_wages,
 }
 
-# 7. Compute Tariff & Revenue Shock Parameters (PE-ABP-IO Regime 1 & Targeted 2026 Section 338 Package)
-s338_channel_breakdown: List[Dict[str, Any]] = []
-proc_export_shocks_yr1: Dict[str, float] = {}
-proc_export_shocks_yrN: Dict[str, float] = {}
+# 7. Compute Tariff & Rollback Shock Parameters (PE-ABP-IO Regime 1: U.S. Section 338, 2026 China Rollbacks & Combined)
+CHINA_OPTION_MAP: Dict[str, str] = {
+    CHINA_INCREMENTAL_2027_OPTION_LABEL: "incremental_2027",
+    CHINA_WAVE2_SHENZHEN_OPTION_LABEL: "wave2_shenzhen",
+    CHINA_FULL_2026_OPTION_LABEL: "full_2026",
+}
 
-if tariff_commodity == TARGETED_SECTION338_OPTION_LABEL:
-    s338_pkg_sr = get_targeted_section338_package_params(
-        region=region, farm_type=farm_type, tariff_pct=tariff_pct, is_long_run=False
-    )
-    s338_pkg_lr = get_targeted_section338_package_params(
-        region=region, farm_type=farm_type, tariff_pct=tariff_pct, is_long_run=True
-    )
-    s338_channel_breakdown = s338_pkg_sr["channel_breakdown"]
-    proc_export_shocks_yr1 = s338_pkg_sr["processor_export_shock_by_naics_dollars"] if tariff_pct > 0 else {}
-    proc_export_shocks_yrN = s338_pkg_lr["processor_export_shock_by_naics_dollars"] if tariff_pct > 0 else {}
-    active_tariff_params = {
-        "mode": "targeted_section338_2026",
-        "commodity": TARGETED_SECTION338_OPTION_LABEL,
-        "tariff_pct": tariff_pct,
-        "yr1_primary_phys_dollars": float(s338_pkg_sr["yr1_primary_phys_dollars"]),
-        "lr_primary_phys_dollars": float(s338_pkg_sr["lr_primary_phys_dollars"]),
-        "yr1_primary_pure_price_dollars": float(s338_pkg_sr["yr1_primary_pure_price_dollars"]),
-        "lr_primary_pure_price_dollars": float(s338_pkg_sr["lr_primary_pure_price_dollars"]),
-        "effective_lam": float(s338_pkg_sr["effective_lam"]),
-        "weight": 1.0,
-    }
-    yr1_tariff_shock_dollars = float(s338_pkg_sr["yr1_primary_phys_dollars"]) if tariff_pct > 0 else 0.0
-    yr1_tariff_price_margin_dollars = float(s338_pkg_sr["yr1_primary_pure_price_dollars"]) if tariff_pct > 0 else 0.0
-    yr1_tariff_pct_output_change = yr1_tariff_shock_dollars / max(base_output_dollars, 1.0)
-    price_shock_info = {
-        "effective_price_drop_pct": (abs(yr1_tariff_price_margin_dollars) / max(base_output_dollars, 1.0)) * 100.0
-    }
-    if tariff_pct > 0:
-        lam_pkg = max(float(s338_pkg_sr["effective_lam"]), 0.01)
-        decay_N = (1.0 - lam_pkg) ** (horizon - 1)
-        yrN_tariff_phys_dollars = float(s338_pkg_sr["lr_primary_phys_dollars"]) + (
-            float(s338_pkg_sr["yr1_primary_phys_dollars"]) - float(s338_pkg_sr["lr_primary_phys_dollars"])
-        ) * decay_N
+
+def _resolve_trade_package(
+    t_comm_sel: str,
+    t_pct_sel: float,
+    reg_sel: str,
+    f_type_sel: str,
+    hor_sel: int,
+    ch_hor_sel: str,
+    inc_mar_sel: bool,
+) -> Dict[str, Any]:
+    """Unified trade shock resolver for U.S. Section 338, 2026 China Rollbacks, Combined Realignment & Custom Bidirectional Tariffs."""
+    if t_comm_sel == TARGETED_SECTION338_OPTION_LABEL:
+        pkg_sr = get_targeted_section338_package_params(region=reg_sel, farm_type=f_type_sel, tariff_pct=t_pct_sel, is_long_run=False)
+        pkg_lr = get_targeted_section338_package_params(region=reg_sel, farm_type=f_type_sel, tariff_pct=t_pct_sel, is_long_run=True)
+        has_t = abs(t_pct_sel) > 1e-9
+        yr1_q = float(pkg_sr["yr1_primary_phys_dollars"]) if has_t else 0.0
+        yr1_p = float(pkg_sr["yr1_primary_pure_price_dollars"]) if has_t else 0.0
+        lam_v = max(float(pkg_sr["effective_lam"]), 0.01)
+        decay_n = (1.0 - lam_v) ** (hor_sel - 1)
+        yrN_q = (
+            float(pkg_sr["lr_primary_phys_dollars"]) + (float(pkg_sr["yr1_primary_phys_dollars"]) - float(pkg_sr["lr_primary_phys_dollars"])) * decay_n
+            if has_t
+            else 0.0
+        )
+        return {
+            "tariff_params": {
+                "mode": "targeted_section338_2026",
+                "commodity": t_comm_sel,
+                "tariff_pct": float(t_pct_sel),
+                "yr1_primary_phys_dollars": float(pkg_sr["yr1_primary_phys_dollars"]),
+                "lr_primary_phys_dollars": float(pkg_sr["lr_primary_phys_dollars"]),
+                "yr1_primary_pure_price_dollars": float(pkg_sr["yr1_primary_pure_price_dollars"]),
+                "lr_primary_pure_price_dollars": float(pkg_sr["lr_primary_pure_price_dollars"]),
+                "effective_lam": lam_v,
+                "weight": 1.0,
+            },
+            "channel_breakdown": pkg_sr["channel_breakdown"],
+            "proc_shocks_yr1": pkg_sr["processor_export_shock_by_naics_dollars"] if has_t else {},
+            "proc_shocks_yrN": pkg_lr["processor_export_shock_by_naics_dollars"] if has_t else {},
+            "proc_gos_yr1": {},
+            "proc_gos_yrN": {},
+            "proc_gross_override_yr1": None,
+            "proc_gross_override_yrN": None,
+            "marine_yr1": [],
+            "marine_yrN": [],
+            "yr1_phys_dollars": yr1_q,
+            "yrN_phys_dollars": yrN_q,
+            "yr1_price_margin_dollars": yr1_p,
+            "eff_price_drop_pct": (abs(yr1_p) / max(base_output_dollars, 1.0)) * 100.0,
+        }
+
+    if t_comm_sel in CHINA_OPTION_MAP:
+        ch_mode = CHINA_OPTION_MAP[t_comm_sel]
+        ch_sr = get_china_2026_rollback_params(
+            region=reg_sel, farm_type=f_type_sel, package_mode=ch_mode,
+            horizon_mode=ch_hor_sel, include_marine_seafood=inc_mar_sel, is_long_run=False, horizon=hor_sel,
+        )
+        ch_lr = get_china_2026_rollback_params(
+            region=reg_sel, farm_type=f_type_sel, package_mode=ch_mode,
+            horizon_mode=ch_hor_sel, include_marine_seafood=inc_mar_sel, is_long_run=True, horizon=hor_sel,
+        )
+        q_vec = tuple(float(v) for v in ch_sr["yearly_primary_phys_dollars"])
+        p_vec = tuple(float(v) for v in ch_sr["yearly_primary_pure_price_dollars"])
+        yr1_q = q_vec[0] if q_vec else 0.0
+        yrN_q = q_vec[min(hor_sel - 1, len(q_vec) - 1)] if q_vec else 0.0
+        yr1_p = p_vec[0] if p_vec else 0.0
+        return {
+            "tariff_params": {
+                "mode": "china_rollback_2026",
+                "commodity": t_comm_sel,
+                "tariff_pct": -25.0,
+                "yr1_primary_phys_dollars": yr1_q,
+                "lr_primary_phys_dollars": yrN_q,
+                "yr1_primary_pure_price_dollars": yr1_p,
+                "lr_primary_pure_price_dollars": float(ch_sr["lr_primary_pure_price_dollars"]),
+                "yearly_primary_phys_dollars": q_vec,
+                "yearly_primary_pure_price_dollars": p_vec,
+                "effective_lam": float(ch_sr["effective_lam"]),
+                "weight": 1.0,
+            },
+            "channel_breakdown": ch_sr["channel_breakdown"],
+            "proc_shocks_yr1": ch_sr["processor_export_shock_by_naics_dollars"],
+            "proc_shocks_yrN": ch_lr["processor_export_shock_by_naics_dollars"],
+            "proc_gos_yr1": ch_sr["processor_pure_gos_by_naics_dollars"],
+            "proc_gos_yrN": ch_lr["processor_pure_gos_by_naics_dollars"],
+            "proc_gross_override_yr1": float(ch_sr["processor_gross_direct_output_dollars"]),
+            "proc_gross_override_yrN": float(ch_lr["processor_gross_direct_output_dollars"]),
+            "marine_yr1": ch_sr["marine_seafood_channels"],
+            "marine_yrN": ch_lr["marine_seafood_channels"],
+            "yr1_phys_dollars": yr1_q,
+            "yrN_phys_dollars": yrN_q,
+            "yr1_price_margin_dollars": yr1_p,
+            "eff_price_drop_pct": -(yr1_p / max(base_output_dollars, 1.0)) * 100.0,
+        }
+
+    if t_comm_sel == COMBINED_US_CHINA_2026_OPTION_LABEL:
+        us_eff_pct = max(0.0, float(t_pct_sel))
+        us_sr = get_targeted_section338_package_params(region=reg_sel, farm_type=f_type_sel, tariff_pct=us_eff_pct, is_long_run=False)
+        us_lr = get_targeted_section338_package_params(region=reg_sel, farm_type=f_type_sel, tariff_pct=us_eff_pct, is_long_run=True)
+        ch_sr = get_china_2026_rollback_params(
+            region=reg_sel, farm_type=f_type_sel, package_mode="full_2026",
+            horizon_mode=ch_hor_sel, include_marine_seafood=inc_mar_sel, is_long_run=False, horizon=hor_sel,
+        )
+        ch_lr = get_china_2026_rollback_params(
+            region=reg_sel, farm_type=f_type_sel, package_mode="full_2026",
+            horizon_mode=ch_hor_sel, include_marine_seafood=inc_mar_sel, is_long_run=True, horizon=hor_sel,
+        )
+        comb_sr = combine_trade_shock_packages(us_sr, ch_sr, horizon=hor_sel)
+        comb_lr = combine_trade_shock_packages(us_lr, ch_lr, horizon=hor_sel)
+        q_vec = tuple(float(v) for v in comb_sr["yearly_primary_phys_dollars"])
+        p_vec = tuple(float(v) for v in comb_sr["yearly_primary_pure_price_dollars"])
+        yr1_q = q_vec[0] if q_vec else 0.0
+        yrN_q = q_vec[min(hor_sel - 1, len(q_vec) - 1)] if q_vec else 0.0
+        yr1_p = p_vec[0] if p_vec else 0.0
+        return {
+            "tariff_params": {
+                "mode": "combined_us_china_2026",
+                "commodity": t_comm_sel,
+                "tariff_pct": us_eff_pct if us_eff_pct > 0 else -25.0,
+                "yr1_primary_phys_dollars": yr1_q,
+                "lr_primary_phys_dollars": yrN_q,
+                "yr1_primary_pure_price_dollars": yr1_p,
+                "lr_primary_pure_price_dollars": float(comb_sr["lr_primary_pure_price_dollars"]),
+                "yearly_primary_phys_dollars": q_vec,
+                "yearly_primary_pure_price_dollars": p_vec,
+                "effective_lam": float(comb_sr["effective_lam"]),
+                "weight": 1.0,
+            },
+            "channel_breakdown": comb_sr["channel_breakdown"],
+            "proc_shocks_yr1": comb_sr["processor_export_shock_by_naics_dollars"],
+            "proc_shocks_yrN": comb_lr["processor_export_shock_by_naics_dollars"],
+            "proc_gos_yr1": comb_sr["processor_pure_gos_by_naics_dollars"],
+            "proc_gos_yrN": comb_lr["processor_pure_gos_by_naics_dollars"],
+            "proc_gross_override_yr1": float(comb_sr["processor_gross_direct_output_dollars"]),
+            "proc_gross_override_yrN": float(comb_lr["processor_gross_direct_output_dollars"]),
+            "marine_yr1": comb_sr["marine_seafood_channels"],
+            "marine_yrN": comb_lr["marine_seafood_channels"],
+            "yr1_phys_dollars": yr1_q,
+            "yrN_phys_dollars": yrN_q,
+            "yr1_price_margin_dollars": yr1_p,
+            "eff_price_drop_pct": -(yr1_p / max(base_output_dollars, 1.0)) * 100.0,
+        }
+
+    if t_comm_sel == "All Commodities (Provincial FCR Weighted)":
+        comp_p = fcr_info["composites"].get(f_type_sel, fcr_info["composites"]["All farm types"])
+        t_p = {
+            "commodity": f"Composite ({f_type_sel})",
+            "tariff_pct": float(t_pct_sel),
+            "e_sr": comp_p["e_sr"],
+            "e_lr": comp_p["e_lr"],
+            "lam": comp_p["lam"],
+            "pass_through": comp_p["pass_through"],
+            "pass_through_lr": comp_p.get("pass_through_lr", comp_p["pass_through"]),
+            "us_price_share": comp_p["us_price_share"],
+            "us_lop_spillover": comp_p["us_lop_spillover"],
+            "weight": 1.0,
+        }
     else:
-        yrN_tariff_phys_dollars = 0.0
-elif tariff_commodity == "All Commodities (Provincial FCR Weighted)":
-    comp_params = fcr_info["composites"].get(farm_type, fcr_info["composites"]["All farm types"])
-    active_tariff_params = {
-        "commodity": f"Composite ({farm_type})",
-        "tariff_pct": tariff_pct,
-        "e_sr": comp_params["e_sr"],
-        "e_lr": comp_params["e_lr"],
-        "lam": comp_params["lam"],
-        "pass_through": comp_params["pass_through"],
-        "pass_through_lr": comp_params.get("pass_through_lr", comp_params["pass_through"]),
-        "us_price_share": comp_params["us_price_share"],
-        "us_lop_spillover": comp_params["us_lop_spillover"],
-        "weight": 1.0,
-    }
-    price_shock_info = compute_effective_tariff_price_shock(
-        tariff_pct=tariff_pct,
-        pass_through=active_tariff_params["pass_through"],
-        us_price_share=active_tariff_params["us_price_share"],
-        us_lop_spillover=active_tariff_params["us_lop_spillover"],
+        cp = get_commodity_tariff_params(t_comm_sel, region=reg_sel)
+        c_fcr = fcr_info["commodities"].get(t_comm_sel, {}).get("fcr_m", 0.0)
+        s_fcr = fcr_info["composites"].get(f_type_sel, fcr_info["composites"]["All farm types"]).get("fcr_m", fcr_info["total_market_fcr_m"])
+        c_wt = min(1.0, c_fcr / max(s_fcr, 1.0)) if f_type_sel in ("All farm types", "Crop production [111]", "Animal production [111]", "Animal production [112]", "Oilseed and grain farming [1111]", "Greenhouse, nursery and floriculture production [1114]") else 1.0
+        if c_wt <= 0.0:
+            c_wt = 0.05
+        t_p = {
+            "commodity": t_comm_sel,
+            "tariff_pct": float(t_pct_sel),
+            "e_sr": cp["e_sr"],
+            "e_lr": cp["e_lr"],
+            "lam": cp["lam"],
+            "pass_through": cp["pass_through"],
+            "pass_through_lr": cp.get("pass_through_lr", cp["pass_through"]),
+            "us_price_share": cp["us_price_share"],
+            "us_lop_spillover": cp["us_lop_spillover"],
+            "e_lr_p10_p90": cp.get("e_lr_p10_p90"),
+            "lam_p10_p90": cp.get("lam_p10_p90"),
+            "pass_through_p10_p90": cp.get("pass_through_p10_p90"),
+            "weight": c_wt,
+        }
+
+    has_t = abs(t_pct_sel) > 1e-9
+    ps_1 = compute_effective_tariff_price_shock(
+        tariff_pct=t_pct_sel, pass_through=t_p["pass_through"],
+        us_price_share=t_p["us_price_share"], us_lop_spillover=t_p["us_lop_spillover"],
     )
-    yr1_tariff_pct_output_change = active_tariff_params["e_sr"] * (price_shock_info["effective_price_drop_pct"] / 100.0)
-    yr1_tariff_shock_dollars = base_output_dollars * active_tariff_params["weight"] * yr1_tariff_pct_output_change
-    yr1_tariff_price_margin_dollars = (
-        -base_output_dollars
-        * active_tariff_params["weight"]
-        * max(0.0, 1.0 + yr1_tariff_pct_output_change)
-        * (price_shock_info["effective_price_drop_pct"] / 100.0)
-        if tariff_pct > 0
+    pct_q1 = t_p["e_sr"] * (ps_1["effective_price_drop_pct"] / 100.0)
+    yr1_q = base_output_dollars * t_p["weight"] * pct_q1 if has_t else 0.0
+    yr1_p = (
+        -base_output_dollars * t_p["weight"] * max(0.0, 1.0 + pct_q1) * (ps_1["effective_price_drop_pct"] / 100.0)
+        if has_t
         else 0.0
     )
-    if tariff_pct > 0:
-        lam_std = max(float(active_tariff_params["lam"]), 0.01)
-        decay_N = (1.0 - lam_std) ** (horizon - 1)
-        e_N = float(active_tariff_params["e_lr"]) + (float(active_tariff_params["e_sr"]) - float(active_tariff_params["e_lr"])) * decay_N
-        pt_N = float(active_tariff_params["pass_through_lr"]) + (float(active_tariff_params["pass_through"]) - float(active_tariff_params["pass_through_lr"])) * decay_N
-        ps_N = compute_effective_tariff_price_shock(
-            tariff_pct=tariff_pct,
-            pass_through=pt_N,
-            us_price_share=active_tariff_params["us_price_share"],
-            us_lop_spillover=active_tariff_params["us_lop_spillover"],
+    if has_t:
+        lam_s = max(float(t_p["lam"]), 0.01)
+        dec_n = (1.0 - lam_s) ** (hor_sel - 1)
+        e_n = float(t_p["e_lr"]) + (float(t_p["e_sr"]) - float(t_p["e_lr"])) * dec_n
+        pt_n = float(t_p["pass_through_lr"]) + (float(t_p["pass_through"]) - float(t_p["pass_through_lr"])) * dec_n
+        ps_n = compute_effective_tariff_price_shock(
+            tariff_pct=t_pct_sel, pass_through=pt_n,
+            us_price_share=t_p["us_price_share"], us_lop_spillover=t_p["us_lop_spillover"],
         )
-        yrN_tariff_phys_dollars = base_output_dollars * active_tariff_params["weight"] * e_N * (ps_N["effective_price_drop_pct"] / 100.0)
+        yrN_q = base_output_dollars * t_p["weight"] * e_n * (ps_n["effective_price_drop_pct"] / 100.0)
     else:
-        yrN_tariff_phys_dollars = 0.0
-else:
-    c_params = get_commodity_tariff_params(tariff_commodity, region=region)
-    comm_fcr_m = fcr_info["commodities"].get(tariff_commodity, {}).get("fcr_m", 0.0)
-    sector_fcr_m = fcr_info["composites"].get(farm_type, fcr_info["composites"]["All farm types"]).get("fcr_m", fcr_info["total_market_fcr_m"])
-    comm_weight = min(1.0, comm_fcr_m / max(sector_fcr_m, 1.0)) if farm_type in ("All farm types", "Crop production [111]", "Animal production [112]", "Oilseed and grain farming [1111]", "Greenhouse, nursery and floriculture production [1114]") else 1.0
-    if comm_weight <= 0.0:
-        comm_weight = 0.05
-    active_tariff_params = {
-        "commodity": tariff_commodity,
-        "tariff_pct": tariff_pct,
-        "e_sr": c_params["e_sr"],
-        "e_lr": c_params["e_lr"],
-        "lam": c_params["lam"],
-        "pass_through": c_params["pass_through"],
-        "pass_through_lr": c_params.get("pass_through_lr", c_params["pass_through"]),
-        "us_price_share": c_params["us_price_share"],
-        "us_lop_spillover": c_params["us_lop_spillover"],
-        "e_lr_p10_p90": c_params.get("e_lr_p10_p90"),
-        "lam_p10_p90": c_params.get("lam_p10_p90"),
-        "pass_through_p10_p90": c_params.get("pass_through_p10_p90"),
-        "weight": comm_weight,
+        yrN_q = 0.0
+
+    return {
+        "tariff_params": t_p,
+        "channel_breakdown": [],
+        "proc_shocks_yr1": {},
+        "proc_shocks_yrN": {},
+        "proc_gos_yr1": {},
+        "proc_gos_yrN": {},
+        "proc_gross_override_yr1": None,
+        "proc_gross_override_yrN": None,
+        "marine_yr1": [],
+        "marine_yrN": [],
+        "yr1_phys_dollars": yr1_q,
+        "yrN_phys_dollars": yrN_q,
+        "yr1_price_margin_dollars": yr1_p,
+        "eff_price_drop_pct": float(ps_1["effective_price_drop_pct"]),
     }
-    price_shock_info = compute_effective_tariff_price_shock(
-        tariff_pct=tariff_pct,
-        pass_through=active_tariff_params["pass_through"],
-        us_price_share=active_tariff_params["us_price_share"],
-        us_lop_spillover=active_tariff_params["us_lop_spillover"],
-    )
-    yr1_tariff_pct_output_change = active_tariff_params["e_sr"] * (price_shock_info["effective_price_drop_pct"] / 100.0)
-    yr1_tariff_shock_dollars = base_output_dollars * active_tariff_params["weight"] * yr1_tariff_pct_output_change
-    yr1_tariff_price_margin_dollars = (
-        -base_output_dollars
-        * active_tariff_params["weight"]
-        * max(0.0, 1.0 + yr1_tariff_pct_output_change)
-        * (price_shock_info["effective_price_drop_pct"] / 100.0)
-        if tariff_pct > 0
-        else 0.0
-    )
-    if tariff_pct > 0:
-        lam_std = max(float(active_tariff_params["lam"]), 0.01)
-        decay_N = (1.0 - lam_std) ** (horizon - 1)
-        e_N = float(active_tariff_params["e_lr"]) + (float(active_tariff_params["e_sr"]) - float(active_tariff_params["e_lr"])) * decay_N
-        pt_N = float(active_tariff_params["pass_through_lr"]) + (float(active_tariff_params["pass_through"]) - float(active_tariff_params["pass_through_lr"])) * decay_N
-        ps_N = compute_effective_tariff_price_shock(
-            tariff_pct=tariff_pct,
-            pass_through=pt_N,
-            us_price_share=active_tariff_params["us_price_share"],
-            us_lop_spillover=active_tariff_params["us_lop_spillover"],
-        )
-        yrN_tariff_phys_dollars = base_output_dollars * active_tariff_params["weight"] * e_N * (ps_N["effective_price_drop_pct"] / 100.0)
-    else:
-        yrN_tariff_phys_dollars = 0.0
+
+
+trade_resolved = _resolve_trade_package(
+    t_comm_sel=tariff_commodity,
+    t_pct_sel=tariff_pct,
+    reg_sel=region,
+    f_type_sel=farm_type,
+    hor_sel=horizon,
+    ch_hor_sel=china_horizon_mode,
+    inc_mar_sel=include_marine_seafood,
+)
+active_tariff_params = trade_resolved["tariff_params"]
+s338_channel_breakdown = trade_resolved["channel_breakdown"]
+proc_export_shocks_yr1 = trade_resolved["proc_shocks_yr1"]
+proc_export_shocks_yrN = trade_resolved["proc_shocks_yrN"]
+proc_pure_gos_yr1 = trade_resolved["proc_gos_yr1"]
+proc_pure_gos_yrN = trade_resolved["proc_gos_yrN"]
+proc_gross_override_yr1 = trade_resolved["proc_gross_override_yr1"]
+proc_gross_override_yrN = trade_resolved["proc_gross_override_yrN"]
+marine_channels_yr1 = trade_resolved["marine_yr1"]
+marine_channels_yrN = trade_resolved["marine_yrN"]
+yr1_tariff_shock_dollars = float(trade_resolved["yr1_phys_dollars"])
+yrN_tariff_phys_dollars = float(trade_resolved["yrN_phys_dollars"])
+yr1_tariff_price_margin_dollars = float(trade_resolved["yr1_price_margin_dollars"])
+yr1_tariff_pct_output_change = yr1_tariff_shock_dollars / max(base_output_dollars, 1.0)
+price_shock_info = {"effective_price_drop_pct": float(trade_resolved["eff_price_drop_pct"])}
+has_active_trade_shock = abs(float(active_tariff_params.get("tariff_pct", 0.0))) > 1e-9
 
 direct_mkt_shock_dollars = base_output_dollars * (direct_rev_shock_pct / 100.0)
 brm_offset_dollars = brm_subsidy_m * 1e6
@@ -1306,7 +1551,7 @@ df_dyn = run_dynamic_projection(
     base_interest=base_interest,
     base_nci=base_nci,
     shock_interest_pct=shock_interest_rel_pct,
-    tariff_params=active_tariff_params if tariff_pct > 0 else None,
+    tariff_params=active_tariff_params if has_active_trade_shock else None,
     capex_gestation_ramp=ramp_schedule,
     primary_join_code=primary_join_code,
     farm_type=farm_type,
@@ -1340,7 +1585,7 @@ mc_summary = cached_monte_carlo(
     base_interest_val=base_interest,
     base_nci_val=base_nci,
     shock_interest_pct_val=shock_interest_rel_pct,
-    tariff_params_val=active_tariff_params if tariff_pct > 0 else None,
+    tariff_params_val=active_tariff_params if has_active_trade_shock else None,
     mc_basis_val=mc_basis,
     ramp_schedule_val=tuple(ramp_schedule) if ramp_schedule is not None else None,
     primary_join_code_val=primary_join_code,
@@ -1358,10 +1603,7 @@ mc_summary = cached_monte_carlo(
 )
 
 # 9. Isolate Pure Shock Impact (Shocked Trajectory minus Unshocked Baseline Trajectory)
-#    AND Downstream / Co-Targeted Processing Analysis-by-Parts (ABP) Impact
-#    Wohlgenant (1989) Regime 1 Rule: Foreign border tariffs on primary exports NEVER ration
-#    domestic processors via Ghosh forward linkages; ONLY non-tariff physical supply shocks
-#    (drought, input spikes, capital stock shifts) + co-targeted processor export shocks apply.
+#    AND Downstream / Co-Targeted Processing + Marine Seafood Analysis-by-Parts (ABP) Impacts
 base_yr1_row = df_base_dyn.iloc[0]
 base_yrN_row = df_base_dyn.iloc[-1]
 yr1_row = df_dyn.iloc[0]
@@ -1388,21 +1630,31 @@ abp_res = compute_downstream_abp_impact(
     primary_supply_shock_dollars=yr1_non_tariff_supply_dollars,
     primary_cost_shock_dollars=intermediate_cost_shock_dollars,
     processor_export_shock_by_naics=proc_export_shocks_yr1 if include_processing else None,
+    processor_pure_gos_by_naics=proc_pure_gos_yr1 if include_processing else None,
+    processor_gross_direct_override_dollars=proc_gross_override_yr1 if include_processing else None,
+    geo_scope=io_geo_scope,
+)
+
+marine_res = compute_marine_seafood_abp_impact(
+    io_df=io_df,
+    region=region,
+    year=target_io_year,
+    marine_channels=marine_channels_yr1 if include_marine_seafood else None,
     geo_scope=io_geo_scope,
 )
 
 if include_processing:
-    combined_yr1_output_impact_m = (yr1_primary_delta_output / 1e6) + float(abp_res["proc_direct_output_m"])
-    combined_yr1_gdp_impact_m = (yr1_primary_delta_gdp / 1e6) + float(abp_res["proc_net_gdp_m"])
-    combined_yr1_jobs_impact = yr1_primary_delta_jobs + float(abp_res["proc_net_jobs"])
-    combined_yr1_wages_impact_m = (yr1_primary_delta_wages / 1e6) + float(abp_res["proc_net_wages_m"])
-    yr1_supply_chain_gross_out_m = ((yr1_primary_delta_output * out_mult) / 1e6) + float(abp_res["proc_net_output_m"])
+    combined_yr1_output_impact_m = (yr1_primary_delta_output / 1e6) + float(abp_res["proc_direct_output_m"]) + float(marine_res["marine_direct_output_m"])
+    combined_yr1_gdp_impact_m = (yr1_primary_delta_gdp / 1e6) + float(abp_res["proc_net_gdp_m"]) + float(marine_res["marine_net_gdp_m"])
+    combined_yr1_jobs_impact = yr1_primary_delta_jobs + float(abp_res["proc_net_jobs"]) + float(marine_res["marine_net_jobs"])
+    combined_yr1_wages_impact_m = (yr1_primary_delta_wages / 1e6) + float(abp_res["proc_net_wages_m"]) + float(marine_res["marine_net_wages_m"])
+    yr1_supply_chain_gross_out_m = ((yr1_primary_delta_output * out_mult) / 1e6) + float(abp_res["proc_net_output_m"]) + float(marine_res["marine_net_output_m"])
 else:
-    combined_yr1_output_impact_m = yr1_primary_delta_output / 1e6
-    combined_yr1_gdp_impact_m = yr1_primary_delta_gdp / 1e6
-    combined_yr1_jobs_impact = yr1_primary_delta_jobs
-    combined_yr1_wages_impact_m = yr1_primary_delta_wages / 1e6
-    yr1_supply_chain_gross_out_m = (yr1_primary_delta_output * out_mult) / 1e6
+    combined_yr1_output_impact_m = (yr1_primary_delta_output / 1e6) + float(marine_res["marine_direct_output_m"])
+    combined_yr1_gdp_impact_m = (yr1_primary_delta_gdp / 1e6) + float(marine_res["marine_net_gdp_m"])
+    combined_yr1_jobs_impact = yr1_primary_delta_jobs + float(marine_res["marine_net_jobs"])
+    combined_yr1_wages_impact_m = (yr1_primary_delta_wages / 1e6) + float(marine_res["marine_net_wages_m"])
+    yr1_supply_chain_gross_out_m = ((yr1_primary_delta_output * out_mult) / 1e6) + float(marine_res["marine_net_output_m"])
 
 yrN_primary_shock_gdp_m = (float(yrN_row["Direct_GDP"]) - float(base_yrN_row["Direct_GDP"])) / 1e6
 yrN_primary_shock_out_m = (float(yrN_row["Gross_Output"]) - float(base_yrN_row["Gross_Output"])) / 1e6
@@ -1418,15 +1670,24 @@ abp_res_yrN = compute_downstream_abp_impact(
     primary_supply_shock_dollars=yrN_non_tariff_supply_dollars,
     primary_cost_shock_dollars=intermediate_cost_shock_dollars,
     processor_export_shock_by_naics=proc_export_shocks_yrN if include_processing else None,
+    processor_pure_gos_by_naics=proc_pure_gos_yrN if include_processing else None,
+    processor_gross_direct_override_dollars=proc_gross_override_yrN if include_processing else None,
     is_long_run=True,
     geo_scope=io_geo_scope,
 )
+marine_res_yrN = compute_marine_seafood_abp_impact(
+    io_df=io_df,
+    region=region,
+    year=target_io_year,
+    marine_channels=marine_channels_yrN if include_marine_seafood else None,
+    geo_scope=io_geo_scope,
+)
 if include_processing:
-    combined_yrN_gdp_impact_m = yrN_primary_shock_gdp_m + float(abp_res_yrN["proc_net_gdp_m"])
-    combined_yrN_out_impact_m = yrN_primary_shock_out_m + float(abp_res_yrN["proc_direct_output_m"])
+    combined_yrN_gdp_impact_m = yrN_primary_shock_gdp_m + float(abp_res_yrN["proc_net_gdp_m"]) + float(marine_res_yrN["marine_net_gdp_m"])
+    combined_yrN_out_impact_m = yrN_primary_shock_out_m + float(abp_res_yrN["proc_direct_output_m"]) + float(marine_res_yrN["marine_direct_output_m"])
 else:
-    combined_yrN_gdp_impact_m = yrN_primary_shock_gdp_m
-    combined_yrN_out_impact_m = yrN_primary_shock_out_m
+    combined_yrN_gdp_impact_m = yrN_primary_shock_gdp_m + float(marine_res_yrN["marine_net_gdp_m"])
+    combined_yrN_out_impact_m = yrN_primary_shock_out_m + float(marine_res_yrN["marine_direct_output_m"])
 
 # 9B. Side-by-Side Scenario Comparison (Scenario A Benchmark vs. Active Scenario B)
 if pin_current_btn:
@@ -1449,6 +1710,8 @@ if pin_current_btn:
         "auto_brm": auto_brm_toggle,
         "brm_regime": brm_regime,
         "geo_scope": io_geo_scope,
+        "china_horizon": china_horizon_mode,
+        "inc_marine": include_marine_seafood,
     }
     st.toast(f"📌 Pinned current state as Scenario A: {st.session_state['pinned_scenario_a']['label']}")
 
@@ -1473,6 +1736,8 @@ if compare_mode == "Counterfactual: Active Shocks WITHOUT BRM Offset (Pre-Policy
         "auto_brm": False,
         "brm_regime": brm_regime,
         "geo_scope": io_geo_scope,
+        "china_horizon": china_horizon_mode,
+        "inc_marine": include_marine_seafood,
     }
 elif compare_mode == "Counterfactual: Opposite IO Scope (All-Provinces vs. Within-Province Spillover Split)":
     opp_scope = "all_provinces" if io_geo_scope == "within_province" else "within_province"
@@ -1496,6 +1761,8 @@ elif compare_mode == "Counterfactual: Opposite IO Scope (All-Provinces vs. Withi
         "auto_brm": auto_brm_toggle,
         "brm_regime": brm_regime,
         "geo_scope": opp_scope,
+        "china_horizon": china_horizon_mode,
+        "inc_marine": include_marine_seafood,
     }
 elif compare_mode == "Pinned Custom Snapshot (Scenario A)" or pin_current_btn:
     if st.session_state.get("pinned_scenario_a") is not None:
@@ -1523,6 +1790,8 @@ elif compare_mode.startswith("Preset: "):
             "auto_brm": False,
             "brm_regime": "statutory_scap_80pct",
             "geo_scope": io_geo_scope,
+            "china_horizon": str(pr_a.get("china_horizon", "maintained")),
+            "inc_marine": bool(pr_a.get("inc_marine", True)),
         }
 
 df_dyn_a: Optional[pd.DataFrame] = None
@@ -1604,94 +1873,23 @@ if scen_a_cfg is not None:
 
     t_comm_a = str(scen_a_cfg["tariff_comm"])
     t_pct_a = float(scen_a_cfg["tariff_pct"])
-    proc_shocks_a_yr1: Dict[str, float] = {}
-    proc_shocks_a_yrN: Dict[str, float] = {}
     inc_proc_a = bool(scen_a_cfg.get("include_proc", True))
+    ch_hor_a = str(scen_a_cfg.get("china_horizon", "maintained"))
+    inc_mar_a = bool(scen_a_cfg.get("inc_marine", True))
 
-    if t_comm_a == TARGETED_SECTION338_OPTION_LABEL:
-        pkg_a_sr = get_targeted_section338_package_params(region=region, farm_type=farm_type, tariff_pct=t_pct_a, is_long_run=False)
-        pkg_a_lr = get_targeted_section338_package_params(region=region, farm_type=farm_type, tariff_pct=t_pct_a, is_long_run=True)
-        proc_shocks_a_yr1 = pkg_a_sr["processor_export_shock_by_naics_dollars"] if t_pct_a > 0 else {}
-        proc_shocks_a_yrN = pkg_a_lr["processor_export_shock_by_naics_dollars"] if t_pct_a > 0 else {}
-        t_params_a = {
-            "mode": "targeted_section338_2026",
-            "commodity": TARGETED_SECTION338_OPTION_LABEL,
-            "tariff_pct": t_pct_a,
-            "yr1_primary_phys_dollars": float(pkg_a_sr["yr1_primary_phys_dollars"]),
-            "lr_primary_phys_dollars": float(pkg_a_sr["lr_primary_phys_dollars"]),
-            "yr1_primary_pure_price_dollars": float(pkg_a_sr["yr1_primary_pure_price_dollars"]),
-            "lr_primary_pure_price_dollars": float(pkg_a_sr["lr_primary_pure_price_dollars"]),
-            "effective_lam": float(pkg_a_sr["effective_lam"]),
-            "weight": 1.0,
-        }
-        yr1_t_phys_a = float(pkg_a_sr["yr1_primary_phys_dollars"]) if t_pct_a > 0 else 0.0
-        lam_a = max(float(pkg_a_sr["effective_lam"]), 0.01)
-        decay_N_a = (1.0 - lam_a) ** (horizon - 1)
-        yrN_t_phys_a = (
-            float(pkg_a_sr["lr_primary_phys_dollars"])
-            + (float(pkg_a_sr["yr1_primary_phys_dollars"]) - float(pkg_a_sr["lr_primary_phys_dollars"])) * decay_N_a
-            if t_pct_a > 0
-            else 0.0
-        )
-    elif t_comm_a == "All Commodities (Provincial FCR Weighted)":
-        comp_p_a = fcr_info["composites"].get(farm_type, fcr_info["composites"]["All farm types"])
-        t_params_a = {
-            "commodity": f"Composite ({farm_type})",
-            "tariff_pct": t_pct_a,
-            "e_sr": comp_p_a["e_sr"],
-            "e_lr": comp_p_a["e_lr"],
-            "lam": comp_p_a["lam"],
-            "pass_through": comp_p_a["pass_through"],
-            "pass_through_lr": comp_p_a.get("pass_through_lr", comp_p_a["pass_through"]),
-            "us_price_share": comp_p_a["us_price_share"],
-            "us_lop_spillover": comp_p_a["us_lop_spillover"],
-            "weight": 1.0,
-        }
-        ps_a1 = compute_effective_tariff_price_shock(
-            tariff_pct=t_pct_a, pass_through=t_params_a["pass_through"],
-            us_price_share=t_params_a["us_price_share"], us_lop_spillover=t_params_a["us_lop_spillover"],
-        )
-        yr1_t_phys_a = base_output_dollars * t_params_a["e_sr"] * (ps_a1["effective_price_drop_pct"] / 100.0) if t_pct_a > 0 else 0.0
-        decay_N_a = (1.0 - max(float(t_params_a["lam"]), 0.01)) ** (horizon - 1)
-        e_N_a = t_params_a["e_lr"] + (t_params_a["e_sr"] - t_params_a["e_lr"]) * decay_N_a
-        pt_N_a = t_params_a["pass_through_lr"] + (t_params_a["pass_through"] - t_params_a["pass_through_lr"]) * decay_N_a
-        ps_aN = compute_effective_tariff_price_shock(
-            tariff_pct=t_pct_a, pass_through=pt_N_a,
-            us_price_share=t_params_a["us_price_share"], us_lop_spillover=t_params_a["us_lop_spillover"],
-        )
-        yrN_t_phys_a = base_output_dollars * e_N_a * (ps_aN["effective_price_drop_pct"] / 100.0) if t_pct_a > 0 else 0.0
-    else:
-        cp_a = get_commodity_tariff_params(t_comm_a, region=region)
-        c_fcr_a = fcr_info["commodities"].get(t_comm_a, {}).get("fcr_m", 0.0)
-        s_fcr_a = fcr_info["composites"].get(farm_type, fcr_info["composites"]["All farm types"]).get("fcr_m", fcr_info["total_market_fcr_m"])
-        c_wt_a = min(1.0, c_fcr_a / max(s_fcr_a, 1.0)) if farm_type in ("All farm types", "Crop production [111]", "Animal production [112]", "Oilseed and grain farming [1111]", "Greenhouse, nursery and floriculture production [1114]") else 1.0
-        if c_wt_a <= 0.0:
-            c_wt_a = 0.05
-        t_params_a = {
-            "commodity": t_comm_a,
-            "tariff_pct": t_pct_a,
-            "e_sr": cp_a["e_sr"],
-            "e_lr": cp_a["e_lr"],
-            "lam": cp_a["lam"],
-            "pass_through": cp_a["pass_through"],
-            "pass_through_lr": cp_a.get("pass_through_lr", cp_a["pass_through"]),
-            "us_price_share": cp_a["us_price_share"],
-            "us_lop_spillover": cp_a["us_lop_spillover"],
-            "weight": c_wt_a,
-        }
-        ps_a1 = compute_effective_tariff_price_shock(
-            tariff_pct=t_pct_a, pass_through=t_params_a["pass_through"],
-            us_price_share=t_params_a["us_price_share"], us_lop_spillover=t_params_a["us_lop_spillover"],
-        )
-        yr1_t_phys_a = base_output_dollars * c_wt_a * t_params_a["e_sr"] * (ps_a1["effective_price_drop_pct"] / 100.0) if t_pct_a > 0 else 0.0
-        decay_N_a = (1.0 - max(float(t_params_a["lam"]), 0.01)) ** (horizon - 1)
-        e_N_a = t_params_a["e_lr"] + (t_params_a["e_sr"] - t_params_a["e_lr"]) * decay_N_a
-        pt_N_a = t_params_a["pass_through_lr"] + (t_params_a["pass_through"] - t_params_a["pass_through_lr"]) * decay_N_a
-        ps_aN = compute_effective_tariff_price_shock(
-            tariff_pct=t_pct_a, pass_through=pt_N_a,
-            us_price_share=t_params_a["us_price_share"], us_lop_spillover=t_params_a["us_lop_spillover"],
-        )
-        yrN_t_phys_a = base_output_dollars * c_wt_a * e_N_a * (ps_aN["effective_price_drop_pct"] / 100.0) if t_pct_a > 0 else 0.0
+    resolved_a = _resolve_trade_package(
+        t_comm_sel=t_comm_a,
+        t_pct_sel=t_pct_a,
+        reg_sel=region,
+        f_type_sel=farm_type,
+        hor_sel=horizon,
+        ch_hor_sel=ch_hor_a,
+        inc_mar_sel=inc_mar_a,
+    )
+    t_params_a = resolved_a["tariff_params"]
+    has_t_a = abs(float(t_params_a.get("tariff_pct", 0.0))) > 1e-9
+    yr1_t_phys_a = float(resolved_a["yr1_phys_dollars"])
+    yrN_t_phys_a = float(resolved_a["yrN_phys_dollars"])
 
     dir_mkt_a = base_output_dollars * (float(scen_a_cfg.get("direct_rev_pct", 0.0)) / 100.0)
     brm_off_a = float(scen_a_cfg.get("brm_m", 0.0)) * 1e6
@@ -1715,7 +1913,7 @@ if scen_a_cfg is not None:
         base_interest=base_interest,
         base_nci=base_nci,
         shock_interest_pct=ir_rel_pct_a,
-        tariff_params=t_params_a if t_pct_a > 0 else None,
+        tariff_params=t_params_a if has_t_a else None,
         capex_gestation_ramp=ramp_schedule,
         primary_join_code=primary_join_code,
         farm_type=farm_type,
@@ -1740,7 +1938,9 @@ if scen_a_cfg is not None:
         farm_type=farm_type,
         primary_supply_shock_dollars=yr1_prim_out_a - yr1_t_phys_a,
         primary_cost_shock_dollars=int_cost_a,
-        processor_export_shock_by_naics=proc_shocks_a_yr1 if inc_proc_a else None,
+        processor_export_shock_by_naics=resolved_a["proc_shocks_yr1"] if inc_proc_a else None,
+        processor_pure_gos_by_naics=resolved_a["proc_gos_yr1"] if inc_proc_a else None,
+        processor_gross_direct_override_dollars=resolved_a["proc_gross_override_yr1"] if inc_proc_a else None,
         is_long_run=False,
         geo_scope=scen_a_geo_scope,
     )
@@ -1751,8 +1951,24 @@ if scen_a_cfg is not None:
         farm_type=farm_type,
         primary_supply_shock_dollars=yrN_prim_out_a - yrN_t_phys_a,
         primary_cost_shock_dollars=int_cost_a,
-        processor_export_shock_by_naics=proc_shocks_a_yrN if inc_proc_a else None,
+        processor_export_shock_by_naics=resolved_a["proc_shocks_yrN"] if inc_proc_a else None,
+        processor_pure_gos_by_naics=resolved_a["proc_gos_yrN"] if inc_proc_a else None,
+        processor_gross_direct_override_dollars=resolved_a["proc_gross_override_yrN"] if inc_proc_a else None,
         is_long_run=True,
+        geo_scope=scen_a_geo_scope,
+    )
+    marine_yr1_a = compute_marine_seafood_abp_impact(
+        io_df=io_df,
+        region=region,
+        year=target_io_year,
+        marine_channels=resolved_a["marine_yr1"] if inc_mar_a else None,
+        geo_scope=scen_a_geo_scope,
+    )
+    marine_yrN_a = compute_marine_seafood_abp_impact(
+        io_df=io_df,
+        region=region,
+        year=target_io_year,
+        marine_channels=resolved_a["marine_yrN"] if inc_mar_a else None,
         geo_scope=scen_a_geo_scope,
     )
     active_b_label = (
@@ -1785,6 +2001,10 @@ if scen_a_cfg is not None:
         brm_adhoc_m_b=brm_subsidy_m,
         df_base_dyn_a=df_base_dyn_a,
         jobs_mult_per_m_a=jobs_mult_eff_per_m_a,
+        marine_yr1_a=marine_yr1_a,
+        marine_yrN_a=marine_yrN_a,
+        marine_yr1_b=marine_res,
+        marine_yrN_b=marine_res_yrN,
     )
 
 # Factor-by-Factor Attribution using CSNA HFCE Bridge, Source/Regime MPCs, Duality, ABP & Repricing Equations
@@ -1928,17 +2148,26 @@ if abs(shock_ir_bps) > 1e-4:
 # Tariff (Primary Agriculture + Co-Targeted Processor Channels), Market Revenue, TFP & BRM Factor Rows
 yr1_tfp_dev_out_d = base_output_dollars * ((tfp_growth_pct - default_tfp) / 100.0) if abs(tfp_growth_pct - default_tfp) > 1e-4 else 0.0
 
-if tariff_pct > 0:
+if has_active_trade_shock:
     if tariff_commodity == TARGETED_SECTION338_OPTION_LABEL:
         t_lbl_prim = "U.S. Section 338 Tariff (Primary Agriculture)"
         t_set_prim = f"{_fmt_ofa_num(tariff_pct, 0)}% Procl. 11048/11064 Annexes"
         t_mech_prim = "Targeted HS Ch. 06 Cut Flowers/Bulbs + P5 Dairy Blend Dilution + Unpooled Goat/Honey + Distillery Corn Basis"
+    elif tariff_commodity in CHINA_OPTION_MAP:
+        t_lbl_prim = "2026 China Tariff Rollback (Primary Agriculture)"
+        t_set_prim = "SCTC 2026 No. 2 + MOFCOM 14.9% + Nov 17 Pork"
+        t_mech_prim = "Canola Seed (82% Basis/NCI, 18% Rotation) + Dry Peas + Beef TRQ + Nov 17 Hog Cutout Pass-Through"
+    elif tariff_commodity == COMBINED_US_CHINA_2026_OPTION_LABEL:
+        t_lbl_prim = "Net Trade Realignment — Primary Agriculture (U.S. + China)"
+        t_set_prim = f"+{_fmt_ofa_num(tariff_pct, 0)}% U.S. 338 vs. China Rollbacks"
+        t_mech_prim = "Net Bilateral Primary Ag Output & Cash Basis/Margin Shift Across U.S. Section 338 & China Rollbacks"
     else:
         short_comm = "All Ag Commodities" if tariff_commodity == "All Commodities (Provincial FCR Weighted)" else tariff_commodity
-        t_lbl_prim = f"U.S. Section 338 Tariff ({short_comm})"
-        t_set_prim = f"{_fmt_ofa_num(tariff_pct, 1)}% tariff (-{price_shock_info['effective_price_drop_pct']:.2f}% eff. price)"
+        dir_word = "Tariff Hike" if tariff_pct > 0 else "Tariff Rollback"
+        t_lbl_prim = f"Border {dir_word} ({short_comm})"
+        t_set_prim = f"{_fmt_ofa_num(tariff_pct, 1, True)}% ({_fmt_ofa_num(-price_shock_info['effective_price_drop_pct'], 2, True)}% eff. price)"
         t_mech_prim = (
-            f"Farm-Gate Price Squeeze (-{price_shock_info['effective_price_drop_pct']:.2f}%) + Nerlove Supply Response (Zero Ghosh Processor Rationing)"
+            f"Farm-Gate Price Shift ({_fmt_ofa_num(-price_shock_info['effective_price_drop_pct'], 2, True)}%) + Nerlove Supply Response (Zero Ghosh Processor Rationing)"
         )
 
     if abs(yr1_tariff_shock_dollars) >= 1e3 or abs(yr1_tariff_price_margin_dollars) >= 1e3:
@@ -1957,7 +2186,7 @@ if tariff_pct > 0:
             "Economic Transmission Mechanism": t_mech_prim,
         })
 
-    if tariff_commodity == TARGETED_SECTION338_OPTION_LABEL and include_processing and proc_export_shocks_yr1:
+    if include_processing and (proc_export_shocks_yr1 or proc_pure_gos_yr1):
         abp_proc_only = compute_downstream_abp_impact(
             io_df=io_df,
             region=region,
@@ -1966,22 +2195,50 @@ if tariff_pct > 0:
             primary_supply_shock_dollars=0.0,
             primary_cost_shock_dollars=0.0,
             processor_export_shock_by_naics=proc_export_shocks_yr1,
+            processor_pure_gos_by_naics=proc_pure_gos_yr1,
+            processor_gross_direct_override_dollars=proc_gross_override_yr1,
             geo_scope=io_geo_scope,
         )
-        if abs(float(abp_proc_only["proc_direct_output_m"])) > 1e-3:
+        if abs(float(abp_proc_only["proc_direct_output_m"])) > 1e-3 or abs(float(abp_proc_only["proc_net_gdp_m"])) > 1e-3:
+            if tariff_commodity in CHINA_OPTION_MAP:
+                p_lbl = "2026 China Rollback (Co-Targeted Processors)"
+                p_set = "Canola Meal 0% + Pork/Beef Cutout (0206 Offal 37%)"
+                p_mech = "BS311200 Crush (+$435M CAN Net of -$30M Pea Starch) & BS311600 Cutout (Upstream Seed/Hogs Netted)"
+            elif tariff_commodity == COMBINED_US_CHINA_2026_OPTION_LABEL:
+                p_lbl = "Net Trade Realignment (Co-Targeted Processors)"
+                p_set = "U.S. Cheese/Alcohol/Whey vs. China Crush/Pork"
+                p_mech = "Net NAICS 3112/3115/3116/3118/3121 Direct & Netted ABP Processor Impact"
+            else:
+                p_lbl = "U.S. Section 338 (Co-Targeted Processors)"
+                p_set = "Sept 15 Cheese + Sept 29 Alcohol/Whey Ban"
+                p_mech = "Co-Targeted NAICS 3121A/31212/3115/3118 Direct Export Shock (Upstream Farm Inputs Netted via ABP)"
+
             factor_attribution_rows.append({
-                "Shock Factor": "U.S. Section 338 (Co-Targeted Processors)",
-                "Slider Setting": "Sept 15 Cheese + Sept 29 Alcohol/Whey Ban",
+                "Shock Factor": p_lbl,
+                "Slider Setting": p_set,
                 "Yr 1 Farm Margin / NCI ($M)": 0.0,
                 "Yr 1 Physical Ag Output ($M)": 0.0,
                 "Downstream Proc Direct Output ($M)": float(abp_proc_only["proc_direct_output_m"]),
                 "Yr 1 Direct Output ($M)": float(abp_proc_only["proc_direct_output_m"]),
                 "Yr 1 Value-Added GDP ($M)": float(abp_proc_only["proc_net_gdp_m"]),
                 "Employment Impact (Jobs)": float(abp_proc_only["proc_net_jobs"]),
-                "Economic Transmission Mechanism": (
-                    "Co-Targeted NAICS 3121A/31212/3115/3118 Direct Export Shock (Upstream Farm Inputs Netted via ABP)"
-                ),
+                "Economic Transmission Mechanism": p_mech,
             })
+
+    if include_marine_seafood and abs(float(marine_res["marine_direct_output_m"])) > 1e-3:
+        factor_attribution_rows.append({
+            "Shock Factor": "2026 China Rollback (Wild Fisheries & Seafood)",
+            "Slider Setting": "BS114000 / BS311700 (Firewalled from Farm NCI)",
+            "Yr 1 Farm Margin / NCI ($M)": 0.0,
+            "Yr 1 Physical Ag Output ($M)": 0.0,
+            "Downstream Proc Direct Output ($M)": float(marine_res["marine_direct_output_m"]),
+            "Yr 1 Direct Output ($M)": float(marine_res["marine_direct_output_m"]),
+            "Yr 1 Value-Added GDP ($M)": float(marine_res["marine_net_gdp_m"]),
+            "Employment Impact (Jobs)": float(marine_res["marine_net_jobs"]),
+            "Economic Transmission Mechanism": (
+                "TAC-Bound Dockside P7000/P8000 + Netted BS311700 Seafood Processing (Excludes Farm Solvency / DSCR)"
+            ),
+        })
 
 for f_lbl, f_set, f_out_d, f_extra_nci_d, f_hh_gdp_mult_i, f_hh_jobs_mult_i, f_mech in [
     (
@@ -2116,6 +2373,10 @@ dscr_yr1_delta = float(yr1_row["DSCR"]) - float(base_yr1_row["DSCR"])
 lrf_yr1_delta = float(yr1_row["LRF"]) - float(base_yr1_row["LRF"])
 fsf_yr1_delta = float(yr1_row["FSF"]) - float(base_yr1_row["FSF"])
 yr1_proc_direct_m = float(abp_res["proc_direct_output_m"]) if include_processing else 0.0
+yr1_marine_direct_m = float(marine_res["marine_direct_output_m"]) if include_marine_seafood else 0.0
+yrN_marine_gdp_m = float(marine_res_yrN["marine_net_gdp_m"]) if include_marine_seafood else 0.0
+marine_k1_note = f" | Marine: {_fmt_ofa_num(yr1_marine_direct_m, 1, True)}M" if abs(yr1_marine_direct_m) >= 0.05 else ""
+marine_k4_note = f" | Marine: {_fmt_ofa_num(yrN_marine_gdp_m, 1, True)}M" if abs(yrN_marine_gdp_m) >= 0.05 else ""
 
 k1, k2, k3, k4, k5, k6 = st.columns(6)
 with k1:
@@ -2128,7 +2389,7 @@ with k1:
             <div class="kpi-val" style="color: {c1_col};">
                 {_fmt_ofa_num(combined_yr1_output_impact_m, 1, True)} $M
             </div>
-            <div class="kpi-sub">Primary: {_fmt_ofa_num(yr1_primary_delta_output/1e6, 1, True)}M | Proc Direct: {_fmt_ofa_num(yr1_proc_direct_m, 1, True)}M | Supply-Chain: {_fmt_ofa_num(yr1_supply_chain_gross_out_m, 1, True)}M</div>
+            <div class="kpi-sub">Primary: {_fmt_ofa_num(yr1_primary_delta_output/1e6, 1, True)}M | Proc Direct: {_fmt_ofa_num(yr1_proc_direct_m, 1, True)}M{marine_k1_note} | Supply-Chain: {_fmt_ofa_num(yr1_supply_chain_gross_out_m, 1, True)}M</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -2174,7 +2435,7 @@ with k4:
             <div class="kpi-val" style="color: {c4_col};">
                 {_fmt_ofa_num(combined_yrN_gdp_impact_m, 1, True)} $M
             </div>
-            <div class="kpi-sub">Primary: {_fmt_ofa_num(yrN_primary_shock_gdp_m, 1, True)}M | Proc ABP (LR): {_fmt_ofa_num(abp_res_yrN['proc_net_gdp_m'] if include_processing else 0.0, 1, True)}M | {horizon}-Yr Cum: {cum_10yr_shock_gdp_m:+,.0f}M</div>
+            <div class="kpi-sub">Primary: {_fmt_ofa_num(yrN_primary_shock_gdp_m, 1, True)}M | Proc ABP (LR): {_fmt_ofa_num(abp_res_yrN['proc_net_gdp_m'] if include_processing else 0.0, 1, True)}M{marine_k4_note} | {horizon}-Yr Cum: {cum_10yr_shock_gdp_m:+,.0f}M</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -2410,7 +2671,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 1. Macro, Value-Chain (ABP) & Fiscal Impact",
     "📈 2. 10-Year Dynamic Trajectory & Monte Carlo Risk",
-    "🛡️ 3. 2026 Section 338 Tariff & Counter-Tariff Squeeze",
+    "🌐 3. 2026 U.S. Section 338 & China Tariff Rollbacks",
     "🚜 4. Farm-Gate ('Average Per Farm' & 26 Pub 60 / CEA Budgets)",
     "📚 5. Econometric Calibration Matrices & Executive Briefings",
 ])
@@ -3104,23 +3365,30 @@ with tab2:
 
 
 # ==============================================================================
-# TAB 3: 2026 SECTION 338 TARIFF & COUNTER-TARIFF "DOUBLE SQUEEZE"
+# TAB 3: 2026 U.S. SECTION 338 TARIFFS, CHINA TARIFF ROLLBACKS & COUNTER-TARIFFS
 # ==============================================================================
 with tab3:
-    st.subheader(f"2026 U.S. Section 338 Tariff & Canada Counter-Tariff 'Double Squeeze' — {region}")
+    st.subheader(f"2026 U.S. Section 338 Tariffs, China Tariff Rollbacks & Counter-Tariffs — {region}")
     st.markdown(
         f"""
         **Provincial Farm Cash Receipts (`StatCan 32-10-0045-01`, {fcr_year}) Coverage:**
         Mapped Primary Agriculture commodities cover **`${_fmt_ofa_num(fcr_info['mapped_sum_m'], 1)}M`** out of **`${_fmt_ofa_num(fcr_info['total_market_fcr_m'], 1)}M`**
         in total {region} market receipts (**`{_fmt_ofa_num(fcr_info['mapped_coverage_pct'], 1)}%` empirical coverage**).
-        **Nursery, Floriculture & Sod (`HS Ch. 06`)** and **Greenhouse Vegetables (`NAICS 1114`)** are modeled strictly as **Primary Agriculture**.
+        **Nursery, Floriculture & Sod (`HS Ch. 06`)** and **Greenhouse Vegetables (`NAICS 1114`)** are modeled strictly as **Primary Agriculture**, while **Wild-Capture Marine Fisheries (`BS114000` / `BS311700`)** are firewalled from primary farm solvency.
         """
     )
 
-    default_eval_rate = 50.0 if tariff_commodity == TARGETED_SECTION338_OPTION_LABEL else 25.0
-    eval_tariff_pct = tariff_pct if tariff_pct > 0 else default_eval_rate
+    is_china_pkg_tab3 = tariff_commodity in CHINA_OPTION_MAP
+    is_combined_pkg_tab3 = tariff_commodity == COMBINED_US_CHINA_2026_OPTION_LABEL
+    if tariff_commodity in (TARGETED_SECTION338_OPTION_LABEL, COMBINED_US_CHINA_2026_OPTION_LABEL):
+        default_eval_rate = 50.0
+    elif is_china_pkg_tab3:
+        default_eval_rate = -25.0
+    else:
+        default_eval_rate = 25.0
+    eval_tariff_pct = tariff_pct if abs(tariff_pct) > 1e-9 else default_eval_rate
 
-    # Build 18-sector dynamic tariff vulnerability table for the active tariff rate
+    # Build 18-sector dynamic bidirectional tariff / rollback matrix for the evaluated rate
     tariff_rows = []
     for comm_name, comm_data in fcr_info["commodities"].items():
         p = comm_data["params"]
@@ -3132,7 +3400,10 @@ with tab3:
             us_price_share=p["us_price_share"],
             us_lop_spillover=p["us_lop_spillover"],
         )
+        # Note: effective_price_drop_pct > 0 means farm price DROP; < 0 means farm price GAIN.
+        # In PRIMARY_AG_TARIFF_CONFIG, e_sr < 0 and e_lr < 0 so that e_sr * eff_p_drop < 0 on a hike and > 0 on a rollback.
         eff_p_drop = ps_comm["effective_price_drop_pct"] / 100.0
+        eff_p_change_frac = -eff_p_drop
         e_sr = float(p["e_sr"])
         e_lr = float(p["e_lr"])
         lam = float(p["lam"])
@@ -3142,62 +3413,128 @@ with tab3:
         e_yr10 = e_lr + (e_sr - e_lr) * ((1.0 - lam) ** 9)
         dq_yr5_pct = e_yr5 * eff_p_drop * 100.0
         dq_yr10_pct = e_yr10 * eff_p_drop * 100.0
-        yr1_tot_rev_pct = (-eff_p_drop * 100.0 * max(0.0, 1.0 + dq_yr1_pct / 100.0)) + dq_yr1_pct
-        yr10_tot_rev_pct = (-eff_p_drop * 100.0 * max(0.0, 1.0 + dq_yr10_pct / 100.0)) + dq_yr10_pct
+        yr1_tot_rev_pct = (eff_p_change_frac * 100.0 * max(0.0, 1.0 + dq_yr1_pct / 100.0)) + dq_yr1_pct
+        yr10_tot_rev_pct = (eff_p_change_frac * 100.0 * max(0.0, 1.0 + dq_yr10_pct / 100.0)) + dq_yr10_pct
 
         tariff_rows.append({
             "Primary Ag Commodity": comm_name,
             "Category": comm_data["category"],
             f"{fcr_year} {region} FCR ($M)": fcr_val_m,
             "Share of Market FCR (%)": sh_pct,
-            "Direct U.S. Share": p["us_price_share"],
+            "Export Price Share": p["us_price_share"],
             "LOP Spillover": p["us_lop_spillover"],
             "Pass-Through": p["pass_through"],
-            "Eff. Farm Price Drop (%)": -ps_comm["effective_price_drop_pct"],
+            "Eff. Farm Price Δ (%)": eff_p_change_frac * 100.0,
             "Year 1 Output Δ (%)": dq_yr1_pct,
             "Year 5 Output Δ (%)": dq_yr5_pct,
             "Year 10 Output Δ (%)": dq_yr10_pct,
             "Year 1 Physical Output Δ ($M)": fcr_val_m * (dq_yr1_pct / 100.0),
-            "Year 1 Total FCR / Margin Loss ($M)": fcr_val_m * (yr1_tot_rev_pct / 100.0),
-            "Year 10 Total FCR / Output Loss ($M)": fcr_val_m * (yr10_tot_rev_pct / 100.0),
+            "Year 1 Total FCR / Margin Δ ($M)": fcr_val_m * (yr1_tot_rev_pct / 100.0),
+            "Year 10 Total FCR / Output Δ ($M)": fcr_val_m * (yr10_tot_rev_pct / 100.0),
         })
-    df_tariff_18 = pd.DataFrame(tariff_rows).sort_values("Year 10 Total FCR / Output Loss ($M)", ascending=True)
+    df_tariff_18 = pd.DataFrame(tariff_rows)
+    if eval_tariff_pct < 0:
+        df_tariff_18 = df_tariff_18.sort_values("Year 10 Total FCR / Output Δ ($M)", ascending=False)
+    else:
+        df_tariff_18 = df_tariff_18.sort_values("Year 10 Total FCR / Output Δ ($M)", ascending=True)
 
-    # Executive Chart #11: Targeted Section 338 Statutory Channel Breakdown OR Top 10 Broad Commodity Exposure
-    if tariff_commodity == TARGETED_SECTION338_OPTION_LABEL:
-        eval_pkg_tab3 = get_targeted_section338_package_params(
-            region=region, farm_type=farm_type, tariff_pct=eval_tariff_pct, is_long_run=False
-        )
+    # Executive Chart #11: Statutory Channel Breakdown (China Rollback, Combined U.S.+China, or U.S. Section 338) OR Top 10 Commodity Exposure
+    if is_china_pkg_tab3 or is_combined_pkg_tab3 or tariff_commodity == TARGETED_SECTION338_OPTION_LABEL:
+        if is_china_pkg_tab3:
+            pkg_mode_t3 = CHINA_OPTION_MAP[tariff_commodity]
+            eval_pkg_tab3 = get_china_2026_rollback_params(
+                region=region,
+                farm_type=farm_type,
+                package_mode=pkg_mode_t3,
+                horizon_mode=china_horizon_mode,
+                include_marine_seafood=include_marine_seafood,
+                is_long_run=False,
+            )
+            horizon_short_lbl = "Statutory Dec 31, 2028 Sunset" if china_horizon_mode == "dec_2028_sunset" else "Renewed Access"
+            ch_heading = f"#### Statutory 2026 China Tariff Rollback Channel Breakdown ({tariff_commodity} — {region}, {horizon_short_lbl})"
+            ch_title = f"2026 China Tariff Rollbacks by Statutory Channel — {region}"
+            ch_subtitle = f"{tariff_commodity} ({horizon_short_lbl}): Year 1 Physical Output vs. Cash Margin / Dockside Gain ($M)"
+            ch_source = "Source: SCTC Ann. 2026 No. 2, MOFCOM Final AD Ruling (Feb 28, 2026), Shenzhen Arrangement (Nov 17, 2026) & StatCan IO 2022."
+            ch_filename = f"OFA_China_Rollback_Channel_Ranking_{region}"
+        elif is_combined_pkg_tab3:
+            s338_p_t3 = get_targeted_section338_package_params(
+                region=region, farm_type=farm_type, tariff_pct=max(0.0, eval_tariff_pct), is_long_run=False
+            )
+            china_p_t3 = get_china_2026_rollback_params(
+                region=region,
+                farm_type=farm_type,
+                package_mode="full_2026",
+                horizon_mode=china_horizon_mode,
+                include_marine_seafood=include_marine_seafood,
+                is_long_run=False,
+            )
+            eval_pkg_tab3 = combine_trade_shock_packages(s338_p_t3, china_p_t3)
+            ch_heading = f"#### 2026 Net Trade Realignment Channel Breakdown (U.S. Section 338 `{_fmt_ofa_num(max(0.0, eval_tariff_pct), 0)}%` + Full China Rollback in {region})"
+            ch_title = f"2026 Net Trade Realignment by Channel — {region} (U.S. Section 338 vs. China Rollbacks)"
+            ch_subtitle = "Bilateral Channel Decomposition: Year 1 Direct Output Shift vs. Cash Margin / EBITDA Impact ($M)"
+            ch_source = "Source: U.S. Procl. 11046–11065, SCTC Ann. 2026 No. 2, Shenzhen Arrangement (Nov 17, 2026) & OFA PE-ABP-IO Model."
+            ch_filename = f"OFA_Combined_Trade_Realignment_{region}"
+        else:
+            eval_pkg_tab3 = get_targeted_section338_package_params(
+                region=region, farm_type=farm_type, tariff_pct=max(0.0, eval_tariff_pct), is_long_run=False
+            )
+            ch_heading = f"#### Statutory 2026 U.S. Section 338 Channel Breakdown (Procl. 11046–11065 Evaluated at `{_fmt_ofa_num(max(0.0, eval_tariff_pct), 0)}%` in {region})"
+            ch_title = f"2026 U.S. Section 338 Statutory Exposure by Channel — {region} ({_fmt_ofa_num(max(0.0, eval_tariff_pct), 0)}% Duty + Sept 29 Bans)"
+            ch_subtitle = "Primary Ag (8-Digit HTSUS Filtered) & Co-Targeted Food/Beverage Processors: Output vs. Margin Squeeze ($M)"
+            ch_source = "Source: Statistics Canada CIMT 2025, U.S. Proclamations 11046–11065 (9903.03.12–.18) & OFA PE-ABP-IO Model."
+            ch_filename = f"OFA_Section338_Channel_Ranking_{region}"
+
         df_s338_ch = pd.DataFrame(eval_pkg_tab3["channel_breakdown"])
         if not df_s338_ch.empty:
-            st.markdown(
-                f"#### Statutory 2026 U.S. Section 338 Channel Breakdown (Procl. 11046–11065 Evaluated at `{_fmt_ofa_num(eval_tariff_pct, 0)}%` in {region})"
-            )
+            st.markdown(ch_heading)
             df_s338_plot = df_s338_ch.copy()
+            # Filter out purely zero-impact regional channels (e.g. Marine Seafood in landlocked provinces) when cluttering combined charts
+            if len(df_s338_plot) > 6:
+                non_zero_mask = (
+                    df_s338_plot[["yr1_phys_output_m", "yr1_total_margin_m"]].abs().max(axis=1) >= 0.05
+                )
+                if non_zero_mask.sum() >= 3:
+                    df_s338_plot = df_s338_plot[non_zero_mask].copy()
             df_s338_plot["_abs_sort"] = df_s338_plot[["yr1_phys_output_m", "yr1_total_margin_m"]].abs().max(axis=1)
             df_s338_plot = df_s338_plot.sort_values("_abs_sort", ascending=True)
 
             s_vals = df_s338_plot["yr1_phys_output_m"].tolist() + df_s338_plot["yr1_total_margin_m"].tolist()
             s_min, s_max = min(s_vals + [0.0]), max(s_vals + [0.0])
             s_span = max(abs(s_max - s_min), 10.0)
+            left_pad = 0.26 * s_span if s_min < -0.05 else 0.08 * s_span
+            right_pad = 0.26 * s_span if s_max > 0.05 else 0.12 * s_span
+
+            margin_bar_colors = [
+                OFA_COLORS["positive"] if v >= 0 else OFA_COLORS["crimson"]
+                for v in df_s338_plot["yr1_total_margin_m"]
+            ]
+            margin_legend_color = OFA_COLORS["positive"] if is_china_pkg_tab3 else OFA_COLORS["crimson"]
+            margin_trace_name = (
+                "Year 1 Cash Margin / Dockside Gain ($M)"
+                if is_china_pkg_tab3
+                else "Year 1 Cash Margin / EBITDA Δ ($M)"
+            )
 
             fig_s338_rank = go.Figure()
             fig_s338_rank.add_trace(go.Bar(
                 y=df_s338_plot["channel"].tolist(),
                 x=df_s338_plot["yr1_phys_output_m"].tolist(),
-                name="Year 1 Direct Output Contraction ($M)",
+                name="Year 1 Direct Physical Output Δ ($M)",
                 orientation="h",
                 marker_color=OFA_COLORS["bluewood"],
-                text=[f"{_fmt_ofa_num(v, 1, True)}M" if abs(v) >= 0.05 else "$0M (Pooled)" for v in df_s338_plot["yr1_phys_output_m"]],
+                text=[
+                    f"{_fmt_ofa_num(v, 1, True)}M" if abs(v) >= 0.05 else "$0M (TAC/Quota)"
+                    for v in df_s338_plot["yr1_phys_output_m"]
+                ],
                 textposition="outside",
                 cliponaxis=False,
             ))
             fig_s338_rank.add_trace(go.Bar(
                 y=df_s338_plot["channel"].tolist(),
                 x=df_s338_plot["yr1_total_margin_m"].tolist(),
-                name="Year 1 Cash Margin / EBITDA Squeeze ($M)",
+                name=margin_trace_name,
                 orientation="h",
-                marker_color=OFA_COLORS["crimson"],
+                marker=dict(color=margin_bar_colors if is_combined_pkg_tab3 else margin_legend_color),
                 text=[f"{_fmt_ofa_num(v, 1, True)}M" for v in df_s338_plot["yr1_total_margin_m"]],
                 textposition="outside",
                 cliponaxis=False,
@@ -3205,60 +3542,77 @@ with tab3:
             fig_s338_rank.update_layout(barmode="group", bargap=0.25)
             apply_ofa_chart_theme(
                 fig_s338_rank,
-                title=f"2026 U.S. Section 338 Statutory Exposure by Channel — {region} ({_fmt_ofa_num(eval_tariff_pct, 0)}% Duty + Sept 29 Bans)",
-                subtitle="Primary Ag (8-Digit HTSUS Filtered) & Co-Targeted Food/Beverage Processors: Output vs. Margin Squeeze ($M)",
-                source_note="Source: Statistics Canada CIMT 2025, U.S. Proclamations 11046–11065 (9903.03.12–.18) & OFA PE-ABP-IO Model.",
-                height=max(410, 56 * len(df_s338_plot) + 150),
+                title=ch_title,
+                subtitle=ch_subtitle,
+                source_note=ch_source,
+                height=max(420, 56 * len(df_s338_plot) + 155),
                 top_margin=120,
                 is_horizontal_bar=True,
             )
             fig_s338_rank.update_xaxes(
                 title_text="Year 1 Impact vs. Baseline ($M)",
-                range=[s_min - 0.25 * s_span, s_max + 0.12 * s_span],
+                range=[s_min - left_pad, s_max + right_pad],
             )
             fig_s338_rank.update_yaxes(title_text="")
-            st.plotly_chart(fig_s338_rank, width="stretch", config=ofa_plotly_config(f"OFA_Section338_Channel_Ranking_{region}"))
+            st.plotly_chart(fig_s338_rank, width="stretch", config=ofa_plotly_config(ch_filename))
 
             df_s338_disp = df_s338_ch.rename(columns={
-                "channel": "Statutory Section 338 Channel",
+                "channel": "Statutory Trade Channel",
                 "sector_type": "Classification",
-                "targeted_trade_base_m": "Targeted U.S. Trade Base ($M)",
+                "targeted_trade_base_m": "Targeted Bilateral Trade Base ($M)",
                 "yr1_phys_output_m": "Yr 1 Direct Output Δ ($M)",
                 "lr_phys_output_m": "Long-Run Output Δ ($M)",
-                "yr1_pure_price_m": "Yr 1 Pure Price / Blend Squeeze ($M)",
+                "yr1_pure_price_m": "Yr 1 Pure Price / Basis Δ ($M)",
                 "yr1_total_margin_m": "Yr 1 Total Cash Margin Δ ($M)",
             })
             st.dataframe(
                 df_s338_disp.style.format({
-                    "Targeted U.S. Trade Base ($M)": "${:,.1f}M",
+                    "Targeted Bilateral Trade Base ($M)": "${:,.1f}M",
                     "Yr 1 Direct Output Δ ($M)": "${:+,.1f}M",
                     "Long-Run Output Δ ($M)": "${:+,.1f}M",
-                    "Yr 1 Pure Price / Blend Squeeze ($M)": "${:+,.1f}M",
+                    "Yr 1 Pure Price / Basis Δ ($M)": "${:+,.1f}M",
                     "Yr 1 Total Cash Margin Δ ($M)": "${:+,.1f}M",
                 }),
                 width="stretch",
                 hide_index=True,
             )
-            st.caption(
-                "**8-Digit HTSUS Scope Note:** Soil-grown live nursery stock & potted plants (`0602.20–0602.40`, `0602.90.30/.60`), retail yogurt (`0403.20`), and butter (`0405.10`) are outside Proclamations `11046–11065` (`$0` direct duty). Packaged beverage alcohol (`2203–2208`) and whey/molasses (`0404.10`, `1703`) reflect Proclamations `11061–11062` (Sept 29, 2026 U.S. import prohibition)."
-            )
+            if is_china_pkg_tab3 or is_combined_pkg_tab3:
+                st.caption(
+                    "**Empirical China Rollback Scope & Exclusions:** Canola Oil (`HS 1514`, `109%` tariff) and Edible Swine Offal (`HS 0206`, `37%` tariff) remain **excluded** from the 2026 rollbacks, while Canadian Pea Starch faces China's July 1, 2026 `+73.5%` provisional AD deposit (`-$30M/yr` netted in `BS311200`). Ontario Pork's CME 201 formula mutes Year-1 live-hog cutout pass-through to `20%` (`48%` in Years 2–3), and DFO `TAC`-bound marine fisheries (`BS114000`) are strictly firewalled from Primary Farm `NCI`, `DSCR`, and `LRF`."
+                )
+            if tariff_commodity in (TARGETED_SECTION338_OPTION_LABEL, COMBINED_US_CHINA_2026_OPTION_LABEL):
+                st.caption(
+                    "**8-Digit U.S. HTSUS Scope Note:** Soil-grown live nursery stock & potted plants (`0602.20–0602.40`, `0602.90.30/.60`), retail yogurt (`0403.20`), and butter (`0405.10`) are outside Proclamations `11046–11065` (`$0` direct duty). Packaged beverage alcohol (`2203–2208`) and whey/molasses (`0404.10`, `1703`) reflect Proclamations `11061–11062` (Sept 29, 2026 U.S. import prohibition)."
+                )
             st.markdown("---")
     else:
-        df_top10_t = df_tariff_18.nsmallest(10, "Year 1 Total FCR / Margin Loss ($M)").sort_values(
-            "Year 1 Total FCR / Margin Loss ($M)", ascending=False
-        )
+        if eval_tariff_pct < 0:
+            df_top10_t = df_tariff_18.nlargest(10, "Year 1 Total FCR / Margin Δ ($M)").sort_values(
+                "Year 1 Total FCR / Margin Δ ($M)", ascending=True
+            )
+            bar_lbl_verb = "Tariff Rollback"
+            margin_col = OFA_COLORS["positive"]
+        else:
+            df_top10_t = df_tariff_18.nsmallest(10, "Year 1 Total FCR / Margin Δ ($M)").sort_values(
+                "Year 1 Total FCR / Margin Δ ($M)", ascending=False
+            )
+            bar_lbl_verb = "Tariff"
+            margin_col = OFA_COLORS["crimson"]
+
         t_vals_10 = (
             df_top10_t["Year 1 Physical Output Δ ($M)"].tolist()
-            + df_top10_t["Year 1 Total FCR / Margin Loss ($M)"].tolist()
+            + df_top10_t["Year 1 Total FCR / Margin Δ ($M)"].tolist()
         )
         t_min, t_max = min(t_vals_10 + [0.0]), max(t_vals_10 + [0.0])
         t_span = max(abs(t_max - t_min), 10.0)
+        t_left = 0.25 * t_span if t_min < -0.05 else 0.08 * t_span
+        t_right = 0.25 * t_span if t_max > 0.05 else 0.12 * t_span
 
         fig_s338_rank = go.Figure()
         fig_s338_rank.add_trace(go.Bar(
             y=df_top10_t["Primary Ag Commodity"].tolist(),
             x=df_top10_t["Year 1 Physical Output Δ ($M)"].tolist(),
-            name="Year 1 Physical Output Contraction ($M)",
+            name="Year 1 Physical Output Δ ($M)",
             orientation="h",
             marker_color=OFA_COLORS["bluewood"],
             text=[f"{_fmt_ofa_num(v, 1, True)}M" for v in df_top10_t["Year 1 Physical Output Δ ($M)"]],
@@ -3267,46 +3621,49 @@ with tab3:
         ))
         fig_s338_rank.add_trace(go.Bar(
             y=df_top10_t["Primary Ag Commodity"].tolist(),
-            x=df_top10_t["Year 1 Total FCR / Margin Loss ($M)"].tolist(),
-            name="Year 1 Total FCR / Margin Squeeze ($M)",
+            x=df_top10_t["Year 1 Total FCR / Margin Δ ($M)"].tolist(),
+            name="Year 1 Total FCR / Margin Δ ($M)",
             orientation="h",
-            marker_color=OFA_COLORS["crimson"],
-            text=[f"{_fmt_ofa_num(v, 1, True)}M" for v in df_top10_t["Year 1 Total FCR / Margin Loss ($M)"]],
+            marker_color=margin_col,
+            text=[f"{_fmt_ofa_num(v, 1, True)}M" for v in df_top10_t["Year 1 Total FCR / Margin Δ ($M)"]],
             textposition="outside",
             cliponaxis=False,
         ))
         fig_s338_rank.update_layout(barmode="group", bargap=0.25)
         apply_ofa_chart_theme(
             fig_s338_rank,
-            title=f"Top 10 Exposed Primary Agriculture Commodities under Blanket {_fmt_ofa_num(eval_tariff_pct, 0)}% Tariff — {region}",
-            subtitle="Year 1 Physical Supply Contraction vs. Total Farm Cash Receipt / Margin Loss ($M)",
-            source_note="Source: Statistics Canada Table 32-10-0045-01 & Nerlove-Armington Pass-Through Calibration.",
+            title=f"Top 10 Primary Agriculture Commodities under {_fmt_ofa_num(eval_tariff_pct, 0, True)}% {bar_lbl_verb} — {region}",
+            subtitle="Year 1 Physical Supply Response vs. Total Farm Cash Receipt / Margin Shift ($M)",
+            source_note="Source: Statistics Canada Table 32-10-0045-01 & Nerlove-Armington Bidirectional Pass-Through Calibration.",
             height=470,
             top_margin=120,
             is_horizontal_bar=True,
         )
         fig_s338_rank.update_xaxes(
             title_text="Year 1 Impact vs. Baseline ($M)",
-            range=[t_min - 0.25 * t_span, t_max + 0.12 * t_span],
+            range=[t_min - t_left, t_max + t_right],
         )
         fig_s338_rank.update_yaxes(title_text="")
-        st.plotly_chart(fig_s338_rank, width="stretch", config=ofa_plotly_config(f"OFA_Blanket_Tariff_Top10_{region}"))
+        st.plotly_chart(fig_s338_rank, width="stretch", config=ofa_plotly_config(f"OFA_Bidirectional_Tariff_Top10_{region}"))
 
-    st.markdown(f"#### Reference: 18-Sector Primary Agriculture Blanket Tariff Vulnerability Matrix (Evaluated at `{_fmt_ofa_num(eval_tariff_pct, 0)}%` U.S. Tariff in {region})")
+    with st.expander("🇨🇳 Statutory 2026 China Tariff Rollbacks & Remaining Active Barriers (Wave 1 March 1 + Wave 2 Nov 17 Shenzhen)", expanded=bool(is_china_pkg_tab3)):
+        st.dataframe(pd.DataFrame(CHINA_2026_TARIFF_SCHEDULE_ROWS), width="stretch", hide_index=True)
+
+    st.markdown(f"#### Reference: 18-Sector Primary Agriculture Bidirectional Tariff Matrix (Evaluated at `{_fmt_ofa_num(eval_tariff_pct, 0, True)}%` Border Rate Δ in {region})")
     st.dataframe(
         df_tariff_18.style.format({
             f"{fcr_year} {region} FCR ($M)": "${:,.1f}M",
             "Share of Market FCR (%)": "{:.2f}%",
-            "Direct U.S. Share": "{:.2f}",
+            "Export Price Share": "{:.2f}",
             "LOP Spillover": "{:.2f}",
             "Pass-Through": "{:.2f}",
-            "Eff. Farm Price Drop (%)": "{:+.1f}%",
+            "Eff. Farm Price Δ (%)": "{:+.1f}%",
             "Year 1 Output Δ (%)": "{:+.1f}%",
             "Year 5 Output Δ (%)": "{:+.1f}%",
             "Year 10 Output Δ (%)": "{:+.1f}%",
             "Year 1 Physical Output Δ ($M)": "${:+,.1f}M",
-            "Year 1 Total FCR / Margin Loss ($M)": "${:+,.1f}M",
-            "Year 10 Total FCR / Output Loss ($M)": "${:+,.1f}M",
+            "Year 1 Total FCR / Margin Δ ($M)": "${:+,.1f}M",
+            "Year 10 Total FCR / Output Δ ($M)": "${:+,.1f}M",
         }),
         width="stretch",
         hide_index=True,
@@ -3465,34 +3822,75 @@ with tab4:
         with ec3:
             pt_custom = st.checkbox("Pass Fuel/Labour through Custom Work", value=True, help="Passes Fuel (22%), Repairs (18%), and Labour (25%) shocks into custom spraying/fertilizing rates.")
 
-        # Enterprise-specific tariff price pass-through
+        # Enterprise-specific bidirectional tariff / rollback price pass-through
         ent_tariff_comm = get_enterprise_tariff_commodity(sel_ent_key)
         ent_tariff_note = ""
-        if tariff_pct > 0:
-            if tariff_commodity == TARGETED_SECTION338_OPTION_LABEL:
-                wedge_ent = float(np.log(1.0 + tariff_pct / 100.0) / np.log(1.50))
-                k_low = sel_ent_key.lower()
-                if "flori" in k_low or ("1114" in k_low and "nursery" not in k_low and "sod" not in k_low):
-                    # Targeted HS Ch. 06 cut flowers/bulbs/cuttings (Procl. 11048)
-                    d_ln_p_fl = -0.72 * float(np.log(1.0 + tariff_pct / 100.0)) * 0.55
-                    ent_tariff_price_drop_pct = (1.0 - float(np.exp(d_ln_p_fl))) * 100.0
-                    ent_tariff_note = f"Targeted Procl. 11048 Floriculture Exposure: -{ent_tariff_price_drop_pct:.1f}% blended farm price squeeze."
-                elif "nursery" in k_low or "sod" in k_low:
-                    ent_tariff_price_drop_pct = 0.0
-                    ent_tariff_note = "Procl. 11048 Scope Rule: Soil-grown woody nursery stock & sod (0602.20–0602.40) are untariffed (0% direct duty)."
-                elif "Corn" in ent_tariff_comm:
-                    ent_tariff_price_drop_pct = 0.62 * wedge_ent
-                    ent_tariff_note = f"Sept 29 Spirit Ban Backward Spillover: -{ent_tariff_price_drop_pct:.2f}% local Ontario corn basis dip."
-                elif "Dairy" in ent_tariff_comm:
-                    ent_tariff_price_drop_pct = 1.05 * wedge_ent
-                    ent_tariff_note = f"Sept 15 Cheese & Sept 29 Whey Ban: -{ent_tariff_price_drop_pct:.2f}% P5 pooled milk blend dilution."
-                elif "grape" in k_low or "wine" in k_low:
-                    ent_tariff_price_drop_pct = 4.20 * wedge_ent
-                    ent_tariff_note = f"Sept 29 Wine Export Prohibition: -{ent_tariff_price_drop_pct:.1f}% specialty/Icewine grape price squeeze."
-                else:
-                    ent_tariff_price_drop_pct = 0.0
-                    ent_tariff_note = "Procl. 11046–11065 Scope Rule: Selected crop/livestock enterprise is outside 2026 Section 338 tariff annexes (0% direct border duty)."
-            elif tariff_commodity == "All Commodities (Provincial FCR Weighted)" or tariff_commodity == ent_tariff_comm:
+        k_low = sel_ent_key.lower()
+
+        def _s338_ent_drop(rate_val: float) -> Tuple[float, str]:
+            if rate_val <= 0.0:
+                return 0.0, ""
+            wedge_ent = float(np.log(1.0 + rate_val / 100.0) / np.log(1.50))
+            if "flori" in k_low or ("1114" in k_low and "nursery" not in k_low and "sod" not in k_low):
+                d_ln_p_fl = -0.72 * float(np.log(1.0 + rate_val / 100.0)) * 0.55
+                drop_v = (1.0 - float(np.exp(d_ln_p_fl))) * 100.0
+                return drop_v, f"Targeted U.S. Procl. 11048 Floriculture Exposure: -{drop_v:.1f}% blended farm price squeeze."
+            if "nursery" in k_low or "sod" in k_low:
+                return 0.0, "U.S. Procl. 11048 Scope Rule: Soil-grown woody nursery stock & sod (0602.20–0602.40) are untariffed (0% direct duty)."
+            if "Corn" in ent_tariff_comm:
+                drop_v = 0.62 * wedge_ent
+                return drop_v, f"U.S. Sept 29 Spirit Ban Backward Spillover: -{drop_v:.2f}% local Ontario corn basis dip."
+            if "Dairy" in ent_tariff_comm:
+                drop_v = 1.05 * wedge_ent
+                return drop_v, f"U.S. Sept 15 Cheese & Sept 29 Whey Ban: -{drop_v:.2f}% P5 pooled milk blend dilution."
+            if "grape" in k_low or "wine" in k_low:
+                drop_v = 4.20 * wedge_ent
+                return drop_v, f"U.S. Sept 29 Wine Export Prohibition: -{drop_v:.1f}% specialty/Icewine grape price squeeze."
+            return 0.0, "U.S. Procl. 11046–11065 Scope Rule: Enterprise is outside 2026 Section 338 tariff annexes (0% direct U.S. duty)."
+
+        def _china_ent_gain(pkg_mode_val: str) -> Tuple[float, str]:
+            w1_mult = 1.0 if pkg_mode_val == "full_2026" else (0.32 if pkg_mode_val == "incremental_2027" else 0.0)
+            if "canola" in k_low:
+                gain_v = 11.5 * w1_mult
+                if gain_v > 0:
+                    return gain_v, f"China SCTC/MOFCOM Canola Rollback (84.8%→14.9% seed, 100%→0% meal): +{gain_v:.1f}% farm cash basis lift (HS 1514 oil remains at 109%)."
+                return 0.0, "Shenzhen Nov 17 Wave 2 Scope: Canola was settled in March 1 Wave 1 (0% additional Wave 2 shock)."
+            if "pea" in k_low and "peach" not in k_low:
+                gain_v = 9.8 * w1_mult
+                if gain_v > 0:
+                    return gain_v, f"China SCTC Field Pea Rollback (105%→5% MFN on HS 0713.10): +{gain_v:.1f}% farm price recovery (pea starch retains +73.5% AD deposit)."
+                return 0.0, "Shenzhen Nov 17 Wave 2 Scope: Field peas were settled in March 1 Wave 1."
+            if "soybean" in k_low:
+                gain_v = 1.6 * w1_mult
+                if gain_v > 0:
+                    return gain_v, f"China Canola Meal Rollback Cross-Oilseed Spillover: +{gain_v:.1f}% North American protein-meal basis support."
+                return 0.0, "Shenzhen Nov 17 Wave 2 Scope: 0% direct soybean tariff change."
+            if any(x in k_low for x in ["hog", "swine", "pig"]):
+                return 0.55, "Shenzhen Nov 17 Pork Cut Rollback (37%→12% MFN on HS 0203.21–.29; offal HS 0206 stays 37%): +0.55% Year-1 live-hog lift (20% pass-through under Ontario Pork CME 201 formula)."
+            if any(x in k_low for x in ["beef", "cattle"]):
+                gain_v = 1.2 * w1_mult
+                if gain_v > 0:
+                    return gain_v, f"China Sanitary Reopening (20 plants inside 172,000 MT Safeguard TRQ): +{gain_v:.1f}% fed-cattle basis lift."
+                return 0.0, "Shenzhen Nov 17 Wave 2 Scope: Beef establishment reopening occurred in Jan 2026 Wave 1."
+            if any(x in k_low for x in ["flori", "nursery", "sod", "gh_tomato", "gh_cucumber", "gh_pepper"]):
+                return 0.0, "NAICS 1114 Primary Agriculture Scope: Greenhouse, nursery & floriculture trade is North American oriented (0% direct China rollback shift)."
+            return 0.0, "2026 China Rollback Scope: Selected enterprise is outside the canola, pea, pork-cut, and beef rollback annexes (0% direct price shift)."
+
+        if tariff_commodity in CHINA_OPTION_MAP:
+            ch_gain_pct, ent_tariff_note = _china_ent_gain(CHINA_OPTION_MAP[tariff_commodity])
+            ent_tariff_price_drop_pct = -ch_gain_pct
+        elif tariff_commodity == COMBINED_US_CHINA_2026_OPTION_LABEL:
+            u_drop, u_note = _s338_ent_drop(max(0.0, tariff_pct))
+            c_gain, c_note = _china_ent_gain("full_2026")
+            ent_tariff_price_drop_pct = u_drop - c_gain
+            ent_tariff_note = f"{u_note} | {c_note}".strip(" |")
+        elif tariff_commodity == TARGETED_SECTION338_OPTION_LABEL:
+            if tariff_pct > 0:
+                ent_tariff_price_drop_pct, ent_tariff_note = _s338_ent_drop(tariff_pct)
+            else:
+                ent_tariff_price_drop_pct = 0.0
+        elif abs(tariff_pct) > 1e-9:
+            if tariff_commodity == "All Commodities (Provincial FCR Weighted)" or tariff_commodity == ent_tariff_comm:
                 ent_t_cfg = get_commodity_tariff_params(ent_tariff_comm, region=region)
                 ent_t_shock = compute_effective_tariff_price_shock(
                     tariff_pct=tariff_pct,
@@ -3501,6 +3899,10 @@ with tab4:
                     us_lop_spillover=ent_t_cfg["us_lop_spillover"],
                 )
                 ent_tariff_price_drop_pct = float(ent_t_shock["effective_price_drop_pct"])
+                if tariff_pct < 0:
+                    ent_tariff_note = f"Bidirectional Tariff Rollback ({tariff_pct:+.1f}%): +{-ent_tariff_price_drop_pct:.2f}% effective farm-gate price recovery."
+                else:
+                    ent_tariff_note = f"Border Tariff Shock ({tariff_pct:+.1f}%): -{ent_tariff_price_drop_pct:.2f}% effective farm-gate price squeeze."
             else:
                 ent_tariff_price_drop_pct = 0.0
         else:

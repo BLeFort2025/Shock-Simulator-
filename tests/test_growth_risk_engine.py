@@ -1654,6 +1654,180 @@ def test_section338_pe_abp_io_and_ofa_deliverables(core_data):
     assert "Farms and Food Forever." in pptx_all_text
 
 
+def test_china_2026_rollback_bidirectional_and_marine_firewall(core_data):
+    """
+    End-to-end verification of the Bidirectional Trade Engine & 2026 China Tariff Rollbacks:
+    1. Primary Farm Solvency Firewall: `include_marine_seafood=True` vs `False` leaves
+       Primary Farm `Gross_Output`, `Net_Cash_Income`, `DSCR`, `LRF`, and `Distress_Prob_Pct`
+       100% invariant while activating `BS114000 / BS311700` marine GDP in coastal provinces
+       and exact 0.0 in Ontario; `NAICS 1114` Primary Ag has 0% direct China rollback shock.
+    2. Empirical Package Ordering (`full_2026` > `incremental_2027` > `wave2_shenzhen` > 0)
+       and Statutory Dec 31, 2028 Sunset step-down in Year 3 (`[2] < [1]`, `[4] > 0`).
+    3. Combined 2026 Net Trade Realignment (U.S. Section 338 + China Rollback) regional
+       divergence: Saskatchewan & Canada net positive Farm NCI vs. Ontario net negative.
+    4. Bidirectional custom tariff rollback (`tariff_pct = -25.0`) & headless `AppTest`.
+    """
+    from scripts.calibrated_parameters import (
+        CHINA_FULL_2026_OPTION_LABEL,
+        COMBINED_US_CHINA_2026_OPTION_LABEL,
+        combine_trade_shock_packages,
+        get_china_2026_rollback_params,
+        get_targeted_section338_package_params,
+    )
+    from scripts.growth_risk_engine import compute_marine_seafood_abp_impact
+    from streamlit.testing.v1 import AppTest
+
+    io_df = core_data["io_df"]
+    baskets_cfg = core_data["baskets_cfg"]
+
+    # 1. Marine Seafood Firewall & NAICS 1114 Primary Ag Scope Check
+    ch_1114 = get_china_2026_rollback_params(
+        region="Ontario",
+        farm_type="Greenhouse, nursery and floriculture production [1114]",
+        package_mode="full_2026",
+    )
+    assert ch_1114["yr1_primary_phys_dollars"] == pytest.approx(0.0, abs=1e-6)
+    assert ch_1114["yr1_primary_pure_price_dollars"] == pytest.approx(0.0, abs=1e-6)
+
+    for reg in ("Nova Scotia", "Newfoundland and Labrador", "British Columbia", "Canada"):
+        p_mar_on = get_china_2026_rollback_params(
+            region=reg, farm_type="All farm types", package_mode="full_2026", include_marine_seafood=True
+        )
+        p_mar_off = get_china_2026_rollback_params(
+            region=reg, farm_type="All farm types", package_mode="full_2026", include_marine_seafood=False
+        )
+        assert p_mar_on["yr1_primary_phys_dollars"] == pytest.approx(p_mar_off["yr1_primary_phys_dollars"], abs=1e-9)
+        assert p_mar_on["yr1_primary_pure_price_dollars"] == pytest.approx(p_mar_off["yr1_primary_pure_price_dollars"], abs=1e-9)
+
+        df_on = run_dynamic_projection(
+            horizon=5,
+            base_output=4e9,
+            base_gdp=1.8e9,
+            base_cap_stock=8e9,
+            base_capex=500e6,
+            shock_capex_pct=0.0,
+            tfp_growth_pct=1.5,
+            depreciation_rate_pct=8.5,
+            cost_shock_dollars=0.0,
+            rev_shock_dollars=0.0,
+            io_df=io_df,
+            baskets_cfg=baskets_cfg,
+            region=reg,
+            target_year=2022,
+            tariff_params=p_mar_on,
+        )
+        df_off = run_dynamic_projection(
+            horizon=5,
+            base_output=4e9,
+            base_gdp=1.8e9,
+            base_cap_stock=8e9,
+            base_capex=500e6,
+            shock_capex_pct=0.0,
+            tfp_growth_pct=1.5,
+            depreciation_rate_pct=8.5,
+            cost_shock_dollars=0.0,
+            rev_shock_dollars=0.0,
+            io_df=io_df,
+            baskets_cfg=baskets_cfg,
+            region=reg,
+            target_year=2022,
+            tariff_params=p_mar_off,
+        )
+        for col in ("Gross_Output", "Net_Cash_Income", "DSCR", "LRF", "Distress_Prob_Pct"):
+            assert np.allclose(df_on[col].values, df_off[col].values, atol=1e-9)
+
+        mar_res = compute_marine_seafood_abp_impact(
+            io_df=io_df,
+            region=reg,
+            year=2022,
+            marine_channels=p_mar_on["marine_seafood_channels"],
+        )
+        assert mar_res["marine_net_gdp_m"] > 25.0
+
+    # Ontario has 0.0 marine catch
+    p_on_china = get_china_2026_rollback_params(region="Ontario", package_mode="full_2026", include_marine_seafood=True)
+    mar_on_res = compute_marine_seafood_abp_impact(
+        io_df=io_df,
+        region="Ontario",
+        year=2022,
+        marine_channels=p_on_china["marine_seafood_channels"],
+    )
+    assert mar_on_res["marine_net_gdp_m"] == pytest.approx(0.0, abs=1e-9)
+
+    # 2. Package Ordering & Statutory Dec 31, 2028 Sunset
+    c_full = get_china_2026_rollback_params("Canada", package_mode="full_2026", horizon_mode="renewed")
+    c_inc = get_china_2026_rollback_params("Canada", package_mode="incremental_2027", horizon_mode="renewed")
+    c_w2 = get_china_2026_rollback_params("Canada", package_mode="wave2_shenzhen", horizon_mode="renewed")
+
+    assert c_full["yr1_primary_pure_price_dollars"] > c_inc["yr1_primary_pure_price_dollars"] > c_w2["yr1_primary_pure_price_dollars"] > 0.0
+    assert c_full["yr1_primary_phys_dollars"] > c_inc["yr1_primary_phys_dollars"] >= c_w2["yr1_primary_phys_dollars"] >= 0.0
+
+    c_sunset = get_china_2026_rollback_params("Canada", package_mode="full_2026", horizon_mode="dec_2028_sunset")
+    vec_price = c_sunset["yearly_primary_pure_price_dollars"]
+    assert vec_price[2] < vec_price[1]  # 2029 step-down after Dec 31, 2028 SCTC expiry
+    assert vec_price[4] > 100e6         # 5-yr MOFCOM 14.9% canola seed AD ruling holds through Feb 2031
+
+    # 3. Combined 2026 Net Trade Realignment Regional Divergence (SK & CAN positive vs. ON negative)
+    for reg_chk, expect_pos in [("Saskatchewan", True), ("Canada", True), ("Ontario", False)]:
+        u_pkg = get_targeted_section338_package_params(reg_chk, "All farm types", tariff_pct=50.0)
+        ch_pkg = get_china_2026_rollback_params(reg_chk, "All farm types", package_mode="full_2026")
+        comb_pkg = combine_trade_shock_packages(u_pkg, ch_pkg)
+        yr1_nci_m = comb_pkg["yr1_primary_total_margin_dollars"] / 1e6
+        if expect_pos:
+            assert yr1_nci_m > 400.0, f"Expected positive Farm NCI in {reg_chk}, got {yr1_nci_m}"
+        else:
+            assert yr1_nci_m < -60.0, f"Expected net negative Farm NCI in {reg_chk}, got {yr1_nci_m}"
+
+    # 4. Bidirectional Custom Tariff Rollback (`tariff_pct = -25.0`)
+    ps_rollback = compute_effective_tariff_price_shock(-25.0, pass_through=0.65, us_price_share=0.55, us_lop_spillover=0.70)
+    assert ps_rollback["effective_price_drop_pct"] < -5.0  # Negative price drop = positive farm price gain!
+    custom_rb_params = {
+        "mode": "commodity_specific",
+        "tariff_pct": -25.0,
+        "pass_through": 0.65,
+        "us_price_share": 0.55,
+        "us_lop_spillover": 0.70,
+        "effective_price_drop_pct": ps_rollback["effective_price_drop_pct"],
+        "e_sr": -0.18,
+        "e_lr": -0.60,
+        "lam": 0.30,
+        "shocked_share_of_sector": 1.0,
+    }
+    df_base_can = run_dynamic_projection(
+        horizon=5, base_output=20e9, base_gdp=9e9, base_cap_stock=35e9, base_capex=2.2e9,
+        shock_capex_pct=0.0, tfp_growth_pct=1.8, depreciation_rate_pct=8.5,
+        cost_shock_dollars=0.0, rev_shock_dollars=0.0, io_df=io_df, baskets_cfg=baskets_cfg,
+        region="Canada", target_year=2022,
+    )
+    df_rb_can = run_dynamic_projection(
+        horizon=5, base_output=20e9, base_gdp=9e9, base_cap_stock=35e9, base_capex=2.2e9,
+        shock_capex_pct=0.0, tfp_growth_pct=1.8, depreciation_rate_pct=8.5,
+        cost_shock_dollars=0.0, rev_shock_dollars=0.0, io_df=io_df, baskets_cfg=baskets_cfg,
+        region="Canada", target_year=2022, tariff_params=custom_rb_params,
+    )
+    assert float(df_rb_can.iloc[0]["Gross_Output"]) > float(df_base_can.iloc[0]["Gross_Output"])
+    assert float(df_rb_can.iloc[0]["Net_Cash_Income"]) > float(df_base_can.iloc[0]["Net_Cash_Income"])
+
+    # 5. Headless AppTest smoke test across China Rollback, Combined Preset, and Newfoundland and Labrador
+    at = AppTest.from_file(str(PROJECT_ROOT / "growth_risk_simulator_app.py"), default_timeout=40)
+    at.run()
+    assert len(at.exception) == 0
+
+    at.sidebar.selectbox[2].set_value("2026 China Tariff Rollback — Full Bilateral Pivot (Wave 1 + Wave 2 vs. 2025 Trough)")
+    at.run()
+    assert len(at.exception) == 0
+
+    at.sidebar.selectbox[0].set_value("Newfoundland and Labrador")
+    at.run()
+    assert len(at.exception) == 0
+
+    at.sidebar.selectbox[0].set_value("Ontario")
+    at.sidebar.selectbox[2].set_value("2026 Net Trade Realignment (U.S. Section 338 Tariffs + China Rollback Offset)")
+    at.run()
+    assert len(at.exception) == 0
+
+
+
 
 
 

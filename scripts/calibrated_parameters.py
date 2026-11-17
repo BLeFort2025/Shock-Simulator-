@@ -715,6 +715,8 @@ ABP_PROCESSOR_TABLE: Dict[str, Dict[str, Dict[str, Any]]] = {
             "a_112A_dom": 0.0000,
             "a_1125_dom": 0.0803,
             "a_farm_proc_dom": 0.0804,
+            "a_114_dom": 0.3600,
+            "a_114_shellfish_dom": 0.5500,
             "m_farm_imp": 0.0850,
             "a_311_intra": 0.1422,
             "psi_pass_through": 0.35,
@@ -731,6 +733,8 @@ ABP_PROCESSOR_TABLE: Dict[str, Dict[str, Dict[str, Any]]] = {
             "a_112A_dom": 0.0003,
             "a_1125_dom": 0.0538,
             "a_farm_proc_dom": 0.0547,
+            "a_114_dom": 0.0450,
+            "a_114_shellfish_dom": 0.0000,
             "m_farm_imp": 0.4200,
             "a_311_intra": 0.0452,
             "psi_pass_through": 0.35,
@@ -2327,6 +2331,777 @@ def get_targeted_section338_package_params(
         "channel_breakdown": breakdown,
         "processor_export_shock_by_naics_dollars": proc_shocks_dollars,
     }
+
+
+# ==============================================================================
+# 12. 2026 CHINA TARIFF ROLLBACK & BILATERAL TRADE REALIGNMENT CALIBRATION
+#     Source: SCTC Ann. 2025 No. 3 & 2026 No. 2; MOFCOM Final AD Ruling (Feb 28,
+#     2026); Nov 4, 2026 Beijing JETC Extension; Nov 17, 2026 Shenzhen Pre-APEC
+#     Arrangement (PMO Backgrounder); StatCan 36-10-0594/0595-01, 32-10-0352-01;
+#     DFO Fast Facts 2025; Deep Research PE-ABP-IO China Audit (Nov 17, 2026).
+# ==============================================================================
+
+CHINA_INCREMENTAL_2027_OPTION_LABEL = (
+    "2027–2028 China Incremental Forward Gain (Nov 17 Shenzhen Wave 2 + Wave 1 Headroom)"
+)
+CHINA_WAVE2_SHENZHEN_OPTION_LABEL = (
+    "Nov 17, 2026 Shenzhen Deal Only (C$400M Frozen Pork & Wild Seafood Relief)"
+)
+CHINA_FULL_2026_OPTION_LABEL = (
+    "2026 China Rollback — Full Bilateral Pivot (Wave 1 + Wave 2 vs. 2025 Trough)"
+)
+COMBINED_US_CHINA_2026_OPTION_LABEL = (
+    "2026 Net Trade Realignment (U.S. Section 338 Tariffs + China Rollback Offset)"
+)
+
+CHINA_2026_TARIFF_SCHEDULE_ROWS: List[Dict[str, Any]] = [
+    {
+        "Wave & Status": "Wave 1 (Active 5-Yr)",
+        "Product Group": "Canola Seed (All Lines)",
+        "Chinese HS8 Scope": "1205.10 / 1205.90",
+        "IOIC 2022 Code": "BS111A00 (Primary Ag)",
+        "2025 Peak Rate": "84.8% (9% MFN + 75.8% AD)",
+        "Post-Rollback Rate": "14.9% (9% MFN + 5.9% AD)",
+        "Log Wedge d ln(1+t)": -0.4752,
+        "2024 Export Base ($M)": 4030.0,
+        "Legal Window": "Mar 1, 2026 – Feb 28, 2031",
+    },
+    {
+        "Wave & Status": "Wave 1 (JETC Extended)",
+        "Product Group": "Canola Oilcake / Meal",
+        "Chinese HS8 Scope": "2306.4100, 2306.4900",
+        "IOIC 2022 Code": "BS311200 (Oilseed Crush)",
+        "2025 Peak Rate": "100% (0% Tent. + 100%)",
+        "Post-Rollback Rate": "0% (Tentative MFN)",
+        "Log Wedge d ln(1+t)": -0.6931,
+        "2024 Export Base ($M)": 918.0,
+        "Legal Window": "Mar 1, 2026 – Dec 31, 2028",
+    },
+    {
+        "Wave & Status": "Wave 1 (JETC Extended)",
+        "Product Group": "Dry Field & Sowing Peas",
+        "Chinese HS8 Scope": "0713.1090, 0713.1010",
+        "IOIC 2022 Code": "BS111A00 (Primary Ag)",
+        "2025 Peak Rate": "105% (5% MFN + 100%)",
+        "Post-Rollback Rate": "5% (Ordinary MFN)",
+        "Log Wedge d ln(1+t)": -0.6690,
+        "2024 Export Base ($M)": 303.0,
+        "Legal Window": "Mar 1, 2026 – Dec 31, 2028",
+    },
+    {
+        "Wave & Status": "Wave 1 (JETC Extended)",
+        "Product Group": "Clawed Lobster (Live & Frozen)",
+        "Chinese HS8 Scope": "0306.3290, 0306.1200, 1605.3000",
+        "IOIC 2022 Code": "BS114000 / BS311700",
+        "2025 Peak Rate": "32% (7% MFN + 25%)",
+        "Post-Rollback Rate": "7% (Ordinary MFN)",
+        "Log Wedge d ln(1+t)": -0.2099,
+        "2024 Export Base ($M)": 521.0,
+        "Legal Window": "Mar 1, 2026 – Dec 31, 2028",
+    },
+    {
+        "Wave & Status": "Wave 1 (JETC Extended)",
+        "Product Group": "Snow & Dungeness Crab",
+        "Chinese HS8 Scope": "0306.1490, 0306.3399",
+        "IOIC 2022 Code": "BS311700 / BS114000",
+        "2025 Peak Rate": "30%–32% (MFN + 25%)",
+        "Post-Rollback Rate": "5%–7% (Tent./Ord. MFN)",
+        "Log Wedge d ln(1+t)": -0.2136,
+        "2024 Export Base ($M)": 275.0,
+        "Legal Window": "Mar 1, 2026 – Dec 31, 2028",
+    },
+    {
+        "Wave & Status": "Wave 1 (SPS + TRQ)",
+        "Product Group": "Beef (20 Registered Plants)",
+        "Chinese HS8 Scope": "0202.xx, 0201.xx",
+        "IOIC 2022 Code": "BS112A00 / BS311600",
+        "2025 Peak Rate": "BSE Sanitary Suspension",
+        "Post-Rollback Rate": "12%–25% In-Quota (+55% >172k MT)",
+        "Log Wedge d ln(1+t)": -0.1800,
+        "2024 Export Base ($M)": 377.0,
+        "Legal Window": "Jan 15, 2026 – Dec 31, 2028 TRQ",
+    },
+    {
+        "Wave & Status": "Wave 2 (Nov 17 Shenzhen)",
+        "Product Group": "Frozen Pork Cuts (Excl. Offal)",
+        "Chinese HS8 Scope": "0203.2110, .2190, .2200, .2900",
+        "IOIC 2022 Code": "BS311600 -> BS112A00",
+        "2025 Peak Rate": "37% (12% MFN + 25%)",
+        "Post-Rollback Rate": "12% (Ordinary MFN)",
+        "Log Wedge d ln(1+t)": -0.2015,
+        "2024 Export Base ($M)": 116.0,
+        "Legal Window": "Jan 1, 2027 – Dec 31, 2028",
+    },
+    {
+        "Wave & Status": "Wave 2 (Nov 17 Shenzhen)",
+        "Product Group": "Frozen Greenland Halibut (Turbot)",
+        "Chinese HS8 Scope": "0303.3110",
+        "IOIC 2022 Code": "BS311700 / BS114000",
+        "2025 Peak Rate": "30% (5% Tent. + 25%)",
+        "Post-Rollback Rate": "5% (Tentative MFN)",
+        "Log Wedge d ln(1+t)": -0.2136,
+        "2024 Export Base ($M)": 96.0,
+        "Legal Window": "Jan 1, 2027 – Dec 31, 2028",
+    },
+    {
+        "Wave & Status": "Wave 2 (Nov 17 Shenzhen)",
+        "Product Group": "Cold-Water Shrimp & Spot Prawns",
+        "Chinese HS8 Scope": "0306.1630–.1690, 0306.1730–.1790",
+        "IOIC 2022 Code": "BS311700 / BS114000",
+        "2025 Peak Rate": "30%–33% (MFN + 25%)",
+        "Post-Rollback Rate": "5%–8% (Ordinary MFN)",
+        "Log Wedge d ln(1+t)": -0.2106,
+        "2024 Export Base ($M)": 87.5,
+        "Legal Window": "Jan 1, 2027 – Dec 31, 2028",
+    },
+    {
+        "Wave & Status": "Wave 2 (Nov 17 Shenzhen)",
+        "Product Group": "Geoduck, Surf Clams & Molluscs",
+        "Chinese HS8 Scope": "0307.9190, .9200, .719x, .7200",
+        "IOIC 2022 Code": "BS114000 / BS311700 / 3% BS112500",
+        "2025 Peak Rate": "32% Customs (43.88% w/ VAT)",
+        "Post-Rollback Rate": "7% Customs (16.63% w/ VAT)",
+        "Log Wedge d ln(1+t)": -0.2099,
+        "2024 Export Base ($M)": 61.4,
+        "Legal Window": "Jan 1, 2027 – Dec 31, 2028",
+    },
+    {
+        "Wave & Status": "Wave 2 (Nov 17 Shenzhen)",
+        "Product Group": "Sea Cucumber (Live, Frozen, Dried)",
+        "Chinese HS8 Scope": "0308.1190, .1200, .1900, 1605.6100",
+        "IOIC 2022 Code": "BS311700 / BS114000",
+        "2025 Peak Rate": "32%–35% (MFN + 25%)",
+        "Post-Rollback Rate": "7%–10% (Ordinary MFN)",
+        "Log Wedge d ln(1+t)": -0.2073,
+        "2024 Export Base ($M)": 39.4,
+        "Legal Window": "Jan 1, 2027 – Dec 31, 2028",
+    },
+    {
+        "Wave & Status": "Blocked (Unrelieved)",
+        "Product Group": "Canola Oil (Crude & Refined)",
+        "Chinese HS8 Scope": "1514.1100, 1514.1900",
+        "IOIC 2022 Code": "BS311200 (>95% Clears via U.S. 45Z)",
+        "2025 Peak Rate": "109% (9% MFN + 100%)",
+        "Post-Rollback Rate": "109% (+100% Surcharge Active)",
+        "Log Wedge d ln(1+t)": 0.0,
+        "2024 Export Base ($M)": 21.0,
+        "Legal Window": "SCTC 2025 No. 3 Active Indefinitely",
+    },
+    {
+        "Wave & Status": "Blocked (Unrelieved)",
+        "Product Group": "Edible Swine Offal & Fresh Pork",
+        "Chinese HS8 Scope": "0206.3000, .4100, .4900; 0203.1x",
+        "IOIC 2022 Code": "BS311600 (Packer Offal Loss Active)",
+        "2025 Peak Rate": "37% Frozen / 45% Fresh (+25%)",
+        "Post-Rollback Rate": "37% / 45% (+25% Surcharge Active)",
+        "Log Wedge d ln(1+t)": 0.0,
+        "2024 Export Base ($M)": 198.0,
+        "Legal Window": "SCTC 2025 No. 3 Active Indefinitely",
+    },
+    {
+        "Wave & Status": "New Restriction (2026)",
+        "Product Group": "Canadian Pea Starch",
+        "Chinese HS8 Scope": "1108.19 (Pea Starch)",
+        "IOIC 2022 Code": "BS311200 (-$30M/yr Netted)",
+        "2025 Peak Rate": "Ordinary MFN",
+        "Post-Rollback Rate": "+73.5% Provisional AD Deposit",
+        "Log Wedge d ln(1+t)": 0.5510,
+        "2024 Export Base ($M)": 35.0,
+        "Legal Window": "Effective July 1, 2026 (MOFCOM No. 25)",
+    },
+]
+
+
+CHINA_2026_ROLLBACK_PACKAGE: Dict[str, Any] = {
+    "source": (
+        "PMO Shenzhen Backgrounder (Nov 17, 2026); GAC JETC Release (Nov 4, 2026); "
+        "SCTC 2025 No. 3 & 2026 No. 2; MOFCOM Final AD Ruling (Feb 28, 2026); "
+        "StatCan 36-10-0595-01 & 32-10-0352-01; DFO Fast Facts 2025; Deep Research Audit"
+    ),
+    # Primary Agriculture Channels (NAICS 111 & 112 — Strictly Excludes Wild Fisheries BS114000)
+    # Note: NAICS 1114 / BS1114A0 (Nursery, Floriculture, Sod & Greenhouse) is preserved inside
+    # Primary Agriculture with an empirically verified 0.0 China tariff shock.
+    "primary_channels": {
+        "canola_seed_1111": {
+            "label": "Canola Seed Basis & Rotation Recovery (HS 1205.10 — 84.8%→14.9% AD)",
+            "sector_type": "Primary Agriculture (NAICS 1111 / BS111A00)",
+            "sunset_group": "mofcom_2031",
+            "trade_base_2024_m": 4030.0,
+            "full_scale": 1.00,
+            "incremental_2027_scale": 0.32,  # +$450M/yr unrealized headroom post Mar–Oct 2026 rebound
+            "wave2_scale": 0.00,
+            # +11.5% relative cash recovery: 82% pure NCI/GOS basis lift, 18% net rotation premium over wheat (Yr 1)
+            # -> 72% pure NCI/GOS, 28% net physical in Yrs 2–3 (bounded by 1-in-3 clubroot ceiling at 23.2M ac)
+            "can_yr1_pure_price_m": 934.8,
+            "can_yr1_phys_m": 205.2,
+            "can_mr_pure_price_m": 864.0,
+            "can_mr_phys_m": 336.0,
+            "prov_shares": {
+                "Saskatchewan": 0.552,
+                "Alberta": 0.291,
+                "Manitoba": 0.150,
+                "British Columbia": 0.004,
+                "Ontario": 0.003,
+            },
+        },
+        "dry_peas_1111": {
+            "label": "Dry Field Peas Recovery (HS 0713.10 — 105%→5% MFN, Root-Rot Bounded)",
+            "sector_type": "Primary Agriculture (NAICS 1111 / BS111A00)",
+            "sunset_group": "jetc_2028",
+            "trade_base_2024_m": 303.0,
+            "full_scale": 1.00,
+            "incremental_2027_scale": 0.15,  # Mar–Nov 2026 already hit $421M via stock drawdown
+            "wave2_scale": 0.00,
+            # +25% off $8/bu trough to $10/bu: 85% inventory/NCI margin, 15% physical (Yr 1) -> 65%/35% (Yrs 2–3)
+            "can_yr1_pure_price_m": 204.0,
+            "can_yr1_phys_m": 36.0,
+            "can_mr_pure_price_m": 169.0,
+            "can_mr_phys_m": 91.0,
+            "prov_shares": {
+                "Saskatchewan": 0.510,
+                "Alberta": 0.460,
+                "Manitoba": 0.027,
+                "British Columbia": 0.002,
+                "Ontario": 0.001,
+            },
+        },
+        "eastern_oilseed_spillover_1111": {
+            "label": "Eastern Soybean Veg-Oil Cross-Price & Winter Canola Lift (NAICS 1111)",
+            "sector_type": "Primary Agriculture (NAICS 1111 / BS111A00)",
+            "sunset_group": "mofcom_2031",
+            "trade_base_2024_m": 148.5,
+            "full_scale": 1.00,
+            "incremental_2027_scale": 0.35,
+            "wave2_scale": 0.00,
+            "can_yr1_pure_price_m": 23.0,
+            "can_yr1_phys_m": 5.0,
+            "can_mr_pure_price_m": 21.0,
+            "can_mr_phys_m": 9.0,
+            "prov_shares": {
+                "Ontario": 0.680,
+                "Quebec": 0.220,
+                "Manitoba": 0.100,
+            },
+        },
+        "reopened_beef_cattle_1121": {
+            "label": "Reopened Beef Sanitary Access — 20 Plants in 172k MT TRQ (NAICS 11211)",
+            "sector_type": "Primary Agriculture (NAICS 11211 / BS112A00)",
+            "sunset_group": "jetc_2028",
+            "trade_base_2024_m": 377.0,
+            "full_scale": 1.00,
+            "incremental_2027_scale": 0.15,  # 2026 YTD already reached $377M vs. $193M pre-ban
+            "wave2_scale": 0.00,
+            "can_yr1_pure_price_m": 24.5,
+            "can_yr1_phys_m": 2.5,
+            "can_mr_pure_price_m": 22.0,
+            "can_mr_phys_m": 6.5,
+            "prov_shares": {
+                "Alberta": 0.735,
+                "Ontario": 0.145,
+                "Saskatchewan": 0.045,
+                "Quebec": 0.040,
+                "Manitoba": 0.035,
+            },
+        },
+        "shenzhen_hogs_1122": {
+            "label": "Nov 17 Frozen Pork Cutout Pass-Through to Hogs (NAICS 1122 — CME Muted Yr 1)",
+            "sector_type": "Primary Agriculture (NAICS 1122 / BS112A00)",
+            "sunset_group": "jetc_2028",
+            "trade_base_2024_m": 116.0,
+            "full_scale": 1.00,
+            "incremental_2027_scale": 1.00,  # 100% prospective starting Jan 1, 2027
+            "wave2_scale": 1.00,
+            # Yr 1: 20% of +$33.5M national cutout lift (+$6.7M pure NCI; $1.5M ON via Conestoga/spot basis)
+            # Yrs 2–3: 48% pass-through (+$16.1M total; $3.54M ON via contract basis renewals)
+            "can_yr1_pure_price_m": 6.7,
+            "can_yr1_phys_m": 0.0,
+            "can_mr_pure_price_m": 13.8,
+            "can_mr_phys_m": 2.3,
+            "prov_shares": {
+                "Quebec": 0.365,
+                "Manitoba": 0.290,
+                "Ontario": 0.220,
+                "Alberta": 0.095,
+                "Saskatchewan": 0.030,
+            },
+        },
+        "cultured_clam_geoduck_1125": {
+            "label": "Nov 17 Cultured Clam & Geoduck Share (~3% Aquaculture BS112500)",
+            "sector_type": "Primary Agriculture — Aquaculture (NAICS 1125 / BS112500)",
+            "sunset_group": "jetc_2028",
+            "trade_base_2024_m": 1.84,
+            "full_scale": 1.00,
+            "incremental_2027_scale": 1.00,
+            "wave2_scale": 1.00,
+            "can_yr1_pure_price_m": 0.55,
+            "can_yr1_phys_m": 0.20,
+            "can_mr_pure_price_m": 0.50,
+            "can_mr_phys_m": 0.35,
+            "prov_shares": {
+                "British Columbia": 0.850,
+                "Nova Scotia": 0.150,
+            },
+        },
+    },
+    # Co-Targeted Agri-Food Processors (NAICS 3112 & 3116 — Upstream Seed/Hog Inputs Zeroed Out in ABP)
+    "processor_channels": {
+        "canola_crush_3112": {
+            "naics": "3112",
+            "label": "Canola Meal 0% Duty + U.S. 45Z Crush (Net of -$30M Pea-Starch 73.5% AD)",
+            "sunset_group": "jetc_2028",
+            "trade_base_2024_m": 918.0,
+            "full_scale": 1.00,
+            "incremental_2027_scale": 0.22,  # Q3 2026 already exceeded 2024 pace; Regina/Yorkton 2027 ramp
+            "wave2_scale": 0.00,
+            # Deep Research Section 3: +$435M/yr net BS311200 shock = +$150M pure GOS meal basis (zero seed)
+            # + $285M incremental physical crush ($315M crush - $30M pea starch), shocked on 0.25 non-seed margin!
+            # Passing 0.25 * $285M = $71.25M non-seed physical margin shock + $150M pure GOS margin lift
+            # prevents double-counting the 0.68–0.75 canola seed share already counted in BS111A00!
+            "can_yr1_gross_direct_out_m": 435.0,
+            "can_yr1_abp_nonfarm_phys_m": 108.0,
+            "can_yr1_pure_gos_m": 150.0,
+            "can_mr_gross_direct_out_m": 465.0,
+            "can_mr_abp_nonfarm_phys_m": 120.0,
+            "can_mr_pure_gos_m": 155.0,
+            "prov_shares": {
+                "Saskatchewan": 0.540,
+                "Alberta": 0.300,
+                "Manitoba": 0.155,
+                "Ontario": 0.005,
+            },
+        },
+        "pork_cutout_packing_3116": {
+            "naics": "3116",
+            "label": "Nov 17 Frozen Pork Packing Cutout Lift (HS 0203.2x; 0206 Offal Still 37%)",
+            "sunset_group": "jetc_2028",
+            "trade_base_2024_m": 116.0,
+            "full_scale": 1.00,
+            "incremental_2027_scale": 1.00,
+            "wave2_scale": 1.00,
+            # Yr 1: Packers retain 80% (+$26.8M GOS) of +$33.5M cutout lift + $14.5M export cut fabrication;
+            # Yrs 2–3: Packers retain 52% (+$17.4M GOS) + $18.0M export cut fabrication as hog basis reprices.
+            "can_yr1_gross_direct_out_m": 41.3,
+            "can_yr1_abp_nonfarm_phys_m": 14.5,
+            "can_yr1_pure_gos_m": 26.8,
+            "can_mr_gross_direct_out_m": 35.4,
+            "can_mr_abp_nonfarm_phys_m": 18.0,
+            "can_mr_pure_gos_m": 17.4,
+            "prov_shares": {
+                "Quebec": 0.365,
+                "Manitoba": 0.290,
+                "Ontario": 0.220,
+                "Alberta": 0.095,
+                "Saskatchewan": 0.030,
+            },
+        },
+        "beef_packing_3116": {
+            "naics": "3116",
+            "label": "Reopened Beef Packing Primal Margin (20 Registered Plants, 172k MT TRQ)",
+            "sunset_group": "jetc_2028",
+            "trade_base_2024_m": 377.0,
+            "full_scale": 1.00,
+            "incremental_2027_scale": 0.15,
+            "wave2_scale": 0.00,
+            "can_yr1_gross_direct_out_m": 18.0,
+            "can_yr1_abp_nonfarm_phys_m": 6.0,
+            "can_yr1_pure_gos_m": 12.0,
+            "can_mr_gross_direct_out_m": 20.0,
+            "can_mr_abp_nonfarm_phys_m": 7.5,
+            "can_mr_pure_gos_m": 12.5,
+            "prov_shares": {
+                "Alberta": 0.750,
+                "Ontario": 0.140,
+                "Quebec": 0.045,
+                "Saskatchewan": 0.035,
+                "Manitoba": 0.030,
+            },
+        },
+    },
+    # Wild-Capture Marine Fisheries (BS114000) & Seafood Preparation (BS311700)
+    # Firewalled from Farm Cash Income / DSCR; tracked in Economy-Wide Macro IO Channel (0% Ontario)
+    "marine_seafood_channels": {
+        "wave1_lobster": {
+            "label": "Wave 1 Clawed Lobster (32%→7% MFN; 85% Cap vs. Vietnam Spiny Lobster)",
+            "sunset_group": "jetc_2028",
+            "trade_base_2024_m": 521.0,
+            "full_scale": 1.00,
+            "incremental_2027_scale": 0.43,  # +$55M residual headroom
+            "wave2_scale": 0.00,
+            "can_recovered_val_m": 128.8,
+            "share_114": 0.78,
+            "share_3117": 0.22,
+            "a_114_in_3117": 0.55,
+            "prov_shares": {
+                "Nova Scotia": 0.650,
+                "New Brunswick": 0.180,
+                "Prince Edward Island": 0.080,
+                "Newfoundland and Labrador": 0.060,
+                "Quebec": 0.030,
+            },
+        },
+        "wave1_crab": {
+            "label": "Wave 1 Snow & Live Dungeness Crab (30%–32%→5%–7% MFN; TAC-Bound)",
+            "sunset_group": "jetc_2028",
+            "trade_base_2024_m": 275.0,
+            "full_scale": 1.00,
+            "incremental_2027_scale": 0.54,  # +$50M residual headroom (BC Dungeness 90% China-reliant)
+            "wave2_scale": 0.00,
+            "can_recovered_val_m": 92.0,
+            "share_114": 0.22,
+            "share_3117": 0.78,
+            "a_114_in_3117": 0.58,
+            "prov_shares": {
+                "Newfoundland and Labrador": 0.420,
+                "Nova Scotia": 0.220,
+                "British Columbia": 0.180,
+                "New Brunswick": 0.100,
+                "Quebec": 0.060,
+                "Prince Edward Island": 0.020,
+            },
+        },
+        "wave2_halibut": {
+            "label": "Nov 17 Greenland Halibut / Turbot ($96M Base; 30%→5% Tent. MFN)",
+            "sunset_group": "jetc_2028",
+            "trade_base_2024_m": 96.0,
+            "full_scale": 1.00,
+            "incremental_2027_scale": 1.00,
+            "wave2_scale": 1.00,
+            "can_recovered_val_m": 28.5,
+            "share_114": 0.20,
+            "share_3117": 0.80,
+            "a_114_in_3117": 0.52,
+            "prov_shares": {
+                "Newfoundland and Labrador": 0.680,
+                "Quebec": 0.170,
+                "Nova Scotia": 0.150,
+            },
+        },
+        "wave2_shrimp_prawns": {
+            "label": "Nov 17 Cold-Water Shrimp & Pacific Spot Prawns ($87.5M Base; 30%→5%–8%)",
+            "sunset_group": "jetc_2028",
+            "trade_base_2024_m": 87.5,
+            "full_scale": 1.00,
+            "incremental_2027_scale": 1.00,
+            "wave2_scale": 1.00,
+            "can_recovered_val_m": 26.2,
+            "share_114": 0.25,
+            "share_3117": 0.75,
+            "a_114_in_3117": 0.54,
+            "prov_shares": {
+                "Newfoundland and Labrador": 0.450,
+                "British Columbia": 0.280,
+                "Nova Scotia": 0.160,
+                "Quebec": 0.110,
+            },
+        },
+        "wave2_wild_molluscs_geoduck": {
+            "label": "Nov 17 Live Geoduck & Offshore Surf Clams ($59.6M Wild Base; 32%→7%)",
+            "sunset_group": "jetc_2028",
+            "trade_base_2024_m": 59.6,
+            "full_scale": 1.00,
+            "incremental_2027_scale": 1.00,
+            "wave2_scale": 1.00,
+            "can_recovered_val_m": 18.4,
+            "share_114": 0.60,
+            "share_3117": 0.40,
+            "a_114_in_3117": 0.50,
+            "prov_shares": {
+                "British Columbia": 0.620,
+                "Nova Scotia": 0.320,
+                "Newfoundland and Labrador": 0.030,
+                "New Brunswick": 0.020,
+                "Prince Edward Island": 0.010,
+            },
+        },
+        "wave2_sea_cucumber": {
+            "label": "Nov 17 Sea Cucumber ($39.4M Base; 32%–35%→7%–10% MFN)",
+            "sunset_group": "jetc_2028",
+            "trade_base_2024_m": 39.4,
+            "full_scale": 1.00,
+            "incremental_2027_scale": 1.00,
+            "wave2_scale": 1.00,
+            "can_recovered_val_m": 12.6,
+            "share_114": 0.10,
+            "share_3117": 0.90,
+            "a_114_in_3117": 0.48,
+            "prov_shares": {
+                "British Columbia": 0.480,
+                "Newfoundland and Labrador": 0.300,
+                "Nova Scotia": 0.150,
+                "Quebec": 0.040,
+                "New Brunswick": 0.030,
+            },
+        },
+    },
+}
+
+
+def _primary_channel_matches_farm_type(ch_key: str, farm_type: str) -> bool:
+    ft = str(farm_type)
+    if ft in ("All farm types", ""):
+        return True
+    if ch_key in ("canola_seed_1111", "dry_peas_1111", "eastern_oilseed_spillover_1111"):
+        return ("1111" in ft) or ("Oilseed and grain" in ft) or (ft == "Crop production [111]")
+    if ch_key == "reopened_beef_cattle_1121":
+        return ("11211" in ft) or ("Beef" in ft) or (ft == "Animal production [112]")
+    if ch_key == "shenzhen_hogs_1122":
+        return ("1122" in ft) or ("Hog" in ft) or (ft == "Animal production [112]")
+    if ch_key == "cultured_clam_geoduck_1125":
+        return ("1125" in ft) or ("1129" in ft) or ("112A" in ft) or (ft == "Animal production [112]")
+    return False
+
+
+def get_china_2026_rollback_params(
+    region: str = "Ontario",
+    farm_type: str = "All farm types",
+    package_mode: str = "incremental_2027",
+    horizon_mode: str = "maintained",
+    include_marine_seafood: bool = True,
+    is_long_run: bool = False,
+    horizon: int = 10,
+) -> Dict[str, Any]:
+    """
+    Compute empirical PE-ABP-IO parameters for the 2026 China Tariff Rollbacks across
+    Canada and all 10 provinces:
+      - `package_mode`:
+          * 'incremental_2027': 100% of Wave 2 (Jan 1, 2027) + residual unrealized Wave 1 headroom
+          * 'wave2_shenzhen': Nov 17, 2026 Shenzhen Deal only ($116M pork cuts + $284.3M seafood)
+          * 'full_2026': Full Wave 1 + Wave 2 bilateral package vs. 2025 tariff-depressed trough
+      - `horizon_mode`:
+          * 'maintained': Post-2026 access renewed/maintained across Years 1–10 (bounded by rotation/TAC limits)
+          * 'dec_2028_sunset': JETC/Shenzhen Annex 1 & 2 suspensions expire Dec 31, 2028 (end of Year 2),
+            while MOFCOM's 5-year 14.9% canola seed ruling holds through Feb 2031 (Year 5).
+    """
+    pkg = CHINA_2026_ROLLBACK_PACKAGE
+    scale_key = {
+        "full_2026": "full_scale",
+        "incremental_2027": "incremental_2027_scale",
+        "wave2_shenzhen": "wave2_scale",
+    }.get(str(package_mode).lower(), "incremental_2027_scale")
+
+    is_all_farms = str(farm_type) in ("All farm types", "")
+    lam_adj = 0.42  # Faster biological/contract adjustment across 2027–2029
+
+    def _reg_share(sh_map: Dict[str, float]) -> float:
+        if region == "Canada":
+            return 1.0
+        return float(sh_map.get(region, 0.0))
+
+    def _sunset_mult(sunset_group: str, t_yr: int) -> float:
+        if str(horizon_mode).lower() != "dec_2028_sunset":
+            return 1.0
+        if sunset_group == "jetc_2028":
+            return 1.0 if t_yr <= 2 else 0.0
+        if sunset_group == "mofcom_2031":
+            return 1.0 if t_yr <= 5 else 0.20
+        return 1.0
+
+    yearly_phys_m = [0.0] * max(horizon, 10)
+    yearly_price_m = [0.0] * max(horizon, 10)
+    yr1_phys_m = 0.0
+    lr_phys_m = 0.0
+    yr1_pure_price_m = 0.0
+    lr_pure_price_m = 0.0
+    breakdown: List[Dict[str, Any]] = []
+
+    # 1. Primary Agriculture Channels (111A / 112A / 1125 — Feeds Farm NCI, DSCR & Solvency)
+    for ch_key, c in pkg["primary_channels"].items():
+        if not _primary_channel_matches_farm_type(ch_key, farm_type):
+            continue
+        m_scale = float(c[scale_key]) * _reg_share(c["prov_shares"])
+        if m_scale <= 1e-9:
+            continue
+
+        p1_sr = float(c["can_yr1_pure_price_m"]) * m_scale
+        q1_sr = float(c["can_yr1_phys_m"]) * m_scale
+        p_mr = float(c["can_mr_pure_price_m"]) * m_scale
+        q_mr = float(c["can_mr_phys_m"]) * m_scale
+
+        for idx in range(len(yearly_phys_m)):
+            t_yr = idx + 1
+            s_mult = _sunset_mult(c["sunset_group"], t_yr)
+            decay_t = (1.0 - lam_adj) ** idx
+            q_t = (q_mr + (q1_sr - q_mr) * decay_t) * s_mult
+            p_t = (p_mr + (p1_sr - p_mr) * decay_t) * s_mult
+            yearly_phys_m[idx] += q_t
+            yearly_price_m[idx] += p_t
+
+        s_lr = _sunset_mult(c["sunset_group"], max(1, horizon))
+        yr1_phys_m += q1_sr
+        lr_phys_m += q_mr * s_lr
+        yr1_pure_price_m += p1_sr
+        lr_pure_price_m += p_mr * s_lr
+
+        breakdown.append({
+            "channel": c["label"],
+            "sector_type": c["sector_type"],
+            "targeted_trade_base_m": float(c["trade_base_2024_m"]) * _reg_share(c["prov_shares"]),
+            "yr1_phys_output_m": q1_sr,
+            "lr_phys_output_m": q_mr * s_lr,
+            "yr1_pure_price_m": p1_sr,
+            "yr1_total_margin_m": p1_sr + q1_sr * 0.32,
+        })
+
+    # 2. Co-Targeted Agri-Food Processors (BS311200 & BS311600 — Upstream Farm Inputs Zeroed Out)
+    proc_abp_phys_dollars: Dict[str, float] = {}
+    proc_pure_gos_dollars: Dict[str, float] = {}
+    proc_gross_direct_out_m = 0.0
+    s_proc_mult = 1.0 if (not is_long_run) else _sunset_mult("jetc_2028", max(1, horizon))
+
+    for p_key, p_cfg in pkg["processor_channels"].items():
+        p_code = p_cfg["naics"]
+        if not is_all_farms:
+            ft = str(farm_type)
+            if p_code == "3112" and not (("1111" in ft) or ("Oilseed" in ft) or (ft == "Crop production [111]")):
+                continue
+            if p_code == "3116" and "pork" in p_key and not (("1122" in ft) or ("Hog" in ft) or (ft == "Animal production [112]")):
+                continue
+            if p_code == "3116" and "beef" in p_key and not (("11211" in ft) or ("Beef" in ft) or (ft == "Animal production [112]")):
+                continue
+
+        m_scale = float(p_cfg[scale_key]) * _reg_share(p_cfg["prov_shares"])
+        if m_scale <= 1e-9:
+            continue
+
+        gross_sr = float(p_cfg["can_yr1_gross_direct_out_m"]) * m_scale
+        gross_mr = float(p_cfg["can_mr_gross_direct_out_m"]) * m_scale * _sunset_mult(p_cfg["sunset_group"], max(1, horizon))
+        abp_phys = (
+            float(p_cfg["can_mr_abp_nonfarm_phys_m"]) * m_scale * s_proc_mult
+            if is_long_run
+            else float(p_cfg["can_yr1_abp_nonfarm_phys_m"]) * m_scale
+        )
+        pure_gos = (
+            float(p_cfg["can_mr_pure_gos_m"]) * m_scale * s_proc_mult
+            if is_long_run
+            else float(p_cfg["can_yr1_pure_gos_m"]) * m_scale
+        )
+        gross_active = gross_mr if is_long_run else gross_sr
+        proc_gross_direct_out_m += gross_active
+        proc_abp_phys_dollars[p_code] = proc_abp_phys_dollars.get(p_code, 0.0) + (abp_phys * 1e6)
+        proc_pure_gos_dollars[p_code] = proc_pure_gos_dollars.get(p_code, 0.0) + (pure_gos * 1e6)
+
+        breakdown.append({
+            "channel": p_cfg["label"],
+            "sector_type": f"Co-Targeted Processor ({p_code})",
+            "targeted_trade_base_m": float(p_cfg["trade_base_2024_m"]) * _reg_share(p_cfg["prov_shares"]),
+            "yr1_phys_output_m": gross_sr,
+            "lr_phys_output_m": gross_mr,
+            "yr1_pure_price_m": float(p_cfg["can_yr1_pure_gos_m"]) * m_scale,
+            "yr1_total_margin_m": (float(p_cfg["can_yr1_pure_gos_m"]) * m_scale) + (float(p_cfg["can_yr1_abp_nonfarm_phys_m"]) * m_scale * 0.24),
+        })
+
+    # 3. Wild-Capture Fisheries (BS114000) & Seafood Processing (BS311700) — Only when include_marine_seafood & All Farms
+    marine_channels_active: List[Dict[str, Any]] = []
+    if include_marine_seafood and is_all_farms:
+        for m_key, m_cfg in pkg["marine_seafood_channels"].items():
+            m_scale = float(m_cfg[scale_key]) * _reg_share(m_cfg["prov_shares"])
+            if m_scale <= 1e-9:
+                continue
+            s_m = _sunset_mult(m_cfg["sunset_group"], max(1, horizon)) if is_long_run else 1.0
+            rec_val_m = float(m_cfg["can_recovered_val_m"]) * m_scale * s_m
+            rec_yr1_m = float(m_cfg["can_recovered_val_m"]) * m_scale
+            rec_lr_m = float(m_cfg["can_recovered_val_m"]) * m_scale * _sunset_mult(m_cfg["sunset_group"], max(1, horizon))
+
+            marine_channels_active.append({
+                "key": m_key,
+                "label": m_cfg["label"],
+                "recovered_val_m": rec_val_m,
+                "share_114": float(m_cfg["share_114"]),
+                "share_3117": float(m_cfg["share_3117"]),
+                "a_114_in_3117": float(m_cfg["a_114_in_3117"]),
+            })
+            breakdown.append({
+                "channel": m_cfg["label"],
+                "sector_type": "Wild Fishery & Seafood (BS114000 / BS311700)",
+                "targeted_trade_base_m": float(m_cfg["trade_base_2024_m"]) * _reg_share(m_cfg["prov_shares"]),
+                "yr1_phys_output_m": rec_yr1_m,
+                "lr_phys_output_m": rec_lr_m,
+                "yr1_pure_price_m": rec_yr1_m * 0.85,
+                "yr1_total_margin_m": rec_yr1_m * 0.88,
+            })
+
+    yr1_tot_margin_m = yr1_pure_price_m + (yr1_phys_m * 0.32)
+    lr_tot_margin_m = lr_pure_price_m + (lr_phys_m * 0.32)
+
+    return {
+        "mode": "china_rollback_2026",
+        "package_mode": package_mode,
+        "horizon_mode": horizon_mode,
+        "tariff_pct": -25.0,  # Negative wedge indicator denoting tariff rollback
+        "yr1_primary_phys_dollars": yr1_phys_m * 1e6,
+        "lr_primary_phys_dollars": lr_phys_m * 1e6,
+        "yr1_primary_pure_price_dollars": yr1_pure_price_m * 1e6,
+        "lr_primary_pure_price_dollars": lr_pure_price_m * 1e6,
+        "yr1_primary_total_margin_dollars": yr1_tot_margin_m * 1e6,
+        "lr_primary_total_margin_dollars": lr_tot_margin_m * 1e6,
+        "yearly_primary_phys_dollars": [v * 1e6 for v in yearly_phys_m],
+        "yearly_primary_pure_price_dollars": [v * 1e6 for v in yearly_price_m],
+        "effective_lam": lam_adj,
+        "channel_breakdown": breakdown,
+        "processor_export_shock_by_naics_dollars": proc_abp_phys_dollars,
+        "processor_pure_gos_by_naics_dollars": proc_pure_gos_dollars,
+        "processor_gross_direct_output_dollars": proc_gross_direct_out_m * 1e6,
+        "marine_seafood_channels": marine_channels_active,
+    }
+
+
+def combine_trade_shock_packages(
+    us_pkg: Dict[str, Any],
+    china_pkg: Dict[str, Any],
+    horizon: int = 10,
+) -> Dict[str, Any]:
+    """
+    Combine U.S. Section 338 tariff headwinds and 2026 China tariff rollback gains into
+    a unified bilateral PE-ABP-IO parameter package with year-by-year trajectories.
+    """
+    n_yrs = max(horizon, 10)
+    lam_us = max(float(us_pkg.get("effective_lam", 0.16)), 0.01)
+    us_q1 = float(us_pkg.get("yr1_primary_phys_dollars", 0.0))
+    us_qlr = float(us_pkg.get("lr_primary_phys_dollars", us_q1))
+    us_p1 = float(us_pkg.get("yr1_primary_pure_price_dollars", 0.0))
+    us_plr = float(us_pkg.get("lr_primary_pure_price_dollars", us_p1))
+
+    ch_q_vec = list(china_pkg.get("yearly_primary_phys_dollars", [0.0] * n_yrs))
+    ch_p_vec = list(china_pkg.get("yearly_primary_pure_price_dollars", [0.0] * n_yrs))
+
+    comb_q_vec: List[float] = []
+    comb_p_vec: List[float] = []
+    for idx in range(n_yrs):
+        d_us = (1.0 - lam_us) ** idx
+        q_us_t = us_qlr + (us_q1 - us_qlr) * d_us
+        p_us_t = us_plr + (us_p1 - us_plr) * d_us
+        q_ch_t = ch_q_vec[min(idx, len(ch_q_vec) - 1)] if ch_q_vec else 0.0
+        p_ch_t = ch_p_vec[min(idx, len(ch_p_vec) - 1)] if ch_p_vec else 0.0
+        comb_q_vec.append(q_us_t + q_ch_t)
+        comb_p_vec.append(p_us_t + p_ch_t)
+
+    merged_proc: Dict[str, float] = dict(us_pkg.get("processor_export_shock_by_naics_dollars", {}))
+    for k, v in china_pkg.get("processor_export_shock_by_naics_dollars", {}).items():
+        merged_proc[k] = merged_proc.get(k, 0.0) + float(v)
+
+    merged_gos: Dict[str, float] = dict(china_pkg.get("processor_pure_gos_by_naics_dollars", {}))
+    us_proc_gross = sum(float(v) for v in us_pkg.get("processor_export_shock_by_naics_dollars", {}).values())
+    ch_proc_gross = float(china_pkg.get("processor_gross_direct_output_dollars", 0.0))
+
+    return {
+        "mode": "combined_us_china_2026",
+        "tariff_pct": float(us_pkg.get("tariff_pct", 50.0)),
+        "yr1_primary_phys_dollars": comb_q_vec[0],
+        "lr_primary_phys_dollars": comb_q_vec[min(horizon - 1, len(comb_q_vec) - 1)],
+        "yr1_primary_pure_price_dollars": comb_p_vec[0],
+        "lr_primary_pure_price_dollars": comb_p_vec[min(horizon - 1, len(comb_p_vec) - 1)],
+        "yr1_primary_total_margin_dollars": float(us_pkg.get("yr1_primary_total_margin_dollars", 0.0)) + float(china_pkg.get("yr1_primary_total_margin_dollars", 0.0)),
+        "lr_primary_total_margin_dollars": float(us_pkg.get("lr_primary_total_margin_dollars", 0.0)) + float(china_pkg.get("lr_primary_total_margin_dollars", 0.0)),
+        "yearly_primary_phys_dollars": comb_q_vec,
+        "yearly_primary_pure_price_dollars": comb_p_vec,
+        "effective_lam": 0.22,
+        "channel_breakdown": list(us_pkg.get("channel_breakdown", [])) + list(china_pkg.get("channel_breakdown", [])),
+        "processor_export_shock_by_naics_dollars": merged_proc,
+        "processor_pure_gos_by_naics_dollars": merged_gos,
+        "processor_gross_direct_output_dollars": us_proc_gross + ch_proc_gross,
+        "marine_seafood_channels": list(china_pkg.get("marine_seafood_channels", [])),
+    }
+
 
 
 

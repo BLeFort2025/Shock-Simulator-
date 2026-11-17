@@ -403,7 +403,7 @@ def compute_effective_tariff_price_shock(
     Armington expenditure reallocation attenuation factor so choke-price effects
     do not breach variable harvesting shut-down floors.
     """
-    if tariff_pct <= 0.0:
+    if abs(tariff_pct) < 1e-9:
         return {
             "effective_multiplier": 0.0,
             "direct_export_channel_pct": 0.0,
@@ -412,14 +412,15 @@ def compute_effective_tariff_price_shock(
             "attenuation_factor": 1.0,
         }
 
-    tau = tariff_pct / 100.0
-    log_tau = float(np.log(1.0 + tau))
+    tau_abs = abs(tariff_pct) / 100.0
+    sign_mult = 1.0 if tariff_pct > 0.0 else -1.0
+    log_tau = sign_mult * float(np.log(1.0 + tau_abs))
 
-    # Bank of Canada SWP 2026-36 nonlinear attenuation above 25% tariff
+    # Bank of Canada SWP 2026-36 nonlinear attenuation above 25% tariff magnitude
     attenuation = 1.0
-    if use_nonlinear_atkeson_burstein and tau > 0.25:
-        # Smooth second-order curvature adjustment above tau=0.25 (at tau=0.50, ~0.88x of log-linear)
-        excess = (tau - 0.25) / 0.25
+    if use_nonlinear_atkeson_burstein and tau_abs > 0.25:
+        # Smooth second-order curvature adjustment above |tau|=0.25 (at |tau|=0.50, ~0.88x of log-linear)
+        excess = (tau_abs - 0.25) / 0.25
         attenuation = 1.0 - 0.12 * (excess ** 1.35)
 
     direct_share = float(us_price_share)
@@ -986,6 +987,8 @@ def compute_downstream_abp_impact(
     geo_scope: str = "all_provinces",
     nominal_year: int = 2025,
     processor_export_shock_by_naics: Optional[Dict[str, float]] = None,
+    processor_pure_gos_by_naics: Optional[Dict[str, float]] = None,
+    processor_gross_direct_override_dollars: Optional[float] = None,
 ) -> Dict[str, Any]:
     """
     Compute netted Analysis-by-Parts (ABP) downstream Food & Beverage processing
@@ -997,8 +1000,10 @@ def compute_downstream_abp_impact(
         farm goods depress domestic farm prices rather than rationing processor supply,
         so `primary_supply_shock_dollars` excludes export-tariff farm output drops;
         meanwhile, co-targeted processor export shocks (`processor_export_shock_by_naics`,
-        e.g., HS Ch. 04, 17, 19, 22) enter directly and are multiplied by upstream-farm-netted
+        e.g., HS Ch. 04, 17, 19, 22, 23, 02) enter directly and are multiplied by upstream-farm-netted
         Leontief multipliers (`m_net_*`) so local farm impacts are never double-counted.
+        Pure processor margin/basis realizations (`processor_pure_gos_by_naics`, P8000) add
+        dollar-for-dollar to processor GDP without fabricating upstream seed, livestock, or utility volume.
       - Regime 2 (Physical Domestic Non-Tariff Supply Contraction): Input-cost, weather,
         or biological contractions enter via `primary_supply_shock_dollars`.
     """
@@ -1022,7 +1027,7 @@ def compute_downstream_abp_impact(
     m_111A = mults.get("111A", {"output": 1.642, "gdp": 0.778, "jobs": 5.138, "wages": 0.253})
     m_1114A = mults.get("1114A", {"output": 1.553, "gdp": 0.770, "jobs": 10.085, "wages": 0.460})
     m_112A = mults.get("112A", {"output": 2.272, "gdp": 0.776, "jobs": 7.355, "wages": 0.338})
-    m_1125 = mults.get("1125", {"output": 1.800, "gdp": 0.450, "jobs": 4.500, "wages": 0.220})
+    m_1125 = mults.get("1125", {"output": 1.800, "gdp": 0.450, "jobs": 4.500, "jobs_fte": 4.500, "wages": 0.220})
 
     proc_deflator_2022 = get_constant_2022_price_deflator(
         region=region, sector_key="311_312", nominal_year=nominal_year
@@ -1035,27 +1040,32 @@ def compute_downstream_abp_impact(
     s_proc = float(disp_shares["s_proc"])
     proc_weights = disp_cfg["processor_weights"]
     exp_shock_map = processor_export_shock_by_naics or {}
+    gos_shock_map = processor_pure_gos_by_naics or {}
 
     farm_to_proc_flow_dollars = primary_supply_shock_dollars * s_proc
 
     subsector_rows: List[Dict[str, Any]] = []
     tot_proc_direct_output = 0.0
     tot_proc_export_shock = 0.0
+    tot_proc_pure_gos = 0.0
     tot_proc_net_output = 0.0
     tot_proc_net_gdp = 0.0
     tot_proc_net_jobs = 0.0
     tot_proc_net_wages = 0.0
     tot_double_count_removed_gdp = 0.0
 
-    ordered_p_codes = list(proc_weights.keys()) + [
-        k for k in exp_shock_map.keys() if k not in proc_weights
+    extra_keys = [
+        k for k in list(exp_shock_map.keys()) + list(gos_shock_map.keys())
+        if k not in proc_weights
     ]
+    ordered_p_codes = list(proc_weights.keys()) + list(dict.fromkeys(extra_keys))
 
     for p_code in ordered_p_codes:
         if p_code not in ABP_PROCESSOR_TABLE:
             continue
         w_share = float(proc_weights.get(p_code, 0.0))
         direct_export_shock = float(exp_shock_map.get(p_code, 0.0))
+        pure_gos_shock = float(gos_shock_map.get(p_code, 0.0))
         p_info = ABP_PROCESSOR_TABLE[p_code]
         p_coeffs = p_info.get(reg_key, p_info["Canada"])
         p_mult_gross = mults.get(p_code, {"output": 1.85, "gdp": 0.58, "jobs": 4.20, "wages": 0.30})
@@ -1120,16 +1130,18 @@ def compute_downstream_abp_impact(
             if abs(primary_cost_shock_dollars) > 1e-6
             else 0.0
         )
-        proc_direct_delta = proc_supply_shock + proc_cost_squeeze + direct_export_shock
+        proc_phys_delta = proc_supply_shock + proc_cost_squeeze + direct_export_shock
+        proc_direct_delta = proc_phys_delta + pure_gos_shock
 
-        net_out_val = proc_direct_delta * m_net_out
-        net_gdp_val = proc_direct_delta * m_net_gdp
-        net_jobs_val = ((proc_direct_delta / proc_deflator_2022) / 1e6) * m_net_jobs
-        net_wages_val = proc_direct_delta * m_net_wages
-        dc_removed_gdp_val = proc_direct_delta * eff_dc_gdp
+        net_out_val = (proc_phys_delta * m_net_out) + pure_gos_shock
+        net_gdp_val = (proc_phys_delta * m_net_gdp) + pure_gos_shock
+        net_jobs_val = ((proc_phys_delta / proc_deflator_2022) / 1e6) * m_net_jobs
+        net_wages_val = proc_phys_delta * m_net_wages
+        dc_removed_gdp_val = proc_phys_delta * eff_dc_gdp
 
         tot_proc_direct_output += proc_direct_delta
-        tot_proc_export_shock += direct_export_shock
+        tot_proc_export_shock += (direct_export_shock + pure_gos_shock)
+        tot_proc_pure_gos += pure_gos_shock
         tot_proc_net_output += net_out_val
         tot_proc_net_gdp += net_gdp_val
         tot_proc_net_jobs += net_jobs_val
@@ -1148,13 +1160,21 @@ def compute_downstream_abp_impact(
             "ABP Net GDP Mult": m_net_gdp,
             "ABP Net Jobs (/ $1M)": m_net_jobs,
             "Direct Processor Shock ($M)": proc_direct_delta / 1e6,
-            "Co-Targeted Export Shock ($M)": direct_export_shock / 1e6,
+            "Co-Targeted Export Shock ($M)": (direct_export_shock + pure_gos_shock) / 1e6,
             "ABP Net Output Impact ($M)": net_out_val / 1e6,
             "ABP Net GDP Impact ($M)": net_gdp_val / 1e6,
             "ABP Net Jobs": net_jobs_val,
             "ABP Net Wages ($M)": net_wages_val / 1e6,
             "Upstream Farm GDP Netted Out ($M)": dc_removed_gdp_val / 1e6,
         })
+
+    if processor_gross_direct_override_dollars is not None:
+        non_export_direct = sum(
+            (farm_to_proc_flow_dollars * float(proc_weights.get(pc, 0.0)) * min(2.2, 1.0 / max(float(ABP_PROCESSOR_TABLE[pc].get(reg_key, ABP_PROCESSOR_TABLE[pc]["Canada"])["a_farm_proc_dom"]), 0.20)) * (1.0 - float(ABP_PROCESSOR_TABLE[pc].get(reg_key, ABP_PROCESSOR_TABLE[pc]["Canada"])["m_farm_imp"])))
+            + (-primary_cost_shock_dollars * s_proc * float(proc_weights.get(pc, 0.0)) * float(ABP_PROCESSOR_TABLE[pc].get(reg_key, ABP_PROCESSOR_TABLE[pc]["Canada"])["psi_pass_through"]) * get_processor_cost_pass_through(p_code=pc, farm_type=farm_type, is_long_run=is_long_run) if abs(primary_cost_shock_dollars) > 1e-6 else 0.0)
+            for pc in ordered_p_codes if pc in ABP_PROCESSOR_TABLE
+        )
+        tot_proc_direct_output = non_export_direct + float(processor_gross_direct_override_dollars)
 
     return {
         "region": reg_key,
@@ -1165,12 +1185,144 @@ def compute_downstream_abp_impact(
         "farm_to_proc_flow_m": farm_to_proc_flow_dollars / 1e6,
         "proc_direct_output_m": tot_proc_direct_output / 1e6,
         "proc_export_shock_m": tot_proc_export_shock / 1e6,
+        "proc_pure_gos_m": tot_proc_pure_gos / 1e6,
         "proc_net_output_m": tot_proc_net_output / 1e6,
         "proc_net_gdp_m": tot_proc_net_gdp / 1e6,
         "proc_net_jobs": tot_proc_net_jobs,
         "proc_net_wages_m": tot_proc_net_wages / 1e6,
         "double_counted_farm_gdp_removed_m": tot_double_count_removed_gdp / 1e6,
         "subsectors": subsector_rows,
+    }
+
+
+def compute_marine_seafood_abp_impact(
+    io_df: pd.DataFrame,
+    region: str,
+    year: int,
+    marine_channels: Optional[List[Dict[str, Any]]] = None,
+    multiplier_type: str = "Simple multiplier",
+    geo_scope: str = "all_provinces",
+    nominal_year: int = 2025,
+) -> Dict[str, Any]:
+    """
+    Compute Economy-Wide Wild-Capture Fisheries (BS114000, join='114') and Seafood
+    Preparation (BS311700, join='3117') Analysis-by-Parts impacts for China Tariff
+    Rollbacks while maintaining a strict accounting firewall from Primary Agriculture
+    solvency (NCI, DSCR, LRF, Tab 4 farm bridges).
+
+    Enforces:
+      1. DFO Total Allowable Catch (TAC) / trap-limit constraint on BS114000 (92% pure
+         dockside P7000/P8000 crew-share & harvester GOS; 8% physical effort volume).
+      2. Hawkins-Simon upstream wild-landing netting on BS311700 (`a_114_in_3117` = 0.48–0.58)
+         so raw commercial fishery landings are never double-counted inside seafood plants.
+    """
+    if not marine_channels:
+        return {
+            "marine_direct_output_m": 0.0,
+            "marine_net_output_m": 0.0,
+            "marine_net_gdp_m": 0.0,
+            "marine_net_jobs": 0.0,
+            "marine_net_wages_m": 0.0,
+            "double_counted_114_gdp_removed_m": 0.0,
+            "channels": [],
+        }
+
+    mults = load_subsector_io_multipliers(
+        io_df, region=region, year=year, multiplier_type=multiplier_type, geo_scope=geo_scope
+    )
+    dir_mults = load_subsector_io_multipliers(
+        io_df, region=region, year=year, multiplier_type="Direct multiplier", geo_scope=geo_scope
+    )
+
+    m_114 = mults.get("114", {"output": 1.453, "gdp": 0.814, "jobs": 4.80, "wages": 0.28})
+    v_114 = dir_mults.get("114", {"output": 1.0, "gdp": 0.62, "jobs": 3.10, "wages": 0.20})
+    m_3117 = mults.get("3117", {"output": 1.991, "gdp": 0.693, "jobs": 6.20, "wages": 0.30})
+    v_3117 = dir_mults.get("3117", {"output": 1.0, "gdp": 0.24, "jobs": 2.40, "wages": 0.14})
+    if m_3117["gdp"] <= 0.0:
+        m_3117 = {"output": 1.991, "gdp": 0.693, "jobs": 6.20, "wages": 0.30}
+    if v_3117["gdp"] <= 0.0:
+        v_3117 = {"output": 1.0, "gdp": 0.24, "jobs": 2.40, "wages": 0.14}
+
+    deflator_2022 = get_constant_2022_price_deflator(
+        region=region, sector_key="311_312", nominal_year=nominal_year
+    )
+
+    tot_dir_out = 0.0
+    tot_net_out = 0.0
+    tot_net_gdp = 0.0
+    tot_net_jobs = 0.0
+    tot_net_wages = 0.0
+    tot_dc_gdp = 0.0
+    rows: List[Dict[str, Any]] = []
+
+    for ch in marine_channels:
+        rec_dollars = float(ch.get("recovered_val_m", 0.0)) * 1e6
+        if abs(rec_dollars) <= 1.0:
+            continue
+        sh_114 = float(ch.get("share_114", 0.5))
+        sh_3117 = float(ch.get("share_3117", 0.5))
+        a_114 = float(ch.get("a_114_in_3117", 0.54))
+
+        # 1. BS114000 Wild Landings: 92% pure dockside P7000/P8000 (TAC-bound), 8% effort volume
+        val_114 = rec_dollars * sh_114
+        pure_dock_114 = val_114 * 0.92
+        phys_114 = val_114 * 0.08
+        out_114 = pure_dock_114 + (phys_114 * m_114["output"])
+        gdp_114 = pure_dock_114 + (phys_114 * m_114["gdp"])
+        jobs_114 = ((phys_114 / deflator_2022) / 1e6) * m_114["jobs"]
+        # Crew-share mixed income (~38% of dockside lift accrues to deckhand/captain labour shares)
+        wages_114 = (pure_dock_114 * 0.38) + (phys_114 * m_114["wages"])
+
+        # 2. BS311700 Seafood Preparation: Net out upstream BS114000 raw landings (`a_114`)
+        val_3117 = rec_dollars * sh_3117
+        pure_gos_3117 = val_3117 * 0.60
+        phys_3117 = val_3117 * 0.40
+
+        m_net_out_3117 = min(m_3117["output"], max(v_3117["output"] + 0.05, m_3117["output"] - a_114 * m_114["output"]))
+        m_net_gdp_3117 = min(m_3117["gdp"], max(v_3117["gdp"] + 0.02, m_3117["gdp"] - a_114 * m_114["gdp"]))
+        m_net_jobs_3117 = min(m_3117["jobs"], max(v_3117["jobs"] + 0.10, m_3117["jobs"] - a_114 * m_114["jobs"]))
+        m_net_wages_3117 = min(m_3117["wages"], max(v_3117["wages"] + 0.02, m_3117["wages"] - a_114 * m_114["wages"]))
+        dc_gdp_coeff = max(0.0, m_3117["gdp"] - m_net_gdp_3117)
+
+        out_3117 = pure_gos_3117 + (phys_3117 * m_net_out_3117)
+        gdp_3117 = pure_gos_3117 + (phys_3117 * m_net_gdp_3117)
+        jobs_3117 = ((phys_3117 / deflator_2022) / 1e6) * m_net_jobs_3117
+        wages_3117 = (pure_gos_3117 * 0.12) + (phys_3117 * m_net_wages_3117)
+        dc_gdp_val = phys_3117 * dc_gdp_coeff
+
+        ch_dir = val_114 + val_3117
+        ch_out = out_114 + out_3117
+        ch_gdp = gdp_114 + gdp_3117
+        ch_jobs = jobs_114 + jobs_3117
+        ch_wages = wages_114 + wages_3117
+
+        tot_dir_out += ch_dir
+        tot_net_out += ch_out
+        tot_net_gdp += ch_gdp
+        tot_net_jobs += ch_jobs
+        tot_net_wages += ch_wages
+        tot_dc_gdp += dc_gdp_val
+
+        rows.append({
+            "Species / Relief Channel": ch.get("label", ""),
+            "Direct Export Recovery ($M)": ch_dir / 1e6,
+            "BS114000 Share (%)": sh_114 * 100.0,
+            "BS311700 Share (%)": sh_3117 * 100.0,
+            "a_114_in_3117": a_114,
+            "Net Output Impact ($M)": ch_out / 1e6,
+            "Net GDP Impact ($M)": ch_gdp / 1e6,
+            "Net Jobs": ch_jobs,
+            "Upstream Landings Netted ($M)": dc_gdp_val / 1e6,
+        })
+
+    return {
+        "marine_direct_output_m": tot_dir_out / 1e6,
+        "marine_net_output_m": tot_net_out / 1e6,
+        "marine_net_gdp_m": tot_net_gdp / 1e6,
+        "marine_net_jobs": tot_net_jobs,
+        "marine_net_wages_m": tot_net_wages / 1e6,
+        "double_counted_114_gdp_removed_m": tot_dc_gdp / 1e6,
+        "channels": rows,
     }
 
 
@@ -1482,20 +1634,28 @@ def run_dynamic_projection(
         tariff_price_margin_delta_t = 0.0
         e_t_val = 0.0
         omega_t_val = 0.0
-        if tariff_params and tariff_params.get("tariff_pct", 0.0) > 0:
-            if tariff_params.get("mode") == "targeted_section338_2026":
+        if tariff_params and abs(float(tariff_params.get("tariff_pct", 0.0))) > 1e-9:
+            t_mode = str(tariff_params.get("mode", ""))
+            if t_mode in ("targeted_section338_2026", "china_rollback_2026", "combined_us_china_2026"):
                 lam = max(float(tariff_params.get("effective_lam", 0.16)), 0.01)
                 decay_t = (1.0 - lam) ** (t - 1)
                 omega_t_val = 1.0 - ((1.0 - lam) ** t)
-                yr1_phys = float(tariff_params.get("yr1_primary_phys_dollars", 0.0))
-                lr_phys = float(tariff_params.get("lr_primary_phys_dollars", yr1_phys))
-                yr1_price = float(tariff_params.get("yr1_primary_pure_price_dollars", 0.0))
-                lr_price = float(tariff_params.get("lr_primary_pure_price_dollars", yr1_price))
+                yr_phys_vec = tariff_params.get("yearly_primary_phys_dollars")
+                yr_price_vec = tariff_params.get("yearly_primary_pure_price_dollars")
+                if yr_phys_vec is not None and yr_price_vec is not None and len(yr_phys_vec) > 0:
+                    idx_v = min(t - 1, len(yr_phys_vec) - 1)
+                    tariff_phys_t = float(yr_phys_vec[idx_v])
+                    tariff_price_margin_delta_t = float(yr_price_vec[min(t - 1, len(yr_price_vec) - 1)])
+                else:
+                    yr1_phys = float(tariff_params.get("yr1_primary_phys_dollars", 0.0))
+                    lr_phys = float(tariff_params.get("lr_primary_phys_dollars", yr1_phys))
+                    yr1_price = float(tariff_params.get("yr1_primary_pure_price_dollars", 0.0))
+                    lr_price = float(tariff_params.get("lr_primary_pure_price_dollars", yr1_price))
+                    tariff_phys_t = lr_phys + (yr1_phys - lr_phys) * decay_t
+                    tariff_price_margin_delta_t = lr_price + (yr1_price - lr_price) * decay_t
 
-                tariff_phys_t = lr_phys + (yr1_phys - lr_phys) * decay_t
                 dynamic_rev_shock = tariff_phys_t + rev_shock_dollars + stoch_rev_adj
-                tariff_price_margin_delta_t = lr_price + (yr1_price - lr_price) * decay_t
-                e_t_val = -(abs(tariff_phys_t) / max(base_output, 1.0))
+                e_t_val = tariff_phys_t / max(base_output, 1.0)
             else:
                 t_pct = float(tariff_params["tariff_pct"])
                 e_sr = float(tariff_params["e_sr"])
@@ -1911,19 +2071,24 @@ def run_monte_carlo_projections(
             prev_capex = curr_capex
 
         mc_tariff_params = None
-        if tariff_params and tariff_params.get("tariff_pct", 0.0) > 0:
-            if tariff_params.get("mode") == "targeted_section338_2026":
+        if tariff_params and abs(float(tariff_params.get("tariff_pct", 0.0))) > 1e-9:
+            t_mode = str(tariff_params.get("mode", ""))
+            if t_mode in ("targeted_section338_2026", "china_rollback_2026", "combined_us_china_2026"):
                 lam_pt = float(tariff_params.get("effective_lam", 0.16))
-                draw_lam = float(np.clip(lam_pt + nerlove_z[i, 1] * 0.045, 0.06, 0.45))
+                draw_lam = float(np.clip(lam_pt + nerlove_z[i, 1] * 0.045, 0.06, 0.65))
                 phys_mult = float(np.clip(1.0 + nerlove_z[i, 0] * 0.18, 0.55, 1.55))
                 price_mult = float(np.clip(1.0 + rng.normal(0.0, 0.12), 0.65, 1.40))
+                yr_phys_vec = tariff_params.get("yearly_primary_phys_dollars")
+                yr_price_vec = tariff_params.get("yearly_primary_pure_price_dollars")
                 mc_tariff_params = {
-                    "mode": "targeted_section338_2026",
+                    "mode": t_mode,
                     "tariff_pct": tariff_params["tariff_pct"],
                     "yr1_primary_phys_dollars": float(tariff_params.get("yr1_primary_phys_dollars", 0.0)) * phys_mult,
                     "lr_primary_phys_dollars": float(tariff_params.get("lr_primary_phys_dollars", 0.0)) * phys_mult,
                     "yr1_primary_pure_price_dollars": float(tariff_params.get("yr1_primary_pure_price_dollars", 0.0)) * price_mult,
                     "lr_primary_pure_price_dollars": float(tariff_params.get("lr_primary_pure_price_dollars", 0.0)) * price_mult,
+                    "yearly_primary_phys_dollars": [float(x) * phys_mult for x in yr_phys_vec] if yr_phys_vec else None,
+                    "yearly_primary_pure_price_dollars": [float(x) * price_mult for x in yr_price_vec] if yr_price_vec else None,
                     "effective_lam": draw_lam,
                 }
             else:
@@ -2562,16 +2727,27 @@ def generate_simulator_word_briefing(
     mc_p90_shock_m = (float(mc_N["Direct_GDP_p90"]) - base_gdp_yrN) / 1e6
 
     # Section 1: Consulting Pyramid Executive Summary
-    h1 = doc.add_heading("1. Executive Summary: Farm Margin Squeeze Outpaces Physical Output Contraction", level=1)
+    is_pos_scenario = (yr1_nci_shock_m > 0.05) or (combined_yr1_gdp_impact_m > 0.05 and yr1_nci_shock_m >= -0.05)
+    h1_title = (
+        "1. Executive Summary: Basis & Margin Recovery Outpaces Short-Run Physical Supply Expansion"
+        if is_pos_scenario
+        else "1. Executive Summary: Farm Margin Squeeze Outpaces Physical Output Contraction"
+    )
+    h1 = doc.add_heading(h1_title, level=1)
     h1.runs[0].font.name = "Arial"
 
+    mech_verb = (
+        "realize the initial market opening primarily through farm-gate basis and cash-margin recovery"
+        if is_pos_scenario
+        else "absorb the initial shock primarily through farm-gate price and operating margin compression"
+    )
     p_exec = doc.add_paragraph()
     r_exec = p_exec.add_run(
         f"Under the {preset_name} scenario, {region} agri-food operations record a Year-1 combined direct output shift "
         f"of {_fmt_ofa_num(combined_yr1_output_impact_m, 1, signed=True)} $M alongside a combined value-added GDP change "
         f"of {_fmt_ofa_num(combined_yr1_gdp_impact_m, 1, signed=True)} $M ({_fmt_ofa_num(combined_yr1_jobs_impact, 0, signed=True)} jobs). "
         f"Because biological production cycles and fixed land commitments hold Year-1 farm supply largely inelastic, "
-        f"producers absorb the initial shock primarily through farm-gate price and operating margin compression "
+        f"producers {mech_verb} "
         f"({_fmt_ofa_num(yr1_nci_shock_m, 1, signed=True)} $M in Year-1 Net Cash Income) before capital investment "
         f"and breeding/planting adjustments compound to {_fmt_ofa_num(yrN_gdp_shock_m, 1, signed=True)} $M in direct farm GDP by Year {horizon}. "
         f"Across all accounts, Nursery, Floriculture, Sod, and Greenhouse producers (NAICS 1114 / HS Chapters 06 and 07) "
@@ -2580,6 +2756,11 @@ def generate_simulator_word_briefing(
     r_exec.font.name = "Arial"
     r_exec.font.size = Pt(10.5)
 
+    t_scope_str = (
+        f"{tariff_commodity}"
+        if ("China" in str(tariff_commodity) or "Realignment" in str(tariff_commodity))
+        else f"{_fmt_ofa_num(tariff_pct, 1)}% on {tariff_commodity}"
+    )
     kpis = [
         ("Jurisdiction & Primary Agriculture Sector", f"{region} — {farm_type}"),
         ("Supply-Chain Multiplier Boundary", scope_label),
@@ -2593,7 +2774,7 @@ def generate_simulator_word_briefing(
             f"{_fmt_ofa_num(yrN_gdp_shock_m, 1, signed=True)} $M [{_fmt_ofa_num(mc_p10_shock_m, 0, signed=True)}M to {_fmt_ofa_num(mc_p90_shock_m, 0, signed=True)}M]",
         ),
         (f"Debt Service Coverage Ratio (Year 1 to Year {horizon})", f"{yr1['DSCR']:.2f}x to {yrN['DSCR']:.2f}x (1.15x Covenant)"),
-        ("Modeled U.S. Border Tariff Scope", f"{_fmt_ofa_num(tariff_pct, 1)}% on {tariff_commodity}"),
+        ("Modeled Trade / Border Tariff Scope", t_scope_str),
     ]
     tbl_kpi = doc.add_table(rows=len(kpis) + 1, cols=2)
     tbl_kpi.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -3047,6 +3228,10 @@ def compute_scenario_comparison_summary(
     brm_adhoc_m_b: float = 0.0,
     df_base_dyn_a: Optional[pd.DataFrame] = None,
     jobs_mult_per_m_a: Optional[float] = None,
+    marine_yr1_a: Optional[Dict[str, Any]] = None,
+    marine_yrN_a: Optional[Dict[str, Any]] = None,
+    marine_yr1_b: Optional[Dict[str, Any]] = None,
+    marine_yrN_b: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Compute a reconciled side-by-side comparison between Benchmark Scenario A (`df_dyn_a`)
@@ -3065,6 +3250,8 @@ def compute_scenario_comparison_summary(
         inc_proc: bool,
         adhoc_m: float,
         j_mult: float,
+        mar1: Optional[Dict[str, Any]] = None,
+        marN: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, float]:
         r1 = df_s.iloc[0]
         rN = df_s.iloc[horizon - 1]
@@ -3080,13 +3267,18 @@ def compute_scenario_comparison_summary(
         proc_gdp_1_m = float(abp1.get("proc_net_gdp_m", 0.0)) if inc_proc else 0.0
         proc_jobs_1 = float(abp1.get("proc_net_jobs", 0.0)) if inc_proc else 0.0
 
-        comb_out_1_m = prim_out_1_m + proc_out_1_m
-        comb_gdp_1_m = prim_gdp_1_m + proc_gdp_1_m
-        comb_jobs_1 = prim_jobs_1 + proc_jobs_1
+        mar_out_1_m = float(mar1.get("marine_direct_output_m", 0.0)) if mar1 else 0.0
+        mar_gdp_1_m = float(mar1.get("marine_net_gdp_m", 0.0)) if mar1 else 0.0
+        mar_jobs_1 = float(mar1.get("marine_net_jobs", 0.0)) if mar1 else 0.0
+
+        comb_out_1_m = prim_out_1_m + proc_out_1_m + mar_out_1_m
+        comb_gdp_1_m = prim_gdp_1_m + proc_gdp_1_m + mar_gdp_1_m
+        comb_jobs_1 = prim_jobs_1 + proc_jobs_1 + mar_jobs_1
 
         prim_gdp_N_m = (float(rN["Direct_GDP"]) - float(bN["Direct_GDP"])) / 1e6
         proc_gdp_N_m = float(abpN.get("proc_net_gdp_m", 0.0)) if inc_proc else 0.0
-        comb_gdp_N_m = prim_gdp_N_m + proc_gdp_N_m
+        mar_gdp_N_m = float(marN.get("marine_net_gdp_m", 0.0)) if marN else 0.0
+        comb_gdp_N_m = prim_gdp_N_m + proc_gdp_N_m + mar_gdp_N_m
 
         cum_prim_gdp_m = float(
             (df_s.iloc[:horizon]["Direct_GDP"].values - df_b_ref.iloc[:horizon]["Direct_GDP"].values).sum()
@@ -3112,8 +3304,8 @@ def compute_scenario_comparison_summary(
             "yr2_capex_crowdout_pct": float(df_s.iloc[min(1, horizon - 1)]["CapEx_CrowdOut_Pct"]),
         }
 
-    m_a = _extract_kpis(df_dyn_a, ref_base_a, abp_yr1_a, abp_yrN_a, include_proc_a, brm_adhoc_m_a, j_mult_a)
-    m_b = _extract_kpis(df_dyn_b, df_base_dyn, abp_yr1_b, abp_yrN_b, include_proc_b, brm_adhoc_m_b, float(jobs_mult_per_m))
+    m_a = _extract_kpis(df_dyn_a, ref_base_a, abp_yr1_a, abp_yrN_a, include_proc_a, brm_adhoc_m_a, j_mult_a, marine_yr1_a, marine_yrN_a)
+    m_b = _extract_kpis(df_dyn_b, df_base_dyn, abp_yr1_b, abp_yrN_b, include_proc_b, brm_adhoc_m_b, float(jobs_mult_per_m), marine_yr1_b, marine_yrN_b)
     deltas = {k: m_b[k] - m_a[k] for k in m_a.keys()}
 
     rows = [
